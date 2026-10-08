@@ -1,0 +1,401 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nicolett Studio Fantasy</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Playfair Display & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+    <!-- FontAwesome (iconos) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        customBg: '#faf7f4',    /* Fondo principal marfil suave */
+                        customDark: '#2a2320',  /* Tono oscuro principal */
+                        customAccent: '#c9a99b',/* Acento rosado/cobrizo */
+                        customMuted: '#7a6e6a', /* Texto secundario */
+                        customBorder: '#e8e0da',/* Bordes sutiles */
+                        customAltBg: '#f2ece7', /* Fondo alternativo sección servicios */
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+                        sans: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-customBg text-customDark font-sans antialiased">
+
+    {% include 'header.html' %}
+
+    <!-- INICIO  -->
+    <section id="inicio" class="grid grid-cols-1 lg:grid-cols-2 pt-10 pb-24 lg:pt-16 lg:pb-64 items-start">
+        <div class="flex flex-col justify-start px-8 lg:px-16 pt-4">
+            <p class="text-[11px] tracking-[0.3em] uppercase text-customAccent mb-6">Salón de belleza · Buin, Santiago</p>
+            <h1 class="font-serif text-5xl lg:text-7xl font-bold leading-[1.08] mb-7 text-customDark">
+                El arte de<br /><em class="italic font-light text-customAccent">hacerte sentir</em><br />hermosa
+            </h1>
+            <p class="text-customMuted max-w-md text-sm lg:text-[15px] leading-relaxed mb-12">
+                En Nicolett Studio Fantasy encontrarás un espacio íntimo dedicado al cuidado y realce de tu belleza natural. Profesionales certificadas, productos premium y una experiencia que querrás repetir.
+            </p>
+            <div class="flex space-x-4 flex-wrap gap-y-4">
+                <a href="#contacto" class="bg-customDark text-customBg text-xs tracking-[0.18em] px-9 py-4 uppercase transition hover:bg-customAccent">Contactar</a>
+            </div>
+            <!-- Estadísticas -->
+            <div class="grid grid-cols-3 gap-8 pt-10 border-t border-customBorder mt-12 max-w-lg">
+                <div>
+                    <p class="font-serif text-3xl font-bold text-customDark">8+</p>
+                    <p class="text-[11px] text-customMuted tracking-wider mt-1">Años de experiencia</p>
+                </div>
+                <div>
+                    <p class="font-serif text-3xl font-bold text-customDark">2.400+</p>
+                    <p class="text-[11px] text-customMuted tracking-wider mt-1">Clientas felices</p>
+                </div>
+                <div>
+                    <p class="font-serif text-3xl font-bold text-customDark">6</p>
+                    <p class="text-[11px] text-customMuted tracking-wider mt-1">Especialistas</p>
+                </div>
+            </div>
+        </div>
+        <div class="relative h-[420px] lg:h-[540px] bg-customBorder overflow-hidden mt-8 lg:mt-0 mx-8 lg:mx-0">
+            <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=900&h=1100&fit=crop&auto=format" alt="Estilista profesional en Nicolett Studio" class="w-full h-full object-cover">
+            <!-- Nota flotante de agenda -->
+            <div class="absolute bottom-6 left-6 bg-customBg/95 p-4 shadow-md">
+                <p class="font-serif text-xs font-semibold tracking-wide text-customDark mb-1">Agenda abierta</p>
+                <p class="text-[11px] text-customMuted">Lun – Sáb · 9:00 – 20:00</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SERVICIOS -->
+    <section id="servicios" class="py-24 px-8 lg:px-16 bg-customAltBg">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-16">
+                <p class="text-[11px] tracking-[0.3em] text-customAccent uppercase font-semibold mb-4">Lo que ofrecemos</p>
+                <h2 class="text-4xl lg:text-5xl font-serif font-bold text-customDark">Nuestros servicios</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-customBorder border border-customBorder">
+                <!-- Servicio 1 -->
+                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
+                    <div>
+                        <span class="text-s text-customAccent font-serif italic mb-4 block">01</span>
+                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Colorimetría</h3>
+                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Diagnóstico personalizado de color, tinte, balayage y decoloración con productos de alta gama.</p><br>
+                        <img src="/static/img/colorimetria.jpg" alt="Colorimetría en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
+                    
+                    </div>
+                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $25.000</p>
+                </div>
+                <!-- Servicio 2 -->
+                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
+                    <div>
+                        <span class="text-s text-customAccent font-serif italic mb-4 block">02</span>
+                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Corte & Estilo</h3>
+                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.</p><br>
+                        <img src="/static/img/corte_estilo.jpg" alt="Corte y estilo en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
+                    </div>
+                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $12.000</p>
+                </div>
+                <!-- Servicio 3 -->
+                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
+                    <div>
+                        <span class="text-s text-customAccent font-serif italic mb-4 block">03</span>
+                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Tratamientos</h3>
+                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.</p><br>
+                        <img src="/static/img/tratamientos.jpg" alt="Tratamientos en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
+                    </div>
+                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $18.000</p>
+                </div>
+                <!-- Servicio 4 -->
+                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
+                    <div>
+                        <span class="text-s text-customAccent font-serif italic mb-4 block">04</span>
+                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Manicure & Pedicure</h3>
+                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Semipermanente, gel, nail art y spa de manos. Uñas que hablan por ti.</p><br>
+                        <img src="/static/img/manicure_pedicure.jpg" alt="Manicure y pedicure en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
+                    </div>
+                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $8.000</p>
+                </div>
+                <!-- Servicio 5 -->
+                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
+                    <div>
+                        <span class="text-s text-customAccent font-serif italic mb-4 block">05</span>
+                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Maquillaje</h3>
+                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Maquillaje social, novia y eventos especiales. Prueba previa incluida en bodas.</p><br>
+                        <img src="/static/img/maquillaje.jpg" alt="Maquillaje en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
+                    </div>
+                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $22.000</p>
+                </div>
+                <!-- Servicio 6 -->
+                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
+                    <div>
+                        <span class="text-s text-customAccent font-serif italic mb-4 block">06</span>
+                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Depilación</h3>
+                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Cera caliente y fría, hilo facial y depilación con láser de diodo. Resultados duraderos.</p><br>
+                        <img src="/static/img/depilacion.jpg" alt="Depilación en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
+                    </div>
+                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $5.000</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NOSOTROS / HISTORIA -->
+    <section id="nosotras" class="py-24 px-8 lg:px-16">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div class="relative">
+                <div class="aspect-[3/4] bg-customBorder overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1629397685944-7073f5589754?w=700&h=900&fit=crop&auto=format" alt="Estilista con rizador en Nicolett Studio" class="w-full h-full object-cover">
+                </div>
+                <div class="absolute -bottom-6 -right-6 bg-customAccent text-customBg p-7 shadow-lg">
+                    <p class="font-serif text-4xl font-bold">8</p>
+                    <p class="text-[10px] tracking-[0.15em] uppercase mt-1">Años de pasión</p>
+                </div>
+            </div>
+            <div class="space-y-6">
+                <p class="text-[11px] tracking-[0.3em] text-customAccent uppercase font-semibold">Nuestra historia</p>
+                <h2 class="font-serif text-4xl lg:text-5xl font-bold leading-tight text-customDark">
+                    Creamos belleza <em class="italic font-light">con propósito</em>
+                </h2>
+                <p class="text-sm lg:text-[15px] text-customMuted leading-relaxed">
+                    Nicolett Studio Fantasy nació del sueño de crear un espacio donde cada clienta se sienta vista y valorada. Fundado en 2016 en Buin, hemos crecido hasta convertirnos en un referente del bienestar estético en Santiago.
+                </p>
+                <p class="text-sm lg:text-[15px] text-customMuted leading-relaxed">
+                    Nuestro equipo de 6 especialistas se capacita permanentemente en las últimas tendencias y técnicas.
+                </p>
+                <div class="space-y-3 pt-4">
+                    <div class="flex items-center gap-3">
+                        <span class="w-5 h-[1px] bg-customAccent"></span>
+                        <span class="text-sm text-customDark">Productos 100% libres de parabenos</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="w-5 h-[1px] bg-customAccent"></span>
+                        <span class="text-sm text-customDark">Certificadas en colorimetría avanzada</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="w-5 h-[1px] bg-customAccent"></span>
+                        <span class="text-sm text-customDark">Agenda online disponible las 24 horas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GALERÍA -->
+    <section id="galeria" class="py-24 px-8 lg:px-16 bg-customAltBg">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-end mb-14 flex-wrap gap-4">
+                <div>
+                    <p class="text-[11px] tracking-[0.3em] text-customAccent uppercase font-semibold mb-4">Nuestro trabajo</p>
+                    <h2 class="font-serif text-4xl lg:text-5xl font-bold text-customDark">Galería</h2>
+                </div>
+                <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" class="text-xs tracking-[0.15em] uppercase text-customMuted hover:text-customDark border-b border-customAccent pb-1 transition">VER MÁS EN INSTAGRAM →</a>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 auto-rows-[220px] gap-3">
+                <div class="overflow-hidden bg-customBorder">
+                    <img src="https://images.unsplash.com/photo-1634449571010-02389ed0f9b0?w=600&h=800&fit=crop&auto=format" alt="Corte" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                </div>
+                <div class="overflow-hidden bg-customBorder md:row-span-2">
+                    <img src="https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=600&h=800&fit=crop&auto=format" alt="Interior salón" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                </div>
+                <div class="overflow-hidden bg-customBorder">
+                    <img src="https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=600&h=800&fit=crop&auto=format" alt="Secado" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                </div>
+                <div class="overflow-hidden bg-customBorder">
+                    <img src="https://images.unsplash.com/photo-1560869713-7d0a29430803?w=600&h=800&fit=crop&auto=format" alt="Ondas" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                </div>
+                <div class="overflow-hidden bg-customBorder">
+                    <img src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600&h=600&fit=crop&auto=format" alt="Maquillaje" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                </div>
+                <div class="overflow-hidden bg-customBorder">
+                    <img src="https://images.unsplash.com/photo-1787651344170-c2f81514934d?w=600&h=800&fit=crop&auto=format" alt="Pedicure" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIOS -->
+    <section id="resenas" class="py-24 px-8 lg:px-16 bg-customDark text-customBg">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <p class="text-[11px] tracking-[0.3em] text-customMuted uppercase mb-3">Lo que dicen en Google Maps</p>
+                <h2 class="font-serif text-4xl lg:text-5xl font-bold">Nuestras clientas</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Reseña 1 -->
+                <a href="https://maps.app.goo.gl/o64JrZsmmMyn3hDNA" target="_blank" class="p-8 bg-white rounded-lg shadow-md hover:shadow-2xl transition duration-300 transform hover:-translate-y-1 hover:scale-105 flex flex-col justify-between space-y-6 block group">
+                    <div>
+                        <!-- Estrellas de Google -->
+                        <div class="flex text-amber-400 space-x-1 mb-4 text-sm">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <p class="text-sm leading-relaxed text-gray-700 italic">"Un lugar muy acogedor y hermoso, la estilista es un amor y su servicio es 10/10 y tiene precios muy convenientes que atraen a la clientela, me encanta 100% recomendado."</p>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-gray-100 pt-4">
+                        <div>
+                            <p class="font-serif font-bold text-sm text-gray-900">María N.</p>
+                            <p class="text-[10px] tracking-widest text-customAccent uppercase mt-1">Cliente verificada</p>
+                        </div>
+                        <i class="fab fa-google text-blue-500 text-lg group-hover:rotate-12 transition-transform"></i>
+                    </div>
+                </a>
+
+                <!-- Reseña 2 -->
+                <a href="https://maps.app.goo.gl/LT6kGLR7xncssqS19" target="_blank" class="p-8 bg-white rounded-lg shadow-md hover:shadow-2xl transition duration-300 transform hover:-translate-y-1 hover:scale-105 flex flex-col justify-between space-y-6 block group">
+                    <div>
+                        <div class="flex text-amber-400 space-x-1 mb-4 text-sm">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <p class="text-sm leading-relaxed text-gray-700 italic">"¡Excelente servicio! ¡Llegué donde Nicolett a prepararme para mi examen de grado y me dejo hermosa! ¡Me realizó corte, tinte y masaje en mi pelito y manicura polygel de buenísima calidad y maravillosas! La recomiendo 100% 🤩 muy acogedora y simpática ella 🥰"</p>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-gray-100 pt-4">
+                        <div>
+                            <p class="font-serif font-bold text-sm text-gray-900">Betsabe V.</p>
+                            <p class="text-[10px] tracking-widest text-customAccent uppercase mt-1">Cliente verificada</p>
+                        </div>
+                        <i class="fab fa-google text-blue-500 text-lg group-hover:rotate-12 transition-transform"></i>
+                    </div>
+                </a>
+
+                <!-- Reseña 3 -->
+                <a href="https://maps.app.goo.gl/Hhd1TDNqLEfaotAp7" target="_blank" class="p-8 bg-white rounded-lg shadow-md hover:shadow-2xl transition duration-300 transform hover:-translate-y-1 hover:scale-105 flex flex-col justify-between space-y-6 block group">
+                    <div>
+                        <div class="flex text-amber-400 space-x-1 mb-4 text-sm">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <p class="text-sm leading-relaxed text-gray-700 italic">"¡Excelente servicio, me realizó la manicura y aparte de lindas son muy buena calidad, 100% recomendable! ¡Y lo mejor que tiene gran variedad de servicios para ofrecer y salir completamente bellas!"</p>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-gray-100 pt-4">
+                        <div>
+                            <p class="font-serif font-bold text-sm text-gray-900">Krishna T.</p>
+                            <p class="text-[10px] tracking-widest text-customAccent uppercase mt-1">Cliente verificada</p>
+                        </div>
+                        <i class="fab fa-google text-blue-500 text-lg group-hover:rotate-12 transition-transform"></i>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACTO Y FOOTER -->
+    <section id="contacto" class="py-32 px-8 lg:px-16">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <!-- Columna izquierda: Info., ubicación y bloque de atención -->
+            <div class="space-y-10">
+                <div>
+                    <p class="text-[11px] tracking-[0.3em] text-customAccent uppercase font-semibold mb-3">Escríbenos</p>
+                    <h2 class="font-serif text-4xl lg:text-5xl font-bold text-customDark">¿Tienes alguna <em class="italic font-italic">consulta</em>?</h2>
+                    <p class="text-xs lg:text-sm text-customMuted mt-4 leading-relaxed">¿Quieres saber más sobre algún servicio, disponibilidad o precios? <br>Rellena el formulario o contáctanos directamente. Respondemos a la brevedad.</p>
+                </div>
+
+                <!-- Datos de contacto -->
+                <div class="grid grid-cols-1 gap-5 text-xs text-customDark sm:grid-cols-[minmax(140px,0.85fr)_minmax(0,1.6fr)] lg:text-sm">
+                    <div class="flex flex-col gap-5">
+                        <div class="border-l-2 border-customAccent py-1 pl-4">
+                            <p class="text-[10px] uppercase tracking-widest text-customMuted font-semibold">Dirección</p>
+                            <p class="font-medium mt-0.5">Av. Bernardo O'Higgins 979 <br>Buin, Santiago</p>
+                        </div>
+                        <div class="border-l-2 border-customAccent py-1 pl-4">
+                            <p class="text-[10px] uppercase tracking-widest text-customMuted font-semibold">Teléfono / WhatsApp</p>
+                            <p class="font-medium mt-0.5">+56 9 4032 2551</p>
+                        </div>
+                        <div class="border-l-2 border-customAccent py-1 pl-4">
+                            <p class="text-[10px] uppercase tracking-widest text-customMuted font-semibold">Horario</p>
+                            <p class="font-medium mt-0.5">Lun-Vie 9:00–20:00<br>Sáb 9:00–18:00</p>
+                        </div>
+                    </div>
+
+                    <!-- Mapa de ubicación -->
+                    <div class="h-[220px] sm:mt-0">
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3317.83015622892!2d-70.75218172368841!3d-33.73920777327639!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9663217aed7e0b0d%3A0x4dceec2b8bf5f5b6!2sSal%C3%B3n%20de%20belleza%20Nicolett%20Studio%20Fantasy!5e0!3m2!1ses!2scl!4v1791063769155!5m2!1ses!2scl" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-customAltBg border border-customBorder">
+                    <p class="text-xs text-customMuted leading-relaxed">Para gestionar <strong class="font-semibold text-customDark">historial de servicios, compra de productos y mucho más</strong>, crea una cuenta o inicia sesión. Desde tu perfil podrás gestionar tus citas más fácilmente.</p>
+                    <a href="{% url 'login' %}?tab=register" class="inline-block text-xs font-bold tracking-widest uppercase mt-4 text-customDark hover:text-customAccent transition">Crear cuenta →</a>
+                </div>
+            </div>
+
+            <div class="lg:mt-16">
+                <form method="POST" class="space-y-5 bg-customBg p-9 border border-customBorder shadow-sm">
+                    {% csrf_token %}
+                    <!-- Fila 1: Nombre y apellido -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Nombre</label>
+                            <input type="text" name="nombre" placeholder="Valentina" class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Apellido</label>
+                            <input type="text" name="apellido" placeholder="González" class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent">
+                        </div>
+                    </div>
+
+                    <!-- Fila 2: Email y teléfono -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Email de contacto</label>
+                            <input type="email" name="email" placeholder="valentina@ejemplo.cl" class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Teléfono de contacto</label>
+                            <input type="tel" name="telefono" placeholder="+56 9 1234 5678" class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent">
+                        </div>
+                    </div>
+
+                    <!-- Asunto -->
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Asunto</label>
+                        <input type="text" name="asunto" placeholder="Consulta sobre colorimetría" class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent">
+                    </div>
+
+                    <!-- Mensaje -->
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Mensaje</label>
+                        <textarea rows="4" name="mensaje" placeholder="Cuéntanos en qué podemos ayudarte..." class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-customDark text-customBg text-xs tracking-[0.2em] uppercase py-4 transition hover:bg-customAccent">Enviar mensaje</button>
+                </form>
+                <!-- Bloque para mostrar el mensaje de éxito o error en pantalla -->
+                {% if messages %}
+                    <div class="mt-4">
+                        {% for message in messages %}
+                            <div class="p-4 text-xs font-medium text-center {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-300{% else %}bg-red-100 text-red-800 border border-red-300{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    {% include 'footer.html' %}
+</body>
+</html>

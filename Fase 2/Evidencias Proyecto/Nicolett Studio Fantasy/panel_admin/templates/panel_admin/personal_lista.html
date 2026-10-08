@@ -1,0 +1,273 @@
+{% extends 'panel_admin/base_dashboard.html' %}
+
+{% block title %}Personal | Nicolett Studio{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1 text-dark">Personal del salón</h1>
+            <p class="text-muted mb-0">Registra colaboradores para asignarlos a servicios y futuras citas.</p>
+        </div>
+        <button type="button" class="btn salon-btn-primary" data-bs-toggle="modal" data-bs-target="#modalPersonal" data-mode="create">
+            <i class="fas fa-user-plus me-2"></i>Añadir personal
+        </button>
+    </div>
+
+    {% if messages %}
+        <div class="mb-3" aria-live="polite">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card-stat">
+                <div class="title">Personal activo</div>
+                <div class="value">{{ total_activos }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-stat">
+                <div class="title">Personal inactivo</div>
+                <div class="value">{{ total_inactivos }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card services-table-card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>NOMBRE</th>
+                        <th>CONTACTO</th>
+                        <th>ESPECIALIZACIÓN</th>
+                        <th>ESTADO</th>
+                        <th class="text-end">ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for colaborador in personal %}
+                        <tr>
+                            <td class="fw-semibold text-dark">
+                                {{ colaborador.nombre }}{% if colaborador.segundo_nombre %} {{ colaborador.segundo_nombre }}{% endif %}
+                                {{ colaborador.apellido_paterno }} {{ colaborador.apellido_materno }}
+                            </td>
+                            <td>
+                                <a class="d-block text-decoration-none text-dark" href="mailto:{{ colaborador.email }}">{{ colaborador.email }}</a>
+                                <span class="small text-muted">{{ colaborador.telefono }}</span>
+                            </td>
+                            <td>
+                                {% for especialidad in colaborador.especialidades.all %}
+                                    <span class="badge rounded-pill text-bg-light border me-1 mb-1">{{ especialidad.categoria.nombre }}</span>
+                                {% empty %}
+                                    <span class="small text-muted">Sin especialización</span>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% if colaborador.is_active %}
+                                    <span class="service-status is-active">Activo</span>
+                                {% else %}
+                                    <span class="service-status is-inactive">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end service-actions">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm salon-btn-outline"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalPersonal"
+                                    data-mode="edit"
+                                    data-url="{% url 'editar_personal' colaborador.pk %}"
+                                    data-nombre="{{ colaborador.nombre }}"
+                                    data-segundo-nombre="{{ colaborador.segundo_nombre }}"
+                                    data-apellido-paterno="{{ colaborador.apellido_paterno }}"
+                                    data-apellido-materno="{{ colaborador.apellido_materno }}"
+                                    data-telefono="{{ colaborador.telefono }}"
+                                    data-email="{{ colaborador.email }}"
+                                    data-especializaciones="{{ colaborador.especializacion_ids|join:',' }}">
+                                    Editar
+                                </button>
+                                <form method="post" action="{% url 'desactivar_personal' colaborador.pk %}" class="d-inline js-toggle-personal" data-estado="{{ colaborador.is_active|yesno:'activo,inactivo' }}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm salon-btn-state">
+                                        {% if colaborador.is_active %}Desactivar{% else %}Reactivar{% endif %}
+                                    </button>
+                                </form>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm salon-btn-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalEliminarPersonal"
+                                    data-url="{% url 'eliminar_personal' colaborador.pk %}"
+                                    data-nombre="{{ colaborador.nombre }} {{ colaborador.apellido_paterno }}">
+                                    Eliminar
+                                </button>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" class="text-center py-5 text-muted">Aún no hay personal registrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="small text-muted mt-3">
+        Los colaboradores se guardan con el rol Colaborador y no reciben contraseña ni acceso a una vista de inicio de sesión.
+    </p>
+</div>
+
+<div class="modal fade salon-modal" id="modalPersonal" tabindex="-1" aria-labelledby="tituloModalPersonal" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form
+                id="formPersonal"
+                method="post"
+                action="{{ form_action }}"
+                data-create-url="{% url 'crear_personal' %}"
+                data-server-errors="{{ form_has_errors|yesno:'true,false' }}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <div>
+                        <h2 class="modal-title h5" id="tituloModalPersonal">
+                            {% if form_is_edit %}Editar colaborador{% else %}Añadir colaborador{% endif %}
+                        </h2>
+                        <p class="small text-muted mb-0">Los campos marcados con * son obligatorios.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        {% for error in personal_form.non_field_errors %}
+                            <div class="col-12"><div class="text-danger small">{{ error }}</div></div>
+                        {% endfor %}
+                        {% for field in personal_form %}
+                            {% if field.name == 'especializaciones' %}
+                                <fieldset class="col-12">
+                                    <legend class="form-label">
+                                        {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
+                                    </legend>
+                                    <div class="specialization-list">
+                                        {% for checkbox in field %}
+                                            <label class="specialization-option" for="{{ checkbox.id_for_label }}">
+                                                {{ checkbox.tag }}
+                                                <span>{{ checkbox.choice_label }}</span>
+                                            </label>
+                                        {% empty %}
+                                            <p class="text-muted small mb-0">No hay categorías registradas.</p>
+                                        {% endfor %}
+                                    </div>
+                                    {% for error in field.errors %}<div class="text-danger small mt-2">{{ error }}</div>{% endfor %}
+                                </fieldset>
+                            {% else %}
+                                <div class="col-md-6">
+                                    <label class="form-label" for="{{ field.id_for_label }}">
+                                        {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
+                                    </label>
+                                    {{ field }}
+                                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                    {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="form-text mt-3">El teléfono y el correo se usarán para contactar a la persona. Este registro no permite iniciar sesión.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn salon-btn-primary" id="btnGuardarPersonal">
+                        {% if form_is_edit %}Guardar cambios{% else %}Guardar colaborador{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade salon-modal" id="modalEliminarPersonal" tabindex="-1" aria-labelledby="tituloEliminarPersonal" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <form id="formEliminarPersonal" method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="tituloEliminarPersonal">Eliminar colaborador</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Confirmas que deseas eliminar a <strong id="nombreEliminarPersonal"></strong> del personal?
+                    Si tiene citas asociadas, se conservará como registro histórico y se desactivará.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn salon-btn-danger">Sí, eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('modalPersonal');
+    const form = document.getElementById('formPersonal');
+    const createUrl = form.dataset.createUrl;
+    const hasServerErrors = form.dataset.serverErrors === 'true';
+    const inputs = {
+        nombre: document.getElementById('id_nombre'),
+        segundo_nombre: document.getElementById('id_segundo_nombre'),
+        apellido_paterno: document.getElementById('id_apellido_paterno'),
+        apellido_materno: document.getElementById('id_apellido_materno'),
+        telefono: document.getElementById('id_telefono'),
+        email: document.getElementById('id_email')
+    };
+    const saveButton = document.getElementById('btnGuardarPersonal');
+    const specialties = form.querySelectorAll('input[name="especializaciones"]');
+
+    modal.addEventListener('show.bs.modal', (event) => {
+        const trigger = event.relatedTarget;
+        if (!trigger && hasServerErrors) return;
+        const isEdit = trigger && trigger.dataset.mode === 'edit';
+        form.reset();
+        form.action = isEdit ? trigger.dataset.url : createUrl;
+        document.getElementById('tituloModalPersonal').textContent = isEdit ? 'Editar colaborador' : 'Añadir colaborador';
+        saveButton.textContent = isEdit ? 'Guardar cambios' : 'Guardar colaborador';
+        if (isEdit) {
+            inputs.nombre.value = trigger.dataset.nombre;
+            inputs.segundo_nombre.value = trigger.dataset.segundoNombre;
+            inputs.apellido_paterno.value = trigger.dataset.apellidoPaterno;
+            inputs.apellido_materno.value = trigger.dataset.apellidoMaterno;
+            inputs.telefono.value = trigger.dataset.telefono;
+            inputs.email.value = trigger.dataset.email;
+            const selectedCategories = new Set(
+                (trigger.dataset.especializaciones || '').split(',').filter(Boolean),
+            );
+            specialties.forEach((specialty) => {
+                specialty.checked = selectedCategories.has(specialty.value);
+            });
+        }
+    });
+
+    const deleteModal = document.getElementById('modalEliminarPersonal');
+    deleteModal.addEventListener('show.bs.modal', (event) => {
+        const trigger = event.relatedTarget;
+        document.getElementById('formEliminarPersonal').action = trigger.dataset.url;
+        document.getElementById('nombreEliminarPersonal').textContent = trigger.dataset.nombre;
+    });
+
+    document.querySelectorAll('.js-toggle-personal').forEach((toggleForm) => {
+        toggleForm.addEventListener('submit', (event) => {
+            const accion = toggleForm.dataset.estado === 'activo' ? 'desactivar' : 'reactivar';
+            if (!window.confirm(`¿Confirmas que deseas ${accion} a este colaborador?`)) event.preventDefault();
+        });
+
+    });
+    if (hasServerErrors) bootstrap.Modal.getOrCreateInstance(modal).show();
+});
+</script>
+{% endblock %}

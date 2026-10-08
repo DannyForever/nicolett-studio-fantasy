@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mi espacio | Nicolett Studio Fantasy{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        customBg: '#faf7f4',
+                        customDark: '#2a2320',
+                        customAccent: '#c9a99b',
+                        customMuted: '#7a6e6a',
+                        customBorder: '#e8e0da',
+                        customAltBg: '#f2ece7',
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="flex min-h-screen flex-col bg-[#faf7f4] font-sans text-[#2a2320] antialiased">
+    <header class="sticky top-0 z-30 flex items-center justify-between border-b border-[#e8e0da] bg-[#faf7f4]/95 px-8 py-5 backdrop-blur-sm lg:px-16">
+        <a href="{% url 'cliente_home' %}" aria-label="Ir al inicio de cliente" class="text-[#2a2320] no-underline">
+            <span class="font-serif text-xl font-bold tracking-widest">Nicolett</span>
+            <span class="block text-[10px] uppercase tracking-widest text-[#7a6e6a]">Studio Fantasy</span>
+        </a>
+        <div class="flex items-center gap-5 text-sm">
+            <span class="text-[#faf7f4]/80">Hola, <strong class="text-[#faf7f4]">{{ request.user.nombre }}</strong></span>
+            <a href="{% url 'cliente_productos' %}" aria-label="Productos" class="text-lg text-[#c9a99b] no-underline"><i class="fa-solid fa-bag-shopping"></i></a>
+            <form action="{% url 'logout' %}" method="post" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="border-0 bg-transparent text-[11px] uppercase tracking-[0.12em] text-[#c9a99b] hover:text-white">Cerrar sesión</button>
+            </form>
+        </div>
+    </header>
+
+    <div class="flex flex-1">
+        <aside class="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[240px] shrink-0 border-r border-[#e8e0da] bg-[#f7f3f0] py-7 md:block">
+            <nav class="flex flex-col gap-1" aria-label="Menú de cliente">
+                <a href="{% url 'cliente_home' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-house w-4 text-center text-[#c9a99b]"></i> Inicio
+                </a>
+                <a href="{% url 'cliente_servicios' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_servicios' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-spa w-4 text-center text-[#c9a99b]"></i> Servicios
+                </a>
+                <a href="{% url 'cliente_productos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-box-open w-4 text-center text-[#c9a99b]"></i> Productos
+                </a>
+                <a href="{% url 'cliente_agendamiento' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
+                    <i class="fa-regular fa-calendar-plus w-4 text-center text-[#c9a99b]"></i> Agendamiento
+                </a>
+                <a href="{% url 'cliente_historial' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-clock-rotate-left w-4 text-center text-[#c9a99b]"></i> Historial de citas
+                </a>
+                <a href="{% url 'cliente_cancelar_cita' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_cancelar_cita' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#b25d5d]{% else %}border-transparent text-[#b25d5d] hover:bg-[#faf7f4]{% endif %}" {% if request.resolver_match.url_name == 'cliente_cancelar_cita' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-calendar-xmark w-4 text-center"></i> Cancelar cita
+                </a>
+            </nav>
+        </aside>
+
+        <main class="w-full min-w-0 px-5 py-8 md:px-10">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% include 'footer.html' %}
+    <script>
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
+    </script>
+</body>
+</html>

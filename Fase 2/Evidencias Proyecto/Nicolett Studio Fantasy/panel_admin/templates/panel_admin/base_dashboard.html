@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Nicolett Studio | Admin panel{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <!-- Nuestro archivo CSS externo y profesional -->
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261006-5">
+</head>
+
+<body>
+
+    <!-- Menú lateral -->
+    <nav class="sidebar-container">
+        <div>
+            <div class="sidebar-header">
+                <h3 class="text-white">Nicolett</h3>
+                <span>Admin Panel</span>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="nav-item"><a href="{% url 'admin_dashboard' %}" class="nav-link{% if request.resolver_match.url_name == 'admin_dashboard' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_dashboard' %} aria-current="page"{% endif %}><i class="fas fa-home me-2"></i> Panel administración</a></li>
+                <li class="nav-item"><a href="{% url 'listar_servicios' %}" class="nav-link{% if request.resolver_match.url_name in 'listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} active{% endif %}"{% if request.resolver_match.url_name in 'listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} aria-current="page"{% endif %}><i class="fas fa-spa me-2"></i> Servicios</a></li>
+                <li class="nav-item"><a href="{% url 'admin_productos' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} aria-current="page"{% endif %}><i class="fas fa-box me-2"></i> Productos</a></li>
+                <li class="nav-item"><a href="{% url 'admin_agenda' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio crear_reserva_manual guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia reagendar_cita cancelar_cita responder_suspension guardar_respuesta_suspension' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio crear_reserva_manual guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia reagendar_cita cancelar_cita responder_suspension guardar_respuesta_suspension' %} aria-current="page"{% endif %}><i class="fas fa-calendar-alt me-2"></i> Agendamientos</a></li>
+                <li class="nav-item"><a href="{% url 'admin_ventas' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_ventas admin_detalle_venta' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_ventas admin_detalle_venta' %} aria-current="page"{% endif %}><i class="fas fa-cash-register me-2"></i> Ventas & Pagos</a></li>
+                <li class="nav-item"><a href="{% url 'admin_recordatorios' %}" class="nav-link{% if request.resolver_match.url_name == 'admin_recordatorios' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_recordatorios' %} aria-current="page"{% endif %}><i class="fas fa-bell me-2"></i> Recordatorios</a></li>
+                <li class="nav-item"><a href="{% url 'admin_personal' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_personal crear_personal editar_personal eliminar_personal desactivar_personal' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_personal crear_personal editar_personal eliminar_personal desactivar_personal' %} aria-current="page"{% endif %}><i class="fas fa-users-cog me-2"></i> Personal</a></li>
+            </ul>
+        </div>
+
+        <!-- Parte inferior del menú: Sesión activa y botón salir -->
+        <div class="sidebar-footer">
+            <span class="user-label">Sesión activa</span>
+            <span class="user-email">
+                {% if request.user.email %}
+                    {{ request.user.email }}
+                {% else %}
+                    {{ request.user.username }}
+                {% endif %}
+            </span>
+            <!-- Formulario de cierre de sesión seguro por POST que redirige al home de core -->
+            <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="/">
+                <button type="submit" class="btn-logout">
+                    <i class="fas fa-sign-out-alt me-1"></i> Cerrar sesión
+                </button>
+            </form>
+        </div>
+    </nav>
+
+    <!-- Contenido principal dinámico -->
+    <main class="main-content">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

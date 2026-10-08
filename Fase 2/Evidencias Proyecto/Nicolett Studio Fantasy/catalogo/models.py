@@ -1,0 +1,1 @@
+from panel_admin.models import Servicio

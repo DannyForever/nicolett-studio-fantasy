@@ -1,0 +1,366 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nicolett Studio Fantasy</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Playfair Display & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+    <!-- FontAwesome (iconos) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        customBg: '#faf7f4',    /* Fondo principal marfil suave */
+                        customDark: '#2a2320',  /* Tono oscuro principal */
+                        customAccent: '#c9a99b',/* Acento rosado/cobrizo */
+                        customMuted: '#7a6e6a', /* Texto secundario */
+                        customBorder: '#e8e0da',/* Bordes sutiles */
+                        customAltBg: '#f2ece7', /* Fondo alternativo sección servicios */
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+                        sans: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .form-input {
+            width: 100%;
+            padding: 11px 40px 11px 14px; /* Espacio a la derecha para el ícono del ojito */
+            border: 1px solid #e8e0da;
+            background-color: #faf7f4;
+            font-size: 14px;
+            color: #2a2320;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .form-input:focus {
+            border-color: #c9a99b;
+        }
+        /* Ocultar el ícono nativo de los navegadores para contraseñas */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear {
+            display: none;
+        }
+        .reg-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+    </style>
+</head>
+<body class="bg-customBg font-sans text-customDark antialiased" style="display: flex; flex-direction: column; height: 100vh; overflow: hidden; margin: 0;">
+
+    {% include 'header.html' %}
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div style="flex: 1; min-height: 0; display: flex; align-items: stretch; overflow: hidden;">
+        
+        <!-- DECO / IMAGEN IZQUIERDA -->
+        <div style="flex: 0 0 42%; min-height: 0; position: relative; overflow: hidden; background-color: #e8e0da;" class="login-deco">
+            <img src="https://images.unsplash.com/photo-1562322140-8baeececf3df?w=900&h=1200&fit=crop&auto=format" alt="Salón Nicolett Studio" style="width: 100%; height: 100%; object-fit: cover;" />
+            <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(42,35,32,0.72) 0%, rgba(201,169,155,0.3) 100%);"></div>
+            <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 32px 40px;">
+                <a href="{% url 'home' %}" style="text-decoration: none; color: #faf7f4;">
+                    <div style="font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; margin-bottom: 4px;">Nicolett</div>
+                    <div style="font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: #c9a99b;">Studio Fantasy</div>
+                </a>
+                <p style="margin-top: 16px; font-size: 14px; line-height: 1.6; color: rgba(250,247,244,0.8); max-width: 300px;">
+                    "La belleza no es solo lo que ves en el espejo, es cómo te sientes al salir de aquí."
+                </p>
+                <p style="margin-top: 10px; font-size: 11px; color: #c9a99b; letter-spacing: 0.1em;">— Nicolett Vargas, fundadora</p>
+            </div>
+        </div>
+
+        <!-- FORMULARIO DERECHA  -->
+        <div style="flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center; padding: 24px 40px; background-color: #ffffff; overflow-y: auto;">
+            <div style="width: 100%; max-width: 480px;">
+                
+                <!-- TABS (PESTAÑAS) -->
+                <div style="display: flex; border-bottom: 1px solid #e8e0da; margin-bottom: 24px; background-color: #ffffff;">
+                    <button type="button" id="btn-login" onclick="switchTab('login')" aria-selected="{% if not mostrar_registro %}true{% else %}false{% endif %}" style="flex: 1; padding: 10px 0; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; background: #ffffff; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: {% if mostrar_registro %}#7a6e6a{% else %}#2a2320{% endif %}; border-bottom: 2px solid {% if mostrar_registro %}transparent{% else %}#2a2320{% endif %}; margin-bottom: -1px; transition: all 0.2s;">
+                        Iniciar sesión
+                    </button>
+                    <button type="button" id="btn-register" onclick="switchTab('register')" aria-selected="{% if mostrar_registro %}true{% else %}false{% endif %}" style="flex: 1; padding: 10px 0; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; background: #ffffff; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: {% if mostrar_registro %}#2a2320{% else %}#7a6e6a{% endif %}; border-bottom: 2px solid {% if mostrar_registro %}#2a2320{% else %}transparent{% endif %}; margin-bottom: -1px; transition: all 0.2s;">
+                        Crear cuenta
+                    </button>
+                </div>
+
+                <!-- SECCIÓN INICIAR SESIÓN -->
+                <div id="section-login" style="display: {% if mostrar_registro %}none{% else %}block{% endif %};">
+                    <p style="font-size: 13px; color: #7a6e6a; margin-bottom: 24px; line-height: 1.6;">
+                        Ingresa con tu cuenta para gestionar tus citas, ver tu historial y acceder a promociones exclusivas.
+                    </p>
+
+                    <!-- CAJITA DE ÉXITO CUANDO SE REGISTRA -->
+                    {% if exito %}
+                    <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #d4edda; border-left: 3px solid #28a745; color: #155724; font-size: 12px; line-height: 1.5;">
+                        {{ exito }}
+                    </div>
+                    {% endif %}
+
+                    <!-- CAJITA DE ERROR SI LLEGA A HABERLO -->
+                    {% if error %}
+                    <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #f8d7da; border-left: 3px solid #dc3545; color: #721c24; font-size: 12px; line-height: 1.5;">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" action="{% url 'login' %}" style="display: flex; flex-direction: column; gap: 16px;">
+                        {% csrf_token %}
+                        <div>
+                            <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Correo electrónico *</label>
+                            <input type="email" name="email" placeholder="valentina@ejemplo.cl" required class="form-input" style="padding-right: 14px;">
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <label style="font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a;">Contraseña *</label>
+                                <a href="#" style="font-size: 12px; color: #c9a99b; text-decoration: none;">¿Olvidaste tu contraseña?</a>
+                            </div>
+                            <!-- Contenedor con ojito personalizado único -->
+                            <div style="position: relative;">
+                                <input type="password" id="login-password" name="password" placeholder="••••••••" required class="form-input">
+                                <button type="button" onclick="togglePassword('login-password', 'eye-login')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #7a6e6a; padding: 4px;">
+                                    <i id="eye-login" class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" style="background-color: #2a2320; color: #faf7f4; padding: 14px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; border: none; cursor: pointer; margin-top: 4px;" onmouseenter="this.style.backgroundColor='#c9a99b'" onmouseleave="this.style.backgroundColor='#2a2320'">
+                            Ingresar
+                        </button>
+                    </form>
+                    <div style="margin-top: 20px; padding: 12px 16px; background-color: #f2ece7; border-left: 3px solid #c9a99b;">
+                        <p style="font-size: 12px; color: #7a6e6a; line-height: 1.6; margin: 0;">
+                            <strong style="color: #2a2320;">Acceso admin:</strong> usa un email con "admin" para el panel de administración.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN CREAR CUENTA -->
+                <div id="section-register" style="display: {% if mostrar_registro %}block{% else %}none{% endif %};">
+                    <p style="font-size: 13px; color: #7a6e6a; margin-bottom: 20px; line-height: 1.6;">
+                        Crea tu cuenta y disfruta de venta de productos, agendamiento online con seguimiento e historial de servicios ya realizados.
+                    </p>
+                    <form id="form-register" method="POST" action="{% url 'register' %}" onsubmit="return validarRegister(event)" style="display: flex; flex-direction: column; gap: 14px; padding-bottom: 16px;">
+                        {% csrf_token %}
+                        
+                        <!-- Rol por defecto (Cliente = 3) -->
+                        
+                        <!-- Nombre + Segundo nombre -->
+                        <div class="reg-grid">
+                            <div>
+                                <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Nombre *</label>
+                                <input type="text" id="reg-nombre" name="nombre" placeholder="Valentina" required class="form-input" style="padding-right: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">2do Nombre <span style="font-weight: 300; font-size: 9px;">(opcional)</span></label>
+                                <input type="text" name="segundo_nombre" placeholder="Andrea" class="form-input" style="padding-right: 14px;">
+                            </div>
+                        </div>
+
+                        <!-- Apellidos -->
+                        <div class="reg-grid">
+                            <div>
+                                <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Apellido Paterno *</label>
+                                <input type="text" id="reg-ap-paterno" name="apellido_paterno" placeholder="González" required class="form-input" style="padding-right: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Apellido Materno *</label>
+                                <input type="text" id="reg-ap-materno" name="apellido_materno" placeholder="Ramírez" required class="form-input" style="padding-right: 14px;">
+                            </div>
+                        </div>
+
+                        <!-- Teléfono e Email -->
+                        <div class="reg-grid">
+                            <div>
+                                <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Correo *</label>
+                                <input type="email" id="reg-correo" name="email" placeholder="valentina@ejemplo.cl" required class="form-input" style="padding-right: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Teléfono *</label>
+                                <input type="tel" id="reg-telefono" name="telefono" placeholder="+569 1234 5678" required class="form-input" style="padding-right: 14px;" oninput="validarTelefono()">
+                            </div>
+                        </div>
+
+                        <!-- Contraseñas -->
+                        <div class="reg-grid">
+                            <div>
+                                <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Contraseña *</label>
+                                <div style="position: relative;">
+                                    <input type="password" id="reg-password" name="password" placeholder="8-12 carac." required class="form-input" oninput="validarPasswordFuerza(); validarCoincidencia();">
+                                    <button type="button" onclick="togglePassword('reg-password', 'eye-reg')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #7a6e6a; padding: 4px;">
+                                        <i id="eye-reg" class="fa-regular fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Confirmar *</label>
+                                <div style="position: relative;">
+                                    <input type="password" id="reg-password-confirm" name="password_confirm" placeholder="Repetir" required class="form-input" oninput="validarCoincidencia()">
+                                    <button type="button" onclick="togglePassword('reg-password-confirm', 'eye-reg-confirm')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #7a6e6a; padding: 4px;">
+                                        <i id="eye-reg-confirm" class="fa-regular fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indicador de formato de teléfono -->
+                        <div id="telefono-feedback" style="font-size: 11px; color: #7a6e6a; line-height: 1.4; background-color: #f2ece7; padding: 8px 10px; border-radius: 2px;">
+                            Formato de número de teléfono requerido: +569 XXXX XXXX.
+                        </div>
+
+                        <!-- Indicador de seguridad de contraseña -->
+                        <div id="password-feedback" style="font-size: 11px; color: #7a6e6a; line-height: 1.4; background-color: #f2ece7; padding: 8px 10px; border-radius: 2px;">
+                            De 8 a 12 carac., incl. Mayúscula, número(s) y carácter especial obligatorio (@, #, etc.).
+                        </div>
+
+                        <!-- Indicador en tiempo real de coincidencia de contraseñas -->
+                        <div id="coincidencia-feedback" style="font-size: 11px; color: #7a6e6a; line-height: 1.4; background-color: #f2ece7; padding: 8px 10px; border-radius: 2px; display: none;">
+                            Las contraseñas deben coincidir.
+                        </div>
+
+                        <!-- CONTENEDOR DE ALERTAS / MENSAJES EN LÍNEA -->
+                        <div id="form-alert" style="display: none; font-size: 12px; padding: 10px 12px; border-radius: 2px; line-height: 1.5;"></div>
+
+                        <p style="font-size: 11px; color: #7a6e6a; line-height: 1.4; margin: 2px 0;">
+                            Al crear tu cuenta aceptas nuestros <span style="color: #2a2320; text-decoration: underline; cursor: pointer;">términos</span> y <span style="color: #2a2320; text-decoration: underline; cursor: pointer;">privacidad</span>.
+                        </p>
+
+                        <button type="submit" style="background-color: #2a2320; color: #faf7f4; padding: 14px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; border: none; cursor: pointer;" onmouseenter="this.style.backgroundColor='#c9a99b'" onmouseleave="this.style.backgroundColor='#2a2320'">
+                            Crear cuenta
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+        const loginSec = document.getElementById('section-login');
+        const regSec = document.getElementById('section-register');
+        const btnLogin = document.getElementById('btn-login');
+        const btnRegister = document.getElementById('btn-register');
+
+        if (tab === 'login') {
+            loginSec.style.display = 'block';
+            regSec.style.display = 'none';
+            btnLogin.setAttribute('aria-selected', 'true');
+            btnRegister.setAttribute('aria-selected', 'false');
+            btnLogin.style.color = '#2a2320';
+            btnLogin.style.borderBottom = '2px solid #2a2320';
+            btnRegister.style.color = '#7a6e6a';
+            btnRegister.style.borderBottom = '2px solid transparent';
+        } else {
+            loginSec.style.display = 'none';
+            regSec.style.display = 'block';
+            btnLogin.setAttribute('aria-selected', 'false');
+            btnRegister.setAttribute('aria-selected', 'true');
+            btnRegister.style.color = '#2a2320';
+            btnRegister.style.borderBottom = '2px solid #2a2320';
+            btnLogin.style.color = '#7a6e6a';
+            btnLogin.style.borderBottom = '2px solid transparent';
+        }
+        }
+
+        function togglePassword(inputId, eyeId) {
+            const input = document.getElementById(inputId);
+            const eye = document.getElementById(eyeId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.classList.remove('fa-eye');
+                eye.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                eye.classList.remove('fa-eye-slash');
+                eye.classList.add('fa-eye');
+            }
+        }
+
+        function validarTelefono() {
+            const telInput = document.getElementById('reg-telefono');
+            const feedback = document.getElementById('telefono-feedback');
+            // Acepta formato tipo +569 1234 5678
+            const regex = /^\+569\s?\d{4}\s?\d{4}$/;
+            if (regex.test(telInput.value.trim())) {
+                feedback.style.backgroundColor = '#d4edda';
+                feedback.style.color = '#155724';
+                feedback.innerText = 'Formato de teléfono válido.';
+                return true;
+            } else {
+                feedback.style.backgroundColor = '#f2ece7';
+                feedback.style.color = '#7a6e6a';
+                feedback.innerText = 'Formato requerido: +569 XXXX XXXX.';
+                return false;
+            }
+        }
+
+        function validarPasswordFuerza() {
+            const pass = document.getElementById('reg-password').value;
+            const feedback = document.getElementById('password-feedback');
+            // 8 a 12 caracteres, al menos una mayúscula, un número y un carácter especial
+            const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._#\-])[A-Za-z\d@$!%*?&._#\-]{8,12}$/;
+            if (regex.test(pass)) {
+                feedback.style.backgroundColor = '#d4edda';
+                feedback.style.color = '#155724';
+                feedback.innerText = 'Contraseña segura.';
+                return true;
+            } else {
+                feedback.style.backgroundColor = '#f2ece7';
+                feedback.style.color = '#7a6e6a';
+                feedback.innerText = 'De 8 a 12 carac., incl. Mayúscula, número(s) y carácter especial obligatorio (@, #, etc.).';
+                return false;
+            }
+        }
+
+        function validarCoincidencia() {
+            const pass = document.getElementById('reg-password').value;
+            const confirm = document.getElementById('reg-password-confirm').value;
+            const feedback = document.getElementById('coincidencia-feedback');
+            
+            if (confirm.length > 0) {
+                feedback.style.display = 'block';
+                if (pass === confirm) {
+                    feedback.style.backgroundColor = '#d4edda';
+                    feedback.style.color = '#155724';
+                    feedback.innerText = 'Las contraseñas coinciden.';
+                    return true;
+                } else {
+                    feedback.style.backgroundColor = '#f8d7da';
+                    feedback.style.color = '#721c24';
+                    feedback.innerText = 'Las contraseñas deben coincidir.';
+                    return false;
+                }
+            } else {
+                feedback.style.display = 'none';
+                return false;
+            }
+        }
+
+        function validarRegister(event) {
+            const pass = document.getElementById('reg-password').value;
+            const confirm = document.getElementById('reg-password-confirm').value;
+            
+            // Verificación final antes de enviar a Django
+            if (pass !== confirm) {
+                event.preventDefault();
+                alert('Las contraseñas no coinciden.');
+                return false;
+            }
+            return true;
+        }
+    </script>
+
+    {% include 'footer.html' %}
+</body>
+</html>

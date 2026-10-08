@@ -1,0 +1,23 @@
+    <header class="sticky top-0 z-50 grid grid-cols-[1fr_auto_1fr] items-center border-b border-customBorder bg-customBg px-8 py-5 font-sans text-xs leading-normal text-customDark antialiased lg:px-16">
+        {% if request.user.is_authenticated and request.user.rol.nombre == 'Cliente' %}
+        <a href="{% url 'cliente_home' %}" aria-label="Ir al inicio de cliente" class="block justify-self-start text-customDark no-underline">
+        {% else %}
+        <a href="{% url 'home' %}" aria-label="Ir al inicio" class="block justify-self-start text-customDark no-underline">
+        {% endif %}
+            <div>
+            <span class="text-xl font-serif tracking-widest font-bold">Nicolett</span>
+            <p class="text-[10px] tracking-widest uppercase text-customMuted">Studio Fantasy</p>
+            </div>
+        </a>
+        <nav class="hidden items-center justify-self-center space-x-8 text-xs font-medium tracking-widest lg:flex">
+            <a href="{% url 'home' %}#servicios" class="text-customDark transition hover:text-customAccent">SERVICIOS</a>
+            <a href="{% url 'home' %}#nosotras" class="text-customDark transition hover:text-customAccent">NOSOTRAS</a>
+            <a href="{% url 'home' %}#galeria" class="text-customDark transition hover:text-customAccent">GALERÍA</a>
+            <a href="{% url 'home' %}#resenas" class="text-customDark transition hover:text-customAccent">RESEÑAS</a>
+            <a href="{% url 'home' %}#contacto" class="text-customDark transition hover:text-customAccent">CONTACTO</a>
+        </nav>
+        <div class="flex items-center justify-self-end space-x-4">
+            <a href="{% url 'login' %}" class="px-5 py-2.5 font-medium tracking-widest text-customDark transition hover:text-customAccent">INICIAR SESIÓN</a>
+            <a href="{% url 'login' %}?tab=register" class="bg-customDark px-5 py-2.5 tracking-widest text-customBg transition hover:bg-customAccent hover:text-customDark">CREAR CUENTA</a>
+        </div>
+    </header>

@@ -1,0 +1,93 @@
+{% extends 'panel_admin/base_dashboard.html' %}
+
+{% block title %}Dashboard - Nicolett Studio Fantasy{% endblock %}
+
+{% block content %}
+<div class="mb-4 pb-2 border-bottom">
+    <h1 class="h2 mb-1" style="font-weight: 600;">Dashboard</h1>
+    <p class="text-muted small">Resumen general de Nicolett Studio · Octubre 2026</p>
+</div>
+
+<!-- Tarjetas de Estadísticas Superiores -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card-stat">
+            <div class="title">Ingresos del Mes</div>
+            <div class="value">$1.284.500</div>
+            <small class="text-success" style="font-size: 0.75rem;">+8.2% vs mes anterior</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-stat">
+            <div class="title">Citas este Mes</div>
+            <div class="value">47</div>
+            <small class="text-muted" style="font-size: 0.75rem;">+3 vs mes anterior</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-stat">
+            <div class="title">Clientas Activas</div>
+            <div class="value">284</div>
+            <small class="text-success" style="font-size: 0.75rem;">+12 nuevas</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-stat">
+            <div class="title">Tasa de Cancelación</div>
+            <div class="value">4.3%</div>
+            <small class="text-danger" style="font-size: 0.75rem;">-1.2% vs mes anterior</small>
+        </div>
+    </div>
+</div>
+
+<!-- Sección Inferior Dividida -->
+<div class="row g-4">
+    <!-- Citas de Hoy -->
+    <div class="col-lg-8">
+        <div class="card-stat">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0" style="font-family: 'Playfair Display', serif; font-size: 1.1rem;">Citas de hoy</h5>
+                <a href="{% url 'admin_agenda' %}" class="text-decoration-none small text-dark fw-bold">Ver todas</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-borderless align-middle mb-0" style="font-size: 0.9rem;">
+                    <tbody>
+                        <tr class="border-bottom">
+                            <td class="text-muted">09:00</td>
+                            <td class="fw-bold">Isabella R.</td>
+                            <td>Colorimetría</td>
+                            <td><span class="badge bg-light text-dark border">Confirmada</span></td>
+                        </tr>
+                        <tr class="border-bottom">
+                            <td class="text-muted">10:30</td>
+                            <td class="fw-bold">Sofía L.</td>
+                            <td>Corte & Estilo</td>
+                            <td><span class="badge bg-success-subtle text-success">En curso</span></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">12:00</td>
+                            <td class="fw-bold">Camila B.</td>
+                            <td>Manicure Gel</td>
+                            <td><span class="badge bg-light text-dark border">Confirmada</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Servicios por Categoría -->
+    <div class="col-lg-4">
+        <div class="card-stat">
+            <h5 class="mb-3" style="font-family: 'Playfair Display', serif; font-size: 1.1rem;">Servicios por categoría</h5>
+            <ul class="list-unstyled mb-0" style="font-size: 0.9rem;">
+                <li class="d-flex justify-content-between py-2 border-bottom"><span>Cabello</span> <span class="text-muted">2 activos</span></li>
+                <li class="d-flex justify-content-between py-2 border-bottom"><span>Tratamientos</span> <span class="text-muted">1 activo</span></li>
+                <li class="d-flex justify-content-between py-2 border-bottom"><span>Uñas</span> <span class="text-muted">2 activos</span></li>
+                <li class="d-flex justify-content-between py-2 border-bottom"><span>Maquillaje</span> <span class="text-muted">0 activos</span></li>
+                <li class="d-flex justify-content-between py-2"><span>Depilación</span> <span class="text-muted">1 activo</span></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

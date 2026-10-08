@@ -1,0 +1,299 @@
+{% extends 'panel_admin/base_dashboard.html' %}
+{% load static %}
+{% load l10n %}
+
+{% block content %}
+<div class="container-fluid px-0 services-page">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1 text-dark">Productos</h1>
+        </div>
+        <button type="button" class="btn salon-btn-primary" data-bs-toggle="modal" data-bs-target="#modalProducto">
+            + NUEVO PRODUCTO
+        </button>
+    </div>
+
+    {% if messages %}
+        <div class="mb-3" aria-live="polite">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card-stat">
+                <div class="title">Productos Activos</div>
+                <div class="value">{{ total_activos }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-stat">
+                <div class="title">Productos Inactivos</div>
+                <div class="value">{{ total_inactivos }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card services-table-card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>IMAGEN</th>
+                        <th>NOMBRE</th>
+                        <th>CATEGORÍA</th>
+                        <th>DESCRIPCIÓN</th>
+                        <th>PRECIO</th>
+                        <th>STOCK</th>
+                        <th>ESTADO</th>
+                        <th class="text-end">ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr>
+                        <td>
+                            {% if producto.imagen_url %}
+                                <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" width="44" height="44" class="service-thumbnail">
+                            {% else %}
+                                <span class="text-muted small">Sin imagen</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-semibold text-dark">{{ producto.nombre }}</td>
+                        <td class="text-muted">{{ producto.categoria.nombre }}</td>
+                        <td class="text-muted service-description">{{ producto.descripcion|default:'—' }}</td>
+                        <td class="text-dark fw-semibold">${{ producto.precio|floatformat:0 }}</td>
+                        <td class="text-muted">{{ producto.stock }}</td>
+                        <td>
+                            {% if producto.activo %}
+                                <span class="service-status is-active">Activo</span>
+                            {% else %}
+                                <span class="service-status is-inactive">Desactivado</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end service-actions">
+                            <button
+                                type="button"
+                                class="btn btn-sm salon-btn-outline"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalProducto"
+                                data-mode="edit"
+                                data-url="{% url 'editar_producto' producto.id %}"
+                                data-nombre="{{ producto.nombre }}"
+                                data-categoria="{{ producto.categoria_id }}"
+                                data-descripcion="{{ producto.descripcion|default:'' }}"
+                                data-precio="{{ producto.precio|unlocalize }}"
+                                data-stock="{{ producto.stock }}"
+                                data-activo="{{ producto.activo|yesno:'true,false' }}"
+                                data-imagen="{% if producto.imagen_url %}{{ producto.imagen_url.url }}{% endif %}"
+                                data-imagen-nombre="{% if producto.imagen_url %}{{ producto.imagen_url.name }}{% endif %}">
+                                Editar
+                            </button>
+                            <form method="post" action="{% url 'cambiar_estado_producto' producto.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm salon-btn-state">
+                                    {% if producto.activo %}Desactivar{% else %}Activar{% endif %}
+                                </button>
+                            </form>
+                            <button
+                                type="button"
+                                class="btn btn-sm salon-btn-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalConfirmarEliminarProducto"
+                                data-url="{% url 'eliminar_producto' producto.id %}"
+                                data-nombre="{{ producto.nombre }}">
+                                Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">No hay productos registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade salon-modal" id="modalProducto" tabindex="-1" aria-labelledby="tituloModalProducto" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="formProducto" method="post" action="{% url 'crear_producto' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <div>
+                        <span class="salon-modal-eyebrow">CUIDADO EN CASA</span>
+                        <h5 class="modal-title" id="tituloModalProducto">Nuevo producto</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    {% if not categorias %}
+                        <div class="alert alert-warning" role="alert">
+                            No hay categorías activas. <a href="{% url 'listar_servicios' %}">Crea una categoría en Servicios</a> para poder asociar los productos a sus tratamientos.
+                        </div>
+                    {% endif %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="productoNombre" class="form-label">Nombre</label>
+                            <input id="productoNombre" type="text" name="nombre" class="form-control" maxlength="150" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="productoCategoria" class="form-label">Categoría del tratamiento</label>
+                            <select id="productoCategoria" name="categoria" class="form-select" required>
+                                <option value="">Selecciona una categoría...</option>
+                                {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nombre }} ({{ categoria.tipo }})</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Asocia el producto al tipo de servicio cuyos resultados ayuda a mantener.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="productoDescripcion" class="form-label">Descripción</label>
+                            <textarea id="productoDescripcion" name="descripcion" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="productoPrecio" class="form-label">Precio (CLP)</label>
+                            <input id="productoPrecio" type="number" name="precio" class="form-control" min="1" step="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="productoStock" class="form-label">Stock disponible</label>
+                            <input id="productoStock" type="number" name="stock" class="form-control" min="0" step="1" value="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="productoActivo" class="form-label">Disponibilidad para clientes</label>
+                            <select id="productoActivo" name="activo" class="form-select" required>
+                                <option value="true">Activo</option>
+                                <option value="false">Desactivado</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="productoImagen" class="form-label">Imagen del producto <span id="productoImagenObligatoria" class="text-danger">*</span></label>
+                            <input id="productoImagen" type="file" name="imagen_url" class="form-control salon-file-input" accept="image/*">
+                            <div id="productoImagenActual" class="service-image-current d-none">
+                                <img id="productoImagenPreview" class="service-image-preview" alt="Imagen actual del producto">
+                                <div class="service-image-details">
+                                    <span class="service-image-label">Imagen adjunta</span>
+                                    <span id="productoImagenNombre" class="service-image-name"></span>
+                                </div>
+                            </div>
+                            <div id="productoImagenEstado" class="form-text">La imagen es obligatoria al registrar el producto.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn salon-btn-primary" id="btnGuardarProducto" {% if not categorias %}disabled{% endif %}>Guardar producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade salon-modal" id="modalConfirmarEliminarProducto" tabindex="-1" aria-labelledby="tituloConfirmarEliminarProducto" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <form id="formEliminarProducto" method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tituloConfirmarEliminarProducto">Eliminar producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Confirmas que deseas eliminar <strong id="nombreProductoEliminar"></strong>? Esta acción no se puede deshacer.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn salon-btn-danger">Sí, eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const modalElement = document.getElementById('modalProducto');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    const form = document.getElementById('formProducto');
+    const fileInput = document.getElementById('productoImagen');
+    const currentImage = document.getElementById('productoImagenActual');
+    const imagePreview = document.getElementById('productoImagenPreview');
+    const imageName = document.getElementById('productoImagenNombre');
+    const imageStatus = document.getElementById('productoImagenEstado');
+    const imageRequiredIndicator = document.getElementById('productoImagenObligatoria');
+    const createUrl = form.action;
+    let savedImageUrl = '';
+
+    function resetForm() {
+        form.reset();
+        form.action = createUrl;
+        document.getElementById('tituloModalProducto').textContent = 'Nuevo producto';
+        document.getElementById('btnGuardarProducto').textContent = 'Guardar producto';
+        currentImage.classList.add('d-none');
+        fileInput.required = true;
+        imageRequiredIndicator.classList.remove('d-none');
+        savedImageUrl = '';
+        imageStatus.textContent = 'La imagen es obligatoria al registrar el producto.';
+        document.getElementById('productoStock').value = '0';
+        document.getElementById('productoActivo').value = 'true';
+    }
+
+    modalElement.addEventListener('show.bs.modal', (event) => {
+        const trigger = event.relatedTarget;
+        if (!trigger || trigger.dataset.mode !== 'edit') {
+            resetForm();
+            return;
+        }
+
+        form.action = trigger.dataset.url;
+        document.getElementById('tituloModalProducto').textContent = 'Editar producto';
+        document.getElementById('btnGuardarProducto').textContent = 'Guardar cambios';
+        document.getElementById('productoNombre').value = trigger.dataset.nombre;
+        document.getElementById('productoCategoria').value = trigger.dataset.categoria;
+        document.getElementById('productoDescripcion').value = trigger.dataset.descripcion;
+        document.getElementById('productoPrecio').value = trigger.dataset.precio;
+        document.getElementById('productoStock').value = trigger.dataset.stock;
+        document.getElementById('productoActivo').value = trigger.dataset.activo;
+        savedImageUrl = trigger.dataset.imagen;
+        fileInput.required = false;
+        imageRequiredIndicator.classList.add('d-none');
+        if (savedImageUrl) {
+            imagePreview.src = savedImageUrl;
+            imageName.textContent = trigger.dataset.imagenNombre;
+            currentImage.classList.remove('d-none');
+            imageStatus.textContent = 'La imagen actual se conservará. Selecciona un archivo solo si deseas reemplazarla.';
+        } else {
+            currentImage.classList.add('d-none');
+            imageStatus.textContent = 'Este producto aún no tiene imagen. Puedes adjuntar una para agregarla.';
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) {
+            imageStatus.textContent = savedImageUrl
+                ? `Se reemplazará la imagen actual por: ${fileInput.files[0].name}`
+                : `Imagen seleccionada: ${fileInput.files[0].name}`;
+        } else if (savedImageUrl) {
+            imageStatus.textContent = 'La imagen actual se conservará. Selecciona un archivo solo si deseas reemplazarla.';
+        } else {
+            imageStatus.textContent = 'La imagen es obligatoria al registrar el producto.';
+        }
+    });
+
+    const deleteModalElement = document.getElementById('modalConfirmarEliminarProducto');
+    deleteModalElement.addEventListener('show.bs.modal', (event) => {
+        const trigger = event.relatedTarget;
+        document.getElementById('formEliminarProducto').action = trigger.dataset.url;
+        document.getElementById('nombreProductoEliminar').textContent = trigger.dataset.nombre;
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,602 @@
+{% extends 'panel_admin/base_dashboard.html' %}
+{% load static %}
+{% load l10n %}
+
+{% block content %}
+<div class="container-fluid px-0 services-page">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1 text-dark">Servicios</h1>
+        </div>
+        <button type="button" class="btn salon-btn-primary" data-bs-toggle="modal" data-bs-target="#modalServicio">
+            + NUEVO SERVICIO
+        </button>
+    </div>
+
+    {% if messages %}
+        <div class="mb-3" aria-live="polite">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card-stat">
+                <div class="title">Servicios Activos</div>
+                <div class="value">{{ total_activos }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-stat">
+                <div class="title">Servicios Inactivos</div>
+                <div class="value">{{ total_inactivos }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card services-table-card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>IMAGEN</th>
+                        <th>NOMBRE</th>
+                        <th>CATEGORÍA</th>
+                        <th>DESCRIPCIÓN</th>
+                        <th>PRECIO</th>
+                        <th>DURACIÓN</th>
+                        <th>ESTADO</th>
+                        <th class="text-end">ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for servicio in servicios %}
+                    <tr>
+                        <td>
+                            {% if servicio.imagen_url %}
+                                <img src="{{ servicio.imagen_url.url }}" alt="{{ servicio.nombre }}" width="44" height="44" class="service-thumbnail">
+                            {% else %}
+                                <span class="text-muted small">Sin imagen</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-semibold text-dark">{{ servicio.nombre }}</td>
+                        <td class="text-muted">{{ servicio.categoria.nombre }}</td>
+                        <td class="text-muted service-description">{{ servicio.descripcion|default:'—' }}</td>
+                        <td class="text-dark fw-semibold">${{ servicio.precio|floatformat:0 }}</td>
+                        <td class="text-muted">{{ servicio.duracion_minutos }} min</td>
+                        <td>
+                            {% if servicio.activo %}
+                                <span class="service-status is-active">Activo</span>
+                            {% else %}
+                                <span class="service-status is-inactive">Desactivado</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end service-actions">
+                            <button
+                                type="button"
+                                class="btn btn-sm salon-btn-outline"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalServicio"
+                                data-mode="edit"
+                                data-url="{% url 'editar_servicio' servicio.id %}"
+                                data-nombre="{{ servicio.nombre }}"
+                                data-categoria="{{ servicio.categoria_id }}"
+                                data-descripcion="{{ servicio.descripcion|default:'' }}"
+                                data-precio="{{ servicio.precio|unlocalize }}"
+                                data-duracion="{{ servicio.duracion_minutos }}"
+                                data-activo="{{ servicio.activo|yesno:'true,false' }}"
+                                data-citas-pendientes="{{ servicio.citas_pendientes }}"
+                                data-imagen="{% if servicio.imagen_url %}{{ servicio.imagen_url.url }}{% endif %}"
+                                data-imagen-nombre="{% if servicio.imagen_url %}{{ servicio.imagen_url.name }}{% endif %}">
+                                Editar
+                            </button>
+                            <form method="post" action="{% url 'cambiar_estado_servicio' servicio.id %}" class="d-inline js-estado-servicio" data-citas-pendientes="{{ servicio.citas_pendientes }}" data-estado-actual="{{ servicio.activo|yesno:'activo,inactivo' }}">
+                                {% csrf_token %}
+                                <input type="hidden" name="confirmar_agenda" value="0">
+                                <button type="submit" class="btn btn-sm salon-btn-state">
+                                    {% if servicio.activo %}Desactivar{% else %}Activar{% endif %}
+                                </button>
+                            </form>
+                            <button
+                                type="button"
+                                class="btn btn-sm salon-btn-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalConfirmarEliminar"
+                                data-url="{% url 'eliminar_servicio' servicio.id %}"
+                                data-nombre="{{ servicio.nombre }}"
+                                data-citas-pendientes="{{ servicio.citas_pendientes }}">
+                                Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">No hay servicios registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade salon-modal" id="modalServicio" tabindex="-1" aria-labelledby="tituloModalServicio" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="formServicio" method="post" action="{% url 'crear_servicio' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="confirmar_agenda" value="0">
+                <div class="modal-header">
+                    <div>
+                        <span class="salon-modal-eyebrow">CATÁLOGO DEL SALÓN</span>
+                        <h5 class="modal-title" id="tituloModalServicio">Nuevo servicio</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="servicioNombre" class="form-label">Nombre</label>
+                            <input id="servicioNombre" type="text" name="nombre" class="form-control" maxlength="150" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="servicioCategoria" class="form-label">Categoría</label>
+                            <div class="input-group">
+                                <select id="servicioCategoria" name="categoria" class="form-select" required>
+                                    <option value="">Selecciona una categoría...</option>
+                                    {% for categoria in categorias %}
+                                        <option value="{{ categoria.id }}">{{ categoria.nombre }} ({{ categoria.tipo }})</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn salon-btn-outline" id="btnNuevaCategoria">+ Nueva</button>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <details class="category-manager">
+                                <summary>Administrar categorías</summary>
+                                <div class="table-responsive mt-3">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead>
+                                            <tr><th>Nombre</th><th>Tipo</th><th>Acciones</th></tr>
+                                        </thead>
+                                        <tbody id="listaCategorias">
+                                            {% for categoria in categorias %}
+                                            <tr data-category-id="{{ categoria.id }}">
+                                                <td class="category-name">{{ categoria.nombre }}</td>
+                                                <td class="category-type">{{ categoria.tipo }}</td>
+                                                <td class="text-nowrap">
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm salon-btn-outline js-editar-categoria"
+                                                        data-url="{% url 'editar_categoria' categoria.id %}"
+                                                        data-id="{{ categoria.id }}"
+                                                        data-nombre="{{ categoria.nombre }}"
+                                                        data-tipo="{{ categoria.tipo }}">
+                                                        Editar
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm salon-btn-danger js-eliminar-categoria"
+                                                        data-url="{% url 'eliminar_categoria' categoria.id %}"
+                                                        data-id="{{ categoria.id }}"
+                                                        data-nombre="{{ categoria.nombre }}">
+                                                        Eliminar
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr class="empty-categories"><td colspan="3" class="text-muted">Aún no hay categorías.</td></tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </details>
+                        </div>
+                        <div class="col-12">
+                            <label for="servicioDescripcion" class="form-label">Descripción</label>
+                            <textarea id="servicioDescripcion" name="descripcion" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="servicioPrecio" class="form-label">Precio (CLP)</label>
+                            <input id="servicioPrecio" type="number" name="precio" class="form-control" min="1" step="1" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="servicioDuracion" class="form-label">Duración (minutos)</label>
+                            <input id="servicioDuracion" type="number" name="duracion_minutos" class="form-control" min="1" step="1" required>
+                        </div>
+                        <div class="col-md-7">
+                            <label for="servicioImagen" class="form-label">Imagen</label>
+                            <input id="servicioImagen" type="file" name="imagen_url" class="form-control salon-file-input" accept="image/*">
+                            <div id="imagenActual" class="service-image-current d-none">
+                                <img id="vistaPreviaImagen" class="service-image-preview" alt="Imagen actual del servicio">
+                                <div class="service-image-details">
+                                    <span class="service-image-label">Imagen adjunta</span>
+                                    <span id="nombreImagenActual" class="service-image-name"></span>
+                                    <label id="quitarImagenContainer" class="form-check service-image-remove d-none">
+                                        <input id="quitarImagen" class="form-check-input" type="checkbox" name="imagen_url-clear">
+                                        <span class="form-check-label">Quitar imagen actual</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="estadoImagen" class="form-text">Puedes adjuntar una imagen (opcional).</div>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="servicioActivo" class="form-label">Disponibilidad para clientes</label>
+                            <select id="servicioActivo" name="activo" class="form-select" required>
+                                <option value="true">Activo — visible para clientes</option>
+                                <option value="false">Desactivado — oculto para clientes</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn salon-btn-primary" id="btnGuardarServicio">Guardar servicio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade salon-modal" id="modalCategoria" tabindex="-1" aria-labelledby="tituloModalCategoria" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formCategoria" method="post" action="{% url 'crear_categoria' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <div>
+                        <span class="salon-modal-eyebrow">ORGANIZACIÓN DEL CATÁLOGO</span>
+                        <h5 class="modal-title" id="tituloModalCategoria">Nueva categoría</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="errorCategoria" class="alert alert-danger d-none" role="alert"></div>
+                    <div class="mb-3">
+                        <label for="categoriaNombre" class="form-label">Nombre de la categoría</label>
+                        <input id="categoriaNombre" type="text" name="nombre" class="form-control" maxlength="100" placeholder="Ej. Manicure" required>
+                    </div>
+                    <div>
+                        <label for="categoriaTipo" class="form-label">Tipo</label>
+                        <input id="categoriaTipo" type="text" name="tipo" class="form-control" maxlength="100" placeholder="Ej. Uñas" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn salon-btn-primary">Guardar categoría</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade salon-modal" id="modalConfirmarEliminar" tabindex="-1" aria-labelledby="tituloConfirmarEliminar" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <form id="formEliminarServicio" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="confirmar_agenda" value="0">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tituloConfirmarEliminar">Eliminar servicio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Confirmas que deseas eliminar <strong id="nombreServicioEliminar"></strong>? Esta acción no se puede deshacer.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn salon-btn-danger">Sí, eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const servicioModalElement = document.getElementById('modalServicio');
+    const categoriaModalElement = document.getElementById('modalCategoria');
+    const eliminarModalElement = document.getElementById('modalConfirmarEliminar');
+    const servicioModal = bootstrap.Modal.getOrCreateInstance(servicioModalElement);
+    const categoriaModal = bootstrap.Modal.getOrCreateInstance(categoriaModalElement);
+    const servicioForm = document.getElementById('formServicio');
+    const categoriaForm = document.getElementById('formCategoria');
+    const categoriaSelect = document.getElementById('servicioCategoria');
+    const categoriaList = document.getElementById('listaCategorias');
+    const categoriaCreateUrl = categoriaForm.action;
+    const csrfToken = categoriaForm.querySelector('[name=csrfmiddlewaretoken]').value;
+    const imagenInput = document.getElementById('servicioImagen');
+    const imagenActual = document.getElementById('imagenActual');
+    const imagenPreview = document.getElementById('vistaPreviaImagen');
+    const nombreImagenActual = document.getElementById('nombreImagenActual');
+    const quitarImagen = document.getElementById('quitarImagen');
+    const quitarImagenContainer = document.getElementById('quitarImagenContainer');
+    const estadoImagen = document.getElementById('estadoImagen');
+    let volverAServicios = false;
+    let preservarServicioAlVolver = false;
+    let imagenGuardadaUrl = '';
+    let imagenGuardadaNombre = '';
+    let citasPendientesEdicion = 0;
+
+    const servicioFields = {
+        nombre: document.getElementById('servicioNombre'),
+        categoria: categoriaSelect,
+        descripcion: document.getElementById('servicioDescripcion'),
+        precio: document.getElementById('servicioPrecio'),
+        duracion: document.getElementById('servicioDuracion'),
+        activo: document.getElementById('servicioActivo')
+    };
+
+    function limpiarServicio() {
+        servicioForm.reset();
+        servicioForm.action = "{% url 'crear_servicio' %}";
+        servicioForm.querySelector('[name="confirmar_agenda"]').value = '0';
+        citasPendientesEdicion = 0;
+        document.getElementById('tituloModalServicio').textContent = 'Nuevo servicio';
+        document.getElementById('btnGuardarServicio').textContent = 'Guardar servicio';
+        imagenActual.classList.add('d-none');
+        quitarImagenContainer.classList.add('d-none');
+        quitarImagen.checked = false;
+        imagenGuardadaUrl = '';
+        imagenGuardadaNombre = '';
+        estadoImagen.textContent = 'Puedes adjuntar una imagen (opcional).';
+        servicioFields.activo.value = 'true';
+    }
+
+    servicioModalElement.addEventListener('show.bs.modal', (event) => {
+        const trigger = event.relatedTarget;
+        if (!trigger && preservarServicioAlVolver) {
+            preservarServicioAlVolver = false;
+            return;
+        }
+        if (!trigger || trigger.dataset.mode !== 'edit') {
+            limpiarServicio();
+            return;
+        }
+
+        servicioForm.action = trigger.dataset.url;
+        document.getElementById('tituloModalServicio').textContent = 'Editar servicio';
+        document.getElementById('btnGuardarServicio').textContent = 'Guardar cambios';
+        servicioFields.nombre.value = trigger.dataset.nombre;
+        servicioFields.categoria.value = trigger.dataset.categoria;
+        servicioFields.descripcion.value = trigger.dataset.descripcion;
+        servicioFields.precio.value = trigger.dataset.precio;
+        servicioFields.duracion.value = trigger.dataset.duracion;
+        servicioFields.activo.value = trigger.dataset.activo;
+        citasPendientesEdicion = Number(trigger.dataset.citasPendientes || 0);
+        imagenGuardadaUrl = trigger.dataset.imagen;
+        imagenGuardadaNombre = trigger.dataset.imagenNombre;
+        if (imagenGuardadaUrl) {
+            imagenPreview.src = imagenGuardadaUrl;
+            nombreImagenActual.textContent = imagenGuardadaNombre;
+            imagenActual.classList.remove('d-none');
+            quitarImagenContainer.classList.remove('d-none');
+            estadoImagen.textContent = 'La imagen se conserva si no eliges reemplazarla ni quitarla.';
+        } else {
+            imagenActual.classList.add('d-none');
+            quitarImagenContainer.classList.add('d-none');
+            estadoImagen.textContent = 'Este servicio no tiene imagen. Puedes adjuntar una (opcional).';
+        }
+    });
+
+    servicioForm.addEventListener('submit', (event) => {
+        if (
+            servicioForm.action.includes('/editar/')
+            && servicioFields.activo.value === 'false'
+            && citasPendientesEdicion > 0
+            && servicioForm.querySelector('[name="confirmar_agenda"]').value !== '1'
+        ) {
+            const confirmar = window.confirm(
+                `Hay ${citasPendientesEdicion} cita(s) futura(s). Si desactivas este servicio, se cancelarán y se enviará un aviso por correo a sus clientes. ¿Continuar?`
+            );
+            if (!confirmar) {
+                event.preventDefault();
+                return;
+            }
+            servicioForm.querySelector('[name="confirmar_agenda"]').value = '1';
+        }
+    });
+
+    document.querySelectorAll('.js-estado-servicio').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            if (form.dataset.estadoActual !== 'activo' || Number(form.dataset.citasPendientes || 0) < 1) return;
+            if (!window.confirm(
+                `Hay ${form.dataset.citasPendientes} cita(s) futura(s). Al desactivar se cancelarán y se avisará por correo a sus clientes. ¿Continuar?`
+            )) {
+                event.preventDefault();
+                return;
+            }
+            form.querySelector('[name="confirmar_agenda"]').value = '1';
+        });
+    });
+
+    imagenInput.addEventListener('change', () => {
+        if (imagenInput.files.length) {
+            quitarImagen.checked = false;
+            estadoImagen.textContent = `Se reemplazará la imagen actual por: ${imagenInput.files[0].name}`;
+        } else if (imagenGuardadaUrl) {
+            estadoImagen.textContent = 'La imagen se conserva si no eliges reemplazarla ni quitarla.';
+        } else {
+            estadoImagen.textContent = 'Puedes adjuntar una imagen (opcional).';
+        }
+    });
+
+    quitarImagen.addEventListener('change', () => {
+        if (quitarImagen.checked) {
+            imagenInput.value = '';
+            estadoImagen.textContent = 'La imagen se quitará al guardar los cambios.';
+        } else if (imagenInput.files.length) {
+            estadoImagen.textContent = `Se reemplazará la imagen actual por: ${imagenInput.files[0].name}`;
+        } else {
+            estadoImagen.textContent = 'La imagen guardada se conservará.';
+        }
+    });
+
+    document.getElementById('btnNuevaCategoria').addEventListener('click', () => {
+        volverAServicios = true;
+        preservarServicioAlVolver = true;
+        servicioModal.hide();
+        document.getElementById('tituloModalCategoria').textContent = 'Nueva categoría';
+        categoriaForm.action = categoriaCreateUrl;
+        categoriaForm.reset();
+        document.getElementById('errorCategoria').classList.add('d-none');
+        servicioModalElement.addEventListener('hidden.bs.modal', () => categoriaModal.show(), {once: true});
+    });
+
+    categoriaList.addEventListener('click', (event) => {
+        const button = event.target.closest('.js-editar-categoria, .js-eliminar-categoria');
+        if (!button) return;
+
+        if (button.classList.contains('js-editar-categoria')) {
+            volverAServicios = true;
+            preservarServicioAlVolver = true;
+            servicioModal.hide();
+            categoriaForm.action = button.dataset.url;
+            document.getElementById('tituloModalCategoria').textContent = 'Editar categoría';
+            document.getElementById('categoriaNombre').value = button.dataset.nombre;
+            document.getElementById('categoriaTipo').value = button.dataset.tipo;
+            document.getElementById('errorCategoria').classList.add('d-none');
+            servicioModalElement.addEventListener('hidden.bs.modal', () => categoriaModal.show(), {once: true});
+            return;
+        }
+
+        if (!window.confirm(`¿Eliminar la categoría "${button.dataset.nombre}"?`)) return;
+        fetch(button.dataset.url, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest'}
+        })
+            .then(async (response) => {
+                const data = await response.json();
+                if (!response.ok) throw new Error((data.errors || ['No se pudo eliminar la categoría.']).join(' '));
+                categoriaList.querySelector(`[data-category-id="${button.dataset.id}"]`).remove();
+                categoriaSelect.querySelector(`option[value="${button.dataset.id}"]`).remove();
+                if (!categoriaList.querySelector('tr[data-category-id]')) {
+                    categoriaList.innerHTML = '<tr class="empty-categories"><td colspan="3" class="text-muted">Aún no hay categorías.</td></tr>';
+                }
+                mostrarMensaje(data.message, 'success');
+            })
+            .catch((error) => mostrarMensaje(error.message, 'danger'));
+    });
+
+    categoriaForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const submitButton = categoriaForm.querySelector('[type=submit]');
+        const errorBox = document.getElementById('errorCategoria');
+        submitButton.disabled = true;
+        fetch(categoriaForm.action, {
+            method: 'POST',
+            body: new FormData(categoriaForm),
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+            .then(async (response) => {
+                const data = await response.json();
+                if (!response.ok) throw new Error((data.errors || ['No se pudo guardar la categoría.']).join(' '));
+                actualizarCategoria(data);
+                categoriaSelect.value = String(data.id);
+                errorBox.classList.add('d-none');
+                categoriaModal.hide();
+            })
+            .catch((error) => {
+                errorBox.textContent = error.message;
+                errorBox.classList.remove('d-none');
+            })
+            .finally(() => { submitButton.disabled = false; });
+    });
+
+    categoriaModalElement.addEventListener('hidden.bs.modal', () => {
+        if (volverAServicios) {
+            volverAServicios = false;
+            servicioModal.show();
+        }
+    });
+
+    eliminarModalElement.addEventListener('show.bs.modal', (event) => {
+        const trigger = event.relatedTarget;
+        const form = document.getElementById('formEliminarServicio');
+        form.action = trigger.dataset.url;
+        form.dataset.citasPendientes = trigger.dataset.citasPendientes || '0';
+        form.querySelector('[name="confirmar_agenda"]').value = '0';
+        document.getElementById('nombreServicioEliminar').textContent = trigger.dataset.nombre;
+    });
+    document.getElementById('formEliminarServicio').addEventListener('submit', (event) => {
+        const form = event.currentTarget;
+        const count = Number(form.dataset.citasPendientes || 0);
+        if (count > 0) {
+            if (!window.confirm(
+                `Hay ${count} cita(s) futura(s). Se cancelarán, se intentará notificar por correo y luego se eliminará el servicio. ¿Continuar?`
+            )) {
+                event.preventDefault();
+                return;
+            }
+            form.querySelector('[name="confirmar_agenda"]').value = '1';
+        }
+    });
+
+    function actualizarCategoria(data) {
+        let row = categoriaList.querySelector(`[data-category-id="${data.id}"]`);
+        if (!row) {
+            categoriaList.querySelector('.empty-categories')?.remove();
+            row = document.createElement('tr');
+            row.dataset.categoryId = data.id;
+            row.innerHTML = '<td class="category-name"></td><td class="category-type"></td><td class="text-nowrap"></td>';
+            const actions = row.lastElementChild;
+            actions.append(
+                crearAccionCategoria('Editar', 'salon-btn-outline js-editar-categoria', data),
+                crearAccionCategoria('Eliminar', 'salon-btn-danger js-eliminar-categoria', data)
+            );
+            categoriaList.append(row);
+        }
+
+        row.querySelector('.category-name').textContent = data.nombre;
+        row.querySelector('.category-type').textContent = data.tipo;
+        let option = categoriaSelect.querySelector(`option[value="${data.id}"]`);
+        if (!option) {
+            option = document.createElement('option');
+            option.value = data.id;
+            categoriaSelect.append(option);
+        }
+        option.textContent = `${data.nombre} (${data.tipo})`;
+        const editButton = row.querySelector('.js-editar-categoria');
+        const deleteButton = row.querySelector('.js-eliminar-categoria');
+        editButton.dataset.url = "{% url 'editar_categoria' 0 %}".replace('/0/', `/${data.id}/`);
+        editButton.dataset.id = data.id;
+        editButton.dataset.nombre = data.nombre;
+        editButton.dataset.tipo = data.tipo;
+        deleteButton.dataset.url = "{% url 'eliminar_categoria' 0 %}".replace('/0/', `/${data.id}/`);
+        deleteButton.dataset.id = data.id;
+        deleteButton.dataset.nombre = data.nombre;
+    }
+
+    function crearAccionCategoria(label, classes, data) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `btn btn-sm ${classes}`;
+        button.textContent = label;
+        button.dataset.id = data.id;
+        button.dataset.nombre = data.nombre;
+        button.dataset.tipo = data.tipo;
+        return button;
+    }
+
+    function mostrarMensaje(texto, tipo) {
+        const container = document.querySelector('.services-page');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${tipo} alert-dismissible fade show`;
+        alert.setAttribute('role', 'alert');
+        alert.textContent = texto;
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'btn-close';
+        close.setAttribute('data-bs-dismiss', 'alert');
+        close.setAttribute('aria-label', 'Cerrar');
+        alert.append(close);
+        container.insertBefore(alert, container.children[1]);
+    }
+});
+</script>
+{% endblock %}

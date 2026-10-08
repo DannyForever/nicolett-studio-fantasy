@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Responder sobre tu cita | Nicolett Studio</title>
+    <style>
+        body { background: #f7f3ef; color: #332820; font: 16px/1.5 Arial, sans-serif; margin: 0; padding: 2rem 1rem; }
+        main { background: #fff; border: 1px solid #eadfd6; border-radius: 12px; margin: 3rem auto; max-width: 560px; padding: 2rem; }
+        h1 { color: #765747; font-family: Georgia, serif; }
+        .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+        button { border: 0; border-radius: 7px; cursor: pointer; font-weight: 700; padding: .8rem 1rem; }
+        .primary { background: #765747; color: white; }
+        .secondary { background: #f2ebe5; color: #49372d; }
+        .error { color: #a34d45; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Nicolett Studio</h1>
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% elif completado %}
+        <p>{{ completado }}</p>
+    {% else %}
+        <p>Tu cita de <strong>{{ reserva.servicio_nombre }}</strong> estaba agendada para el {{ reserva.fecha_hora|date:"d-m-Y H:i" }}.</p>
+        <p>Motivo de suspensión: {{ reserva.motivo_suspension }}</p>
+        <p>Elige si quieres cancelar la cita o solicitar que coordinemos un nuevo horario. La cita permanecerá suspendida mientras gestionamos tu respuesta.</p>
+        <form method="post" action="{% url 'guardar_respuesta_suspension' token %}" class="actions">
+            {% csrf_token %}
+            <button class="secondary" type="submit" name="respuesta" value="cancelar">Cancelar mi cita</button>
+            <button class="primary" type="submit" name="respuesta" value="reagendar">Solicitar re-agendamiento</button>
+        </form>
+    {% endif %}
+</main>
+</body>
+</html>
