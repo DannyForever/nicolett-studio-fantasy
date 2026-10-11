@@ -1,0 +1,146 @@
+{% extends 'usuarios/cliente_base.html' %}
+
+{% block title %}Agendar cita | Nicolett Studio Fantasy{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-4xl">
+        <section class="border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8">
+            <h1 class="mb-3 font-serif text-2xl">Agendar una cita</h1>
+            <p class="mb-6 text-sm leading-relaxed text-[#7a6e6a]">
+                Elige un servicio, una fecha disponible, un profesional y uno de los horarios habilitados por el salón.
+                Tu solicitud quedará pendiente hasta que el equipo la confirme.
+            </p>
+
+            {% if messages %}
+                <div class="mb-6 space-y-2" aria-live="polite">
+                    {% for message in messages %}
+                        <p class="border p-3 text-sm {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %}" role="status">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'cliente_crear_reserva' %}" class="space-y-5">
+                {% csrf_token %}
+                <div>
+                    <label for="bookingService" class="mb-2 block text-sm font-medium">Servicio</label>
+                    <select id="bookingService" name="servicio" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                        <option value="">Selecciona un servicio...</option>
+                        {% for servicio in servicios %}
+                            <option value="{{ servicio.pk }}">{{ servicio.nombre }} · ${{ servicio.precio|floatformat:0 }} · {{ servicio.duracion_minutos }} min</option>
+                        {% endfor %}
+                    </select>
+                    {% if not servicios %}
+                        <p class="mt-2 text-sm text-[#7a6e6a]">No hay servicios activos disponibles para agendar.</p>
+                    {% endif %}
+                </div>
+
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <div>
+                        <label for="bookingDate" class="mb-2 block text-sm font-medium">Fecha</label>
+                        <input id="bookingDate" name="fecha" type="date" min="{{ hoy }}" value="{{ hoy }}" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                    </div>
+                    <div>
+                        <label for="bookingProfessional" class="mb-2 block text-sm font-medium">Profesional</label>
+                        <select id="bookingProfessional" name="profesional" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                            <option value="">Selecciona primero un servicio y fecha...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="bookingHour" class="mb-2 block text-sm font-medium">Hora disponible</label>
+                    <select id="bookingHour" name="hora" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                        <option value="">Selecciona servicio, fecha y profesional...</option>
+                    </select>
+                    <p id="bookingStatus" class="mt-2 text-sm text-[#7a6e6a]" aria-live="polite">Los horarios se mostrarán según la disponibilidad del salón.</p>
+                </div>
+
+                <button type="submit" {% if not servicios %}disabled{% endif %} class="bg-[#765747] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#604536] disabled:cursor-not-allowed disabled:opacity-50">
+                    Solicitar cita
+                </button>
+            </form>
+        </section>
+    </div>
+
+    {{ cliente_profesionales_url|json_script:"cliente-profesionales-url" }}
+    {{ cliente_horas_url|json_script:"cliente-horas-url" }}
+    <script>
+        (() => {
+            const servicio = document.getElementById('bookingService');
+            const fecha = document.getElementById('bookingDate');
+            const profesional = document.getElementById('bookingProfessional');
+            const hora = document.getElementById('bookingHour');
+            const estado = document.getElementById('bookingStatus');
+            const profesionalesUrl = JSON.parse(document.getElementById('cliente-profesionales-url').textContent);
+            const horasUrl = JSON.parse(document.getElementById('cliente-horas-url').textContent);
+
+            function resetSelect(select, label) {
+                select.replaceChildren(new Option(label, ''));
+                select.disabled = true;
+            }
+
+            async function cargarProfesionales() {
+                resetSelect(profesional, 'Buscando profesionales disponibles...');
+                resetSelect(hora, 'Selecciona un profesional...');
+                estado.textContent = 'Consultando disponibilidad del salón...';
+                if (!servicio.value || !fecha.value) {
+                    estado.textContent = 'Selecciona un servicio y una fecha para consultar horarios.';
+                    return;
+                }
+                const params = new URLSearchParams({servicio: servicio.value, fecha: fecha.value});
+                const response = await fetch(`${profesionalesUrl}?${params}`);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'No se pudo consultar a los profesionales.');
+                }
+                resetSelect(profesional, data.professionals.length ? 'Selecciona un profesional...' : 'No hay profesionales disponibles ese día.');
+                for (const item of data.professionals) {
+                    profesional.add(new Option(item.name, item.id));
+                }
+                profesional.disabled = !data.professionals.length;
+                estado.textContent = data.professionals.length
+                    ? 'Elige un profesional para ver sus horas disponibles.'
+                    : 'No hay profesionales con horarios disponibles para esta fecha.';
+            }
+
+            async function cargarHoras() {
+                resetSelect(hora, 'Buscando horas disponibles...');
+                if (!servicio.value || !fecha.value || !profesional.value) {
+                    estado.textContent = 'Selecciona un servicio, fecha y profesional para consultar horarios.';
+                    return;
+                }
+                const params = new URLSearchParams({
+                    servicio: servicio.value,
+                    fecha: fecha.value,
+                    profesional: profesional.value,
+                });
+                const response = await fetch(`${horasUrl}?${params}`);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'No se pudo consultar los horarios.');
+                }
+                resetSelect(hora, data.hours.length ? 'Selecciona una hora...' : 'No hay horas disponibles.');
+                for (const item of data.hours) {
+                    hora.add(new Option(item, item));
+                }
+                hora.disabled = !data.hours.length;
+                estado.textContent = data.hours.length
+                    ? 'Selecciona una hora para enviar tu solicitud de cita.'
+                    : 'No quedan horas disponibles para esta combinación.';
+            }
+
+            servicio.addEventListener('change', () => cargarProfesionales().catch(() => {
+                estado.textContent = 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
+            }));
+            fecha.addEventListener('change', () => cargarProfesionales().catch(() => {
+                estado.textContent = 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
+            }));
+            profesional.addEventListener('change', () => cargarHoras().catch(() => {
+                estado.textContent = 'No se pudieron consultar las horas. Intenta nuevamente.';
+            }));
+            cargarProfesionales().catch(() => {
+                estado.textContent = 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
+            });
+        })();
+    </script>
+{% endblock %}

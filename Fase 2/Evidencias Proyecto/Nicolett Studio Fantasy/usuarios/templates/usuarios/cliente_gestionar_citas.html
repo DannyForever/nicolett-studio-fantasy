@@ -1,0 +1,210 @@
+{% extends 'usuarios/cliente_base.html' %}
+
+{% block title %}Gestionar citas | Nicolett Studio Fantasy{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-4xl border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8">
+        <section>
+            <h1 class="mb-3 font-serif text-2xl">Gestionar citas</h1>
+            <p class="text-sm leading-relaxed text-[#7a6e6a]">
+                Revisa tus próximas citas. Puedes cancelar o elegir otro servicio, profesional y horario disponible.
+            </p>
+        </section>
+
+        {% if messages %}
+            <div class="mt-5 space-y-2" aria-live="polite">
+                {% for message in messages %}
+                    <p class="border p-3 text-sm {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %}" role="status">{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <section class="mt-6 space-y-5 border-t border-[#e8e0da] pt-6" aria-label="Próximas citas">
+            {% for reserva in reservas %}
+                <article class="border border-[#e8e0da] bg-white p-5 shadow-sm sm:p-6">
+                    <div class="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <p class="mb-1 text-xs uppercase tracking-widest text-[#7a6e6a]">
+                                {{ reserva.fecha_hora|date:"d/m/Y" }} · {{ reserva.fecha_hora|date:"H:i" }}
+                            </p>
+                            <h2 class="font-serif text-xl">{{ reserva.servicio_nombre|default:reserva.servicio.nombre|default:"Servicio no disponible" }}</h2>
+                            <p class="mt-1 text-sm text-[#7a6e6a]">
+                                Profesional:
+                                {% if reserva.profesional %}
+                                    {{ reserva.profesional.nombre }} {{ reserva.profesional.apellido_paterno }}
+                                {% else %}
+                                    Sin profesional asignado
+                                {% endif %}
+                            </p>
+                        </div>
+                        <span class="border px-3 py-1 text-xs font-medium
+                            {% if reserva.estado == 'confirmada' %}border-green-200 bg-green-50 text-green-800
+                            {% elif reserva.estado == 'pendiente' %}border-amber-200 bg-amber-50 text-amber-800
+                            {% elif reserva.estado == 'suspendida' %}border-red-200 bg-red-50 text-red-800
+                            {% else %}border-[#e8e0da] bg-[#f7f3f0] text-[#7a6e6a]{% endif %}">
+                            {{ reserva.get_estado_display }}
+                        </span>
+                    </div>
+
+                    {% if reserva.estado == 'suspendida' and reserva.motivo_suspension %}
+                        <p class="mt-4 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                            {{ reserva.motivo_suspension }} Puedes elegir un nuevo servicio y horario o cancelar esta cita.
+                        </p>
+                    {% endif %}
+
+                    {% if servicios %}
+                        <details class="mt-5 border-t border-[#e8e0da] pt-4">
+                            <summary class="cursor-pointer text-sm font-medium text-[#765747]">Reagendar o cambiar servicio</summary>
+                            <form method="post" action="{% url 'cliente_reagendar_reserva' reserva.pk %}" class="js-manage-booking mt-4 space-y-4" data-reserva="{{ reserva.pk }}" data-profesional-original="{{ reserva.profesional_id|default:'' }}" data-hora-original="{{ reserva.fecha_hora|date:'H:i' }}">
+                                {% csrf_token %}
+                                <div>
+                                    <label for="service-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Servicio</label>
+                                    <select id="service-{{ reserva.pk }}" name="servicio" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                        <option value="">Selecciona un servicio...</option>
+                                        {% for servicio in servicios %}
+                                            <option value="{{ servicio.pk }}" {% if reserva.servicio_id == servicio.pk %}selected{% endif %}>{{ servicio.nombre }} · ${{ servicio.precio|floatformat:0 }} · {{ servicio.duracion_minutos }} min</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="grid gap-4 sm:grid-cols-3">
+                                    <div>
+                                        <label for="date-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Fecha</label>
+                                        <input id="date-{{ reserva.pk }}" name="fecha" type="date" min="{{ hoy }}" value="{{ reserva.fecha_hora|date:'Y-m-d' }}" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="professional-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Profesional</label>
+                                        <select id="professional-{{ reserva.pk }}" name="profesional" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                                            <option value="">Consulta los horarios...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="hour-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Hora</label>
+                                        <select id="hour-{{ reserva.pk }}" name="hora" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                                            <option value="">Selecciona profesional...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <p class="js-manage-status text-sm text-[#7a6e6a]" aria-live="polite">Consultando disponibilidad para la cita actual...</p>
+                                <button type="submit" class="bg-[#765747] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#604536] disabled:cursor-not-allowed disabled:opacity-50">Guardar cambio</button>
+                            </form>
+                        </details>
+                    {% else %}
+                        <p class="mt-4 text-sm text-[#7a6e6a]">No hay servicios activos para reagendar esta cita.</p>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'cliente_cancelar_reserva' reserva.pk %}" class="mt-4 border-t border-[#e8e0da] pt-4" onsubmit="return confirm('¿Confirmas que deseas cancelar esta cita?');">
+                        {% csrf_token %}
+                        <button type="submit" class="border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50">Cancelar cita</button>
+                    </form>
+                </article>
+            {% empty %}
+                <div class="py-2 text-center">
+                    <p class="font-serif text-lg">No tienes citas próximas para gestionar.</p>
+                    <a href="{% url 'cliente_agendamiento' %}" class="mt-5 inline-block bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline transition hover:bg-[#604536]">
+                        Agendar una cita
+                    </a>
+                </div>
+            {% endfor %}
+        </section>
+    </div>
+
+    {{ cliente_profesionales_url|json_script:"cliente-profesionales-url" }}
+    {{ cliente_horas_url|json_script:"cliente-horas-url" }}
+    <script>
+        (() => {
+            const profesionalesUrl = JSON.parse(document.getElementById('cliente-profesionales-url').textContent);
+            const horasUrl = JSON.parse(document.getElementById('cliente-horas-url').textContent);
+
+            function reset(select, placeholder) {
+                select.replaceChildren(new Option(placeholder, ''));
+                select.disabled = true;
+            }
+
+            for (const form of document.querySelectorAll('.js-manage-booking')) {
+                const service = form.querySelector('[name="servicio"]');
+                const date = form.querySelector('[name="fecha"]');
+                const professional = form.querySelector('[name="profesional"]');
+                const hour = form.querySelector('[name="hora"]');
+                const status = form.querySelector('.js-manage-status');
+                const reservation = form.dataset.reserva;
+
+                async function loadProfessionals() {
+                    reset(professional, 'Buscando profesionales...');
+                    reset(hour, 'Selecciona profesional...');
+                    if (!service.value || !date.value) {
+                        status.textContent = 'Selecciona servicio y fecha para consultar disponibilidad.';
+                        return;
+                    }
+                    status.textContent = 'Consultando disponibilidad...';
+                    const params = new URLSearchParams({servicio: service.value, fecha: date.value, reserva: reservation});
+                    const response = await fetch(`${profesionalesUrl}?${params}`);
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || 'No se pudo consultar a los profesionales.');
+                    }
+                    reset(professional, data.professionals.length ? 'Selecciona profesional...' : 'Sin profesionales disponibles.');
+                    for (const item of data.professionals) {
+                        professional.add(new Option(item.name, item.id));
+                    }
+                    professional.disabled = !data.professionals.length;
+                    const originalProfessional = form.dataset.profesionalOriginal;
+                    if (originalProfessional && service.value === form.dataset.servicioOriginal) {
+                        professional.value = originalProfessional;
+                    }
+                    status.textContent = data.professionals.length
+                        ? 'Elige un profesional para consultar sus horas.'
+                        : 'No hay profesionales con horas disponibles para ese servicio y fecha.';
+                    if (professional.value) {
+                        await loadHours();
+                    }
+                }
+
+                async function loadHours() {
+                    reset(hour, 'Buscando horas...');
+                    if (!service.value || !date.value || !professional.value) {
+                        status.textContent = 'Selecciona servicio, fecha y profesional.';
+                        return;
+                    }
+                    const params = new URLSearchParams({
+                        servicio: service.value,
+                        fecha: date.value,
+                        profesional: professional.value,
+                        reserva: reservation,
+                    });
+                    const response = await fetch(`${horasUrl}?${params}`);
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || 'No se pudieron consultar las horas.');
+                    }
+                    reset(hour, data.hours.length ? 'Selecciona una hora...' : 'Sin horas disponibles.');
+                    for (const item of data.hours) {
+                        hour.add(new Option(item, item));
+                    }
+                    hour.disabled = !data.hours.length;
+                    if (
+                        data.hours.includes(form.dataset.horaOriginal)
+                        && service.value === form.dataset.servicioOriginal
+                        && date.value === form.dataset.fechaOriginal
+                        && professional.value === form.dataset.profesionalOriginal
+                    ) {
+                        hour.value = form.dataset.horaOriginal;
+                    }
+                    status.textContent = data.hours.length
+                        ? 'Selecciona una hora disponible para guardar los cambios.'
+                        : 'No quedan horas disponibles para esta combinación.';
+                }
+
+                function reportError(message) {
+                    status.textContent = message;
+                }
+
+                form.dataset.servicioOriginal = service.value;
+                form.dataset.fechaOriginal = date.value;
+                service.addEventListener('change', () => loadProfessionals().catch(() => reportError('No se pudo consultar la disponibilidad. Intenta nuevamente.')));
+                date.addEventListener('change', () => loadProfessionals().catch(() => reportError('No se pudo consultar la disponibilidad. Intenta nuevamente.')));
+                professional.addEventListener('change', () => loadHours().catch(() => reportError('No se pudieron consultar las horas. Intenta nuevamente.')));
+                loadProfessionals().catch(() => reportError('No se pudo consultar la disponibilidad. Intenta nuevamente.'));
+            }
+        })();
+    </script>
+{% endblock %}

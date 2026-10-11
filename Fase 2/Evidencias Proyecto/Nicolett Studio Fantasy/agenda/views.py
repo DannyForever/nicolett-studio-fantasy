@@ -7,6 +7,7 @@ from datetime import date, datetime, time, timedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.mail import send_mail
 from django.core import signing
 from django.db import transaction
@@ -32,6 +33,7 @@ from .models import (
     Reserva,
     ServicioAgenda,
 )
+from usuarios.permissions import es_cliente
 
 logger = logging.getLogger(__name__)
 Usuario = get_user_model()
@@ -344,6 +346,8 @@ def horas_disponibles_json(request):
         return JsonResponse({'hours': [], 'error': 'El profesional indicado no es válido.'}, status=400)
     if reserva_id and (not reserva_id.isdecimal() or int(reserva_id) < 1):
         return JsonResponse({'hours': [], 'error': 'La cita indicada no es válida.'}, status=400)
+    if profesional_id:
+        profesional_id = int(profesional_id)
     horas = horas_disponibles(
         fecha,
         servicio,
@@ -389,6 +393,373 @@ def profesionales_por_servicio_json(request):
             for profesional in profesionales
         ],
     })
+
+
+@login_required(login_url='login')
+@user_passes_test(es_cliente, login_url='login')
+@require_GET
+def cliente_profesionales_json(request):
+    service_id = request.GET.get('servicio', '')
+    date_value = request.GET.get('fecha', '')
+    try:
+        fecha = date.fromisoformat(date_value)
+        servicio = ServicioAgenda.objects.get(pk=service_id, activo=True)
+    except (ValueError, TypeError, ServicioAgenda.DoesNotExist):
+        return JsonResponse(
+            {'professionals': [], 'error': 'Selecciona un servicio activo y una fecha válida.'},
+            status=400,
+        )
+
+    if fecha < timezone.localdate() or DiaCerrado.objects.filter(fecha=fecha).exists():
+        return JsonResponse({'professionals': []})
+
+    reserva_id = request.GET.get('reserva', '')
+    reserva_ignorada = None
+    if reserva_id:
+        if not reserva_id.isdecimal():
+            return JsonResponse({'professionals': [], 'error': 'La cita indicada no es válida.'}, status=400)
+        reserva_ignorada = Reserva.objects.filter(
+            pk=reserva_id,
+            cliente=request.user,
+            estado__in=['pendiente', 'confirmada', 'suspendida'],
+            fecha_hora__gt=timezone.now(),
+        ).first()
+        if reserva_ignorada is None:
+            return JsonResponse({'professionals': [], 'error': 'La cita no se puede modificar.'}, status=400)
+
+    profesionales_con_horarios = Disponibilidad.objects.filter(
+        activo=True,
+        fecha_especifica=fecha,
+        servicio_id=servicio.pk,
+        profesional__is_active=True,
+        profesional__deleted_at__isnull=True,
+        profesional__rol__nombre__iexact='Colaborador',
+        profesional__especialidades__categoria_id=servicio.categoria_id,
+    ).values_list('profesional_id', flat=True).distinct()
+    profesionales = Usuario.objects.filter(
+        pk__in=profesionales_con_horarios,
+    ).order_by('nombre', 'apellido_paterno')
+    profesionales_disponibles = [
+        profesional
+        for profesional in profesionales
+        if horas_disponibles(
+            fecha,
+            servicio,
+            profesional.pk,
+            ignorar_reserva_id=reserva_ignorada.pk if reserva_ignorada else None,
+        )
+    ]
+    return JsonResponse({
+        'professionals': [
+            {
+                'id': profesional.pk,
+                'name': ' '.join(
+                    part for part in (
+                        profesional.nombre,
+                        profesional.segundo_nombre,
+                        profesional.apellido_paterno,
+                        profesional.apellido_materno,
+                    ) if part
+                ),
+            }
+            for profesional in profesionales_disponibles
+        ],
+    })
+
+
+@login_required(login_url='login')
+@user_passes_test(es_cliente, login_url='login')
+@require_GET
+def cliente_horas_disponibles_json(request):
+    try:
+        fecha = date.fromisoformat(request.GET.get('fecha', ''))
+        servicio = ServicioAgenda.objects.get(pk=request.GET.get('servicio'), activo=True)
+        profesional_id = request.GET.get('profesional', '')
+        if not profesional_id.isdecimal() or int(profesional_id) < 1:
+            raise ValueError
+    except (ValueError, TypeError, ServicioAgenda.DoesNotExist):
+        return JsonResponse(
+            {'hours': [], 'error': 'Selecciona un servicio, una fecha y un profesional válidos.'},
+            status=400,
+        )
+
+    profesional_valido = Usuario.objects.filter(
+        pk=profesional_id,
+        is_active=True,
+        deleted_at__isnull=True,
+        rol__nombre__iexact='Colaborador',
+        especialidades__categoria_id=servicio.categoria_id,
+    ).exists()
+    if not profesional_valido:
+        return JsonResponse({'hours': [], 'error': 'El profesional no está habilitado para este servicio.'}, status=400)
+
+    reserva_id = request.GET.get('reserva', '')
+    reserva_ignorada = None
+    if reserva_id:
+        if not reserva_id.isdecimal():
+            return JsonResponse({'hours': [], 'error': 'La cita indicada no es válida.'}, status=400)
+        reserva_ignorada = Reserva.objects.filter(
+            pk=reserva_id,
+            cliente=request.user,
+            estado__in=['pendiente', 'confirmada', 'suspendida'],
+            fecha_hora__gt=timezone.now(),
+        ).first()
+        if reserva_ignorada is None:
+            return JsonResponse({'hours': [], 'error': 'La cita no se puede modificar.'}, status=400)
+
+    return JsonResponse({
+        'hours': horas_disponibles(
+            fecha,
+            servicio,
+            profesional_id=int(profesional_id),
+            ignorar_reserva_id=reserva_ignorada.pk if reserva_ignorada else None,
+        ),
+    })
+
+
+@login_required(login_url='login')
+@user_passes_test(es_cliente, login_url='login')
+@require_POST
+def crear_reserva_cliente(request):
+    try:
+        fecha = date.fromisoformat(request.POST.get('fecha', ''))
+        hora = time.fromisoformat(request.POST.get('hora', ''))
+        servicio = ServicioAgenda.objects.get(
+            pk=request.POST.get('servicio'),
+            activo=True,
+        )
+        profesional_id = request.POST.get('profesional', '')
+        if (
+            not profesional_id.isdecimal()
+            or int(profesional_id) < 1
+            or hora.second
+            or hora.microsecond
+        ):
+            raise ValueError
+    except (ValueError, TypeError, ServicioAgenda.DoesNotExist):
+        messages.error(request, 'Selecciona un servicio, fecha, profesional y hora válidos.')
+        return redirect('cliente_agendamiento')
+
+    inicio = datetime.combine(fecha, hora)
+    fecha_hora = timezone.make_aware(inicio) if timezone.is_naive(inicio) else inicio
+    fin = fecha_hora + timedelta(minutes=servicio.duracion_minutos)
+
+    with transaction.atomic():
+        cliente = Usuario.objects.select_for_update().get(pk=request.user.pk)
+        if fecha < timezone.localdate() or DiaCerrado.objects.filter(fecha=fecha).exists():
+            messages.error(request, 'No se puede agendar en una fecha pasada o con el salón cerrado.')
+            return redirect('cliente_agendamiento')
+
+        profesional = Usuario.objects.select_for_update().filter(
+            pk=profesional_id,
+            is_active=True,
+            deleted_at__isnull=True,
+            rol__nombre__iexact='Colaborador',
+            especialidades__categoria_id=servicio.categoria_id,
+        ).first()
+        if profesional is None:
+            messages.error(request, 'El profesional seleccionado no está habilitado para ese servicio.')
+            return redirect('cliente_agendamiento')
+
+        list(Disponibilidad.objects.select_for_update().filter(
+            activo=True,
+            fecha_especifica=fecha,
+            servicio_id=servicio.pk,
+            profesional=profesional,
+        ))
+        if hora.strftime('%H:%M') not in horas_disponibles(
+            fecha,
+            servicio,
+            profesional_id=profesional.pk,
+        ):
+            messages.error(request, 'Ese horario acaba de ser ocupado. Selecciona otro.')
+            return redirect('cliente_agendamiento')
+
+        reservas_cliente = Reserva.objects.select_for_update().filter(
+            cliente=cliente,
+            fecha_hora__date=fecha,
+        ).exclude(estado__in=['cancelada', 'completada'])
+        for reserva_existente in reservas_cliente:
+            existente_inicio = timezone.localtime(reserva_existente.fecha_hora)
+            existente_fin = existente_inicio + timedelta(minutes=reserva_existente.duracion_minutos)
+            if existente_inicio < fin and fecha_hora < existente_fin:
+                messages.error(request, 'Ya tienes otra cita que se cruza con ese horario.')
+                return redirect('cliente_agendamiento')
+
+        Reserva.objects.create(
+            fecha_hora=fecha_hora,
+            estado='pendiente',
+            origen='cliente',
+            cliente=cliente,
+            creada_por=cliente,
+            profesional=profesional,
+            servicio_id=servicio.pk,
+            cliente_nombre=' '.join(
+                part for part in (
+                    cliente.nombre,
+                    cliente.segundo_nombre,
+                    cliente.apellido_paterno,
+                    cliente.apellido_materno,
+                ) if part
+            ) or cliente.email,
+            cliente_email=cliente.email,
+            cliente_telefono=cliente.telefono,
+            servicio_nombre=servicio.nombre,
+            duracion_minutos=servicio.duracion_minutos,
+        )
+    messages.success(request, 'Tu solicitud de cita quedó registrada y está pendiente de confirmación.')
+    return redirect('cliente_agendamiento')
+
+
+@login_required(login_url='login')
+@user_passes_test(es_cliente, login_url='login')
+@require_POST
+def cancelar_reserva_cliente(request, pk):
+    with transaction.atomic():
+        reserva = Reserva.objects.select_for_update().filter(
+            pk=pk,
+            cliente=request.user,
+        ).select_related('cambio_disponibilidad').first()
+        if (
+            reserva is None
+            or reserva.fecha_hora <= timezone.now()
+            or reserva.estado not in ['pendiente', 'confirmada', 'suspendida']
+        ):
+            messages.error(request, 'Esta cita ya no se puede cancelar.')
+            return redirect('cliente_gestionar_citas')
+
+        cambio_pendiente = reserva.cambio_disponibilidad
+        reserva.estado = 'cancelada'
+        reserva.motivo_cancelacion = 'Cancelada por la clienta desde su cuenta.'
+        reserva.cambio_disponibilidad = None
+        reserva.respuesta_suspension = ''
+        reserva.save(update_fields=[
+            'estado',
+            'motivo_cancelacion',
+            'cambio_disponibilidad',
+            'respuesta_suspension',
+            'updated_at',
+        ])
+        _limpiar_cambio_si_resuelto(cambio_pendiente)
+
+    messages.success(request, 'La cita fue cancelada y quedó registrada en tu historial.')
+    return redirect('cliente_gestionar_citas')
+
+
+@login_required(login_url='login')
+@user_passes_test(es_cliente, login_url='login')
+@require_POST
+def reagendar_reserva_cliente(request, pk):
+    try:
+        fecha = date.fromisoformat(request.POST.get('fecha', ''))
+        hora = time.fromisoformat(request.POST.get('hora', ''))
+        servicio_id = request.POST.get('servicio', '')
+        profesional_id = request.POST.get('profesional', '')
+        if (
+            not servicio_id.isdecimal()
+            or not profesional_id.isdecimal()
+            or int(servicio_id) < 1
+            or int(profesional_id) < 1
+            or hora.second
+            or hora.microsecond
+        ):
+            raise ValueError
+    except (TypeError, ValueError):
+        messages.error(request, 'Selecciona servicio, fecha, profesional y horario válidos.')
+        return redirect('cliente_gestionar_citas')
+
+    inicio = datetime.combine(fecha, hora)
+    fecha_hora = timezone.make_aware(inicio) if timezone.is_naive(inicio) else inicio
+    with transaction.atomic():
+        reserva = Reserva.objects.select_for_update().filter(
+            pk=pk,
+            cliente=request.user,
+        ).select_related('cambio_disponibilidad').first()
+        if (
+            reserva is None
+            or reserva.fecha_hora <= timezone.now()
+            or reserva.estado not in ['pendiente', 'confirmada', 'suspendida']
+        ):
+            messages.error(request, 'Esta cita ya no se puede re-agendar.')
+            return redirect('cliente_gestionar_citas')
+
+        servicio = ServicioAgenda.objects.filter(
+            pk=servicio_id,
+            activo=True,
+        ).first()
+        if servicio is None:
+            messages.error(request, 'El servicio seleccionado no está disponible.')
+            return redirect('cliente_gestionar_citas')
+
+        profesional = Usuario.objects.filter(
+            pk=profesional_id,
+            is_active=True,
+            deleted_at__isnull=True,
+            rol__nombre__iexact='Colaborador',
+            especialidades__categoria_id=servicio.categoria_id,
+        ).first()
+        if profesional is None:
+            messages.error(request, 'El profesional seleccionado no está habilitado para ese servicio.')
+            return redirect('cliente_gestionar_citas')
+
+        list(Disponibilidad.objects.select_for_update().filter(
+            activo=True,
+            fecha_especifica=fecha,
+            servicio_id=servicio.pk,
+            profesional=profesional,
+        ))
+        if hora.strftime('%H:%M') not in horas_disponibles(
+            fecha,
+            servicio,
+            profesional_id=profesional.pk,
+            ignorar_reserva_id=reserva.pk,
+        ):
+            messages.error(request, 'Ese horario ya no está disponible. Elige otra opción.')
+            return redirect('cliente_gestionar_citas')
+
+        nueva_fin = fecha_hora + timedelta(minutes=servicio.duracion_minutos)
+        otras_reservas = Reserva.objects.select_for_update().filter(
+            cliente=request.user,
+            fecha_hora__date=fecha,
+        ).exclude(
+            pk=reserva.pk,
+        ).exclude(
+            estado__in=['cancelada', 'completada'],
+        )
+        for otra_reserva in otras_reservas:
+            otra_inicio = timezone.localtime(otra_reserva.fecha_hora)
+            otra_fin = otra_inicio + timedelta(minutes=otra_reserva.duracion_minutos)
+            if otra_inicio < nueva_fin and fecha_hora < otra_fin:
+                messages.error(request, 'Ya tienes otra cita que se cruza con ese horario.')
+                return redirect('cliente_gestionar_citas')
+
+        cambio_pendiente = reserva.cambio_disponibilidad
+        reserva.fecha_hora = fecha_hora
+        reserva.servicio_id = servicio.pk
+        reserva.servicio_nombre = servicio.nombre
+        reserva.duracion_minutos = servicio.duracion_minutos
+        reserva.profesional = profesional
+        reserva.cambio_disponibilidad = None
+        reserva.motivo_suspension = ''
+        if reserva.estado == 'suspendida':
+            reserva.estado = 'confirmada'
+            reserva.respuesta_suspension = 'reagendar'
+        reserva.save(update_fields=[
+            'fecha_hora',
+            'servicio',
+            'servicio_nombre',
+            'duracion_minutos',
+            'profesional',
+            'cambio_disponibilidad',
+            'motivo_suspension',
+            'estado',
+            'respuesta_suspension',
+            'updated_at',
+        ])
+        _limpiar_cambio_si_resuelto(cambio_pendiente)
+
+    messages.success(request, 'La cita fue re-agendada y quedó actualizada en tu historial.')
+    return redirect('cliente_gestionar_citas')
 
 
 def _cargar_opciones_hora(form, fecha_value, servicio_id, profesional_id=None, ignorar_reserva_id=None):

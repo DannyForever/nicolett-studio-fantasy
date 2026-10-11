@@ -1,0 +1,42 @@
+{% extends 'usuarios/cliente_base.html' %}
+
+{% block title %}Compra simulada | Nicolett Studio Fantasy{% endblock %}
+
+{% block content %}
+    <section class="mx-auto max-w-3xl border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8">
+        <div class="text-center">
+            <i class="fa-solid fa-circle-check text-4xl text-green-700" aria-hidden="true"></i>
+            <h1 class="mt-4 font-serif text-2xl">Pago ficticio aprobado</h1>
+            <p class="mt-2 text-sm text-[#7a6e6a]">Orden #{{ pedido.pk }} · {{ pedido.creado_en|date:"d/m/Y H:i" }}</p>
+        </div>
+
+        <div class="mt-6 space-y-3 border-y border-[#e8e0da] py-5">
+            {% for detalle in pedido.detalles.all %}
+                <div class="flex flex-wrap justify-between gap-3 text-sm">
+                    <span>{{ detalle.nombre }}{% if detalle.tipo == 'producto' %} × {{ detalle.cantidad }}{% endif %}</span>
+                    <span>Pagado ${{ detalle.monto_pagado|floatformat:0 }}{% if detalle.saldo_pendiente %} · saldo ${{ detalle.saldo_pendiente|floatformat:0 }}{% endif %}</span>
+                    {% if detalle.reserva %}
+                        <span class="w-full text-[#7a6e6a]">
+                            Cita: {{ detalle.reserva.fecha_hora|date:"d/m/Y H:i" }} ·
+                            {{ detalle.reserva.profesional.nombre }} {{ detalle.reserva.profesional.apellido_paterno }}
+                        </span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <dl class="mt-5 space-y-2 text-sm">
+            <div class="flex justify-between"><dt>Valor total</dt><dd>${{ pedido.total|floatformat:0 }}</dd></div>
+            <div class="flex justify-between font-semibold text-[#765747]"><dt>Pagado en la simulación</dt><dd>${{ pedido.monto_pagado|floatformat:0 }}</dd></div>
+            <div class="flex justify-between text-[#7a6e6a]"><dt>Saldo pendiente de servicios</dt><dd>${{ pedido.saldo_pendiente|floatformat:0 }}</dd></div>
+        </dl>
+
+        <p class="mt-5 text-center text-xs text-[#7a6e6a]">
+            Transacción simulada: {{ pedido.pagos_simulados.first.transaccion_id }}
+        </p>
+        <div class="mt-6 flex flex-wrap justify-center gap-3">
+            <a href="{% url 'cliente_historial' %}" class="bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline">Ver mis citas</a>
+            <a href="{% url 'cliente_productos' %}" class="border border-[#765747] px-5 py-3 text-sm font-medium text-[#765747] no-underline">Seguir comprando</a>
+        </div>
+    </section>
+{% endblock %}

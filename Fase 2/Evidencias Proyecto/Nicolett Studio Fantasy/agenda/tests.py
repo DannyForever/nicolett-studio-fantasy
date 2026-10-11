@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from urllib.parse import urlparse
 
 from django.core import mail
@@ -91,6 +91,18 @@ class AgendaTests(TestCase):
             origen='manual',
         )
 
+    def crear_cliente(self):
+        rol_cliente, _ = Rol.objects.get_or_create(nombre='Cliente')
+        return Usuario.objects.create_user(
+            email='cliente.agenda@example.com',
+            password='Cliente123!Test',
+            nombre='Camila',
+            apellido_paterno='Prueba',
+            apellido_materno='Cliente',
+            telefono='+56987654321',
+            rol=rol_cliente,
+        )
+
     def post_bloques(self, bloques, **extra):
         data = {
             'fecha': self.fecha.isoformat(),
@@ -110,6 +122,289 @@ class AgendaTests(TestCase):
         self.assertNotContains(response, 'Horizonte de agenda')
         self.assertNotContains(response, 'Configuración semanal avanzada')
         self.assertNotContains(response, 'Meses disponibles para agendar')
+
+    def test_client_can_request_an_available_appointment(self):
+        self.crear_bloque('09:00')
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+
+        page = self.client.get(reverse('cliente_agendamiento'))
+        professionals = self.client.get(
+            reverse('cliente_profesionales_disponibles'),
+            {'servicio': self.servicio.pk, 'fecha': self.fecha.isoformat()},
+        )
+        hours = self.client.get(
+            reverse('cliente_horas_disponibles'),
+            {
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+            },
+        )
+
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Agendar una cita')
+        self.assertContains(page, 'Manicure')
+        self.assertEqual(professionals.status_code, 200)
+        self.assertEqual(
+            [item['id'] for item in professionals.json()['professionals']],
+            [self.profesional.pk],
+        )
+        self.assertEqual(hours.json()['hours'], ['09:00'])
+
+        response = self.client.post(
+            reverse('cliente_crear_reserva'),
+            {
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+                'hora': '09:00',
+            },
+        )
+
+        self.assertRedirects(response, reverse('cliente_agendamiento'))
+        reserva = Reserva.objects.get(cliente=cliente)
+        self.assertEqual(reserva.estado, 'pendiente')
+        self.assertEqual(reserva.origen, 'cliente')
+        self.assertEqual(reserva.profesional, self.profesional)
+        self.assertEqual(reserva.servicio_id, self.servicio.pk)
+        self.assertEqual(reserva.cliente_email, cliente.email)
+        self.assertEqual(reserva.nombre_cliente, 'Camila Prueba Cliente')
+        historial = self.client.get(reverse('cliente_historial'))
+        self.assertContains(historial, self.servicio.nombre)
+        self.assertContains(historial, 'Pendiente')
+        self.assertContains(historial, 'Juan Pérez Soto')
+        self.assertEqual(
+            self.client.get(
+                reverse('cliente_horas_disponibles'),
+                {
+                    'servicio': self.servicio.pk,
+                    'profesional': self.profesional.pk,
+                    'fecha': self.fecha.isoformat(),
+                },
+            ).json()['hours'],
+            [],
+        )
+
+    def test_client_cannot_book_unavailable_or_overlapping_appointment(self):
+        self.crear_bloque('09:00')
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        booking_url = reverse('cliente_crear_reserva')
+        valid_data = {
+            'servicio': self.servicio.pk,
+            'profesional': self.profesional.pk,
+            'fecha': self.fecha.isoformat(),
+            'hora': '10:00',
+        }
+
+        self.client.post(booking_url, valid_data)
+        self.assertFalse(Reserva.objects.filter(cliente=cliente).exists())
+
+        Reserva.objects.create(
+            fecha_hora=timezone.make_aware(
+                datetime.combine(self.fecha, datetime.strptime('08:30', '%H:%M').time()),
+            ),
+            servicio_id=self.servicio.pk,
+            servicio_nombre=self.servicio.nombre,
+            duracion_minutos=60,
+            profesional=self.profesional,
+            cliente=cliente,
+            cliente_nombre=f'{cliente.nombre} {cliente.apellido_paterno} {cliente.apellido_materno}',
+            cliente_email=cliente.email,
+            estado='confirmada',
+            origen='cliente',
+        )
+        valid_data['hora'] = '09:00'
+        self.client.post(booking_url, valid_data)
+
+        self.assertEqual(Reserva.objects.filter(cliente=cliente).count(), 1)
+
+    def test_client_cannot_book_for_another_category_or_closed_day(self):
+        self.crear_bloque('09:00')
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        otra_categoria = Categoria.objects.create(nombre='Cabello', tipo='Cabello')
+        otro_servicio = Servicio.objects.create(
+            nombre='Corte',
+            categoria=otra_categoria,
+            duracion_minutos=60,
+            precio='15000',
+        )
+        datos = {
+            'servicio': otro_servicio.pk,
+            'profesional': self.profesional.pk,
+            'fecha': self.fecha.isoformat(),
+            'hora': '09:00',
+        }
+
+        self.client.post(reverse('cliente_crear_reserva'), datos)
+        self.assertFalse(Reserva.objects.filter(cliente=cliente).exists())
+
+        DiaCerrado.objects.create(fecha=self.fecha, motivo='Prueba')
+        datos.update(servicio=self.servicio.pk)
+        self.client.post(reverse('cliente_crear_reserva'), datos)
+        self.assertFalse(Reserva.objects.filter(cliente=cliente).exists())
+
+    def test_client_can_reschedule_own_booking_to_a_different_service(self):
+        self.crear_bloque('09:00')
+        cliente = self.crear_cliente()
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.make_aware(datetime.combine(self.fecha, time(9, 0))),
+            servicio_id=self.servicio.pk,
+            servicio_nombre=self.servicio.nombre,
+            duracion_minutos=self.servicio.duracion_minutos,
+            profesional=self.profesional,
+            cliente=cliente,
+            cliente_nombre='Camila Prueba Cliente',
+            cliente_email=cliente.email,
+            estado='confirmada',
+            origen='cliente',
+        )
+
+        otra_categoria = Categoria.objects.create(nombre='Cabello', tipo='Cabello')
+        otro_servicio = Servicio.objects.create(
+            nombre='Corte',
+            categoria=otra_categoria,
+            duracion_minutos=45,
+            precio='15000',
+        )
+        otro_profesional = Usuario(
+            nombre='Ana',
+            segundo_nombre='',
+            apellido_paterno='Gómez',
+            apellido_materno='Rojas',
+            telefono='+56912345679',
+            email='ana.agenda@example.com',
+            rol=self.profesional.rol,
+        )
+        otro_profesional.set_unusable_password()
+        otro_profesional.save()
+        ProfesionalCategoria.objects.create(
+            profesional=otro_profesional,
+            categoria_id=otra_categoria.pk,
+        )
+        self.crear_bloque(
+            '11:00',
+            servicio=otro_servicio,
+            profesional=otro_profesional,
+        )
+        self.client.force_login(cliente)
+
+        response = self.client.post(
+            reverse('cliente_reagendar_reserva', args=[reserva.pk]),
+            {
+                'servicio': otro_servicio.pk,
+                'profesional': otro_profesional.pk,
+                'fecha': self.fecha.isoformat(),
+                'hora': '11:00',
+            },
+        )
+
+        self.assertRedirects(response, reverse('cliente_gestionar_citas'))
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.servicio_id, otro_servicio.pk)
+        self.assertEqual(reserva.servicio_nombre, otro_servicio.nombre)
+        self.assertEqual(reserva.profesional_id, otro_profesional.pk)
+        self.assertEqual(reserva.duracion_minutos, 45)
+        self.assertEqual(timezone.localtime(reserva.fecha_hora).time(), time(11, 0))
+        self.assertEqual(reserva.estado, 'confirmada')
+
+    def test_client_can_cancel_own_booking_and_cannot_modify_another_clients_booking(self):
+        cliente = self.crear_cliente()
+        otra_cliente = Usuario.objects.create_user(
+            email='otra.agenda@example.com',
+            password='Cliente123!Test',
+            nombre='Otra',
+            apellido_paterno='Cliente',
+            apellido_materno='Prueba',
+            telefono='+56987654322',
+            rol=cliente.rol,
+        )
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.make_aware(datetime.combine(self.fecha, time(9, 0))),
+            servicio_id=self.servicio.pk,
+            servicio_nombre=self.servicio.nombre,
+            duracion_minutos=self.servicio.duracion_minutos,
+            profesional=self.profesional,
+            cliente=otra_cliente,
+            cliente_nombre='Otra Cliente Prueba',
+            cliente_email=otra_cliente.email,
+            estado='confirmada',
+            origen='cliente',
+        )
+        self.client.force_login(cliente)
+
+        response = self.client.post(
+            reverse('cliente_cancelar_reserva', args=[reserva.pk]),
+        )
+
+        self.assertRedirects(response, reverse('cliente_gestionar_citas'))
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, 'confirmada')
+
+        reserva.cliente = cliente
+        reserva.save(update_fields=['cliente'])
+        self.client.post(reverse('cliente_cancelar_reserva', args=[reserva.pk]))
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, 'cancelada')
+        self.assertIn('Cancelada por la clienta', reserva.motivo_cancelacion)
+
+    def test_client_management_shows_only_their_upcoming_unresolved_bookings(self):
+        cliente = self.crear_cliente()
+        otra_cliente = Usuario.objects.create_user(
+            email='otra.gestion@example.com',
+            password='Cliente123!Test',
+            nombre='Otra',
+            apellido_paterno='Cliente',
+            apellido_materno='Prueba',
+            telefono='+56987654322',
+            rol=cliente.rol,
+        )
+        reserva_propia = Reserva.objects.create(
+            fecha_hora=timezone.make_aware(datetime.combine(self.fecha, time(9, 0))),
+            servicio_id=self.servicio.pk,
+            servicio_nombre=self.servicio.nombre,
+            duracion_minutos=self.servicio.duracion_minutos,
+            profesional=self.profesional,
+            cliente=cliente,
+            estado='pendiente',
+            origen='cliente',
+        )
+        Reserva.objects.create(
+            fecha_hora=timezone.make_aware(datetime.combine(self.fecha, time(10, 0))),
+            servicio_id=self.servicio.pk,
+            servicio_nombre='Cita ajena',
+            duracion_minutos=self.servicio.duracion_minutos,
+            cliente=otra_cliente,
+            estado='pendiente',
+        )
+        self.client.force_login(cliente)
+
+        response = self.client.get(reverse('cliente_gestionar_citas'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.servicio.nombre)
+        self.assertContains(response, 'Cancelar cita')
+        self.assertContains(response, 'Reagendar o cambiar servicio')
+        self.assertNotContains(response, 'Cita ajena')
+        self.assertEqual(list(response.context['reservas']), [reserva_propia])
+
+    def test_client_booking_endpoints_require_client_role(self):
+        self.client.force_login(self.profesional)
+
+        response = self.client.get(
+            reverse('cliente_horas_disponibles'),
+            {
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login/?next=', response['Location'])
+        self.assertIn(reverse('cliente_horas_disponibles'), response['Location'])
 
     def test_calendar_can_navigate_to_past_months_for_read_only(self):
         mes_pasado = (timezone.localdate().replace(day=1) - timedelta(days=1)).replace(day=1)

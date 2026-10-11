@@ -1,9 +1,14 @@
 from django.contrib.auth import authenticate, login as auth_login, logout
 from django.db import IntegrityError
+from django.db.models import QuerySet
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
+
+from agenda.models import Reserva
+from panel_admin.models import Producto, Servicio
 
 from .models import Rol, Usuario
 from .permissions import es_administrador, es_cliente
@@ -105,7 +110,15 @@ def _vista_cliente(request, template, context=None):
             'usuarios/acceso_denegado.html',
             status=403,
         )
-    return render(request, template, context or {})
+    from carrito.views import _liberar_reservas_vencidas, resumen_carrito
+
+    _liberar_reservas_vencidas(request)
+    contexto = context.copy() if context else {}
+    contexto['resumen_carrito'], contexto['total_resumen_carrito'] = resumen_carrito(request)
+    contexto['cantidad_articulos_carrito'] = sum(
+        item['cantidad'] for item in contexto['resumen_carrito']
+    )
+    return render(request, template, contexto)
 
 
 @never_cache
@@ -119,28 +132,55 @@ def cliente_home_view(request):
 
 @never_cache
 def cliente_servicios_view(request):
+    servicios = Servicio.objects.filter(activo=True).select_related('categoria').order_by('nombre')
     return _vista_cliente(
         request,
         'usuarios/cliente_seccion.html',
-        {'titulo': 'Servicios', 'descripcion': 'Aquí podrás conocer los servicios disponibles.'},
+        {
+            'titulo': 'Servicios',
+            'descripcion': 'Aquí podrás conocer los servicios disponibles.',
+            'servicios': servicios,
+            'filtros_categoria': _filtros_catalogo(servicios),
+        },
     )
 
 
 @never_cache
 def cliente_productos_view(request):
+    productos = Producto.objects.filter(activo=True).select_related('categoria').order_by('nombre')
     return _vista_cliente(
         request,
         'usuarios/cliente_seccion.html',
-        {'titulo': 'Productos', 'descripcion': 'Aquí podrás revisar los productos del estudio.'},
+        {
+            'titulo': 'Productos',
+            'descripcion': 'Aquí podrás revisar los productos del estudio.',
+            'productos': productos,
+            'filtros_categoria': _filtros_catalogo(productos),
+        },
     )
+
+
+def _filtros_catalogo(items: QuerySet) -> list[str]:
+    filtros = {}
+    for nombre, tipo in items.values_list('categoria__nombre', 'categoria__tipo').distinct():
+        for valor in (nombre, tipo):
+            valor = (valor or '').strip()
+            if valor:
+                filtros.setdefault(valor.casefold(), valor)
+    return sorted(filtros.values(), key=str.casefold)
 
 
 @never_cache
 def cliente_agendamiento_view(request):
     return _vista_cliente(
         request,
-        'usuarios/cliente_seccion.html',
-        {'titulo': 'Agendamiento', 'descripcion': 'Aquí podrás agendar una cita.'},
+        'usuarios/cliente_agendamiento.html',
+        {
+            'servicios': Servicio.objects.filter(activo=True).select_related('categoria').order_by('nombre'),
+            'hoy': timezone.localdate().isoformat(),
+            'cliente_profesionales_url': reverse('cliente_profesionales_disponibles'),
+            'cliente_horas_url': reverse('cliente_horas_disponibles'),
+        },
     )
 
 
@@ -148,8 +188,40 @@ def cliente_agendamiento_view(request):
 def cliente_historial_view(request):
     return _vista_cliente(
         request,
-        'usuarios/cliente_seccion.html',
-        {'titulo': 'Historial de citas', 'descripcion': 'Aquí podrás consultar tus citas anteriores.'},
+        'usuarios/cliente_historial.html',
+        {
+            'reservas': Reserva.objects.filter(
+                cliente=request.user,
+            ).select_related(
+                'servicio',
+                'profesional',
+            ).order_by('-fecha_hora'),
+        },
+    )
+
+
+@never_cache
+def cliente_gestionar_citas_view(request):
+    ahora = timezone.now()
+    return _vista_cliente(
+        request,
+        'usuarios/cliente_gestionar_citas.html',
+        {
+            'reservas': Reserva.objects.filter(
+                cliente=request.user,
+                fecha_hora__gt=ahora,
+            ).exclude(
+                estado__in=['cancelada', 'completada'],
+            ).select_related(
+                'servicio',
+                'profesional',
+                'cambio_disponibilidad',
+            ).order_by('fecha_hora'),
+            'servicios': Servicio.objects.filter(activo=True).order_by('nombre'),
+            'hoy': timezone.localdate().isoformat(),
+            'cliente_profesionales_url': reverse('cliente_profesionales_disponibles'),
+            'cliente_horas_url': reverse('cliente_horas_disponibles'),
+        },
     )
 
 

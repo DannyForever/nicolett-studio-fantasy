@@ -123,7 +123,15 @@ class Reserva(models.Model):
     @property
     def nombre_cliente(self):
         if self.cliente_id:
-            return self.cliente.get_full_name() or self.cliente.email
+            nombre = ' '.join(
+                parte for parte in (
+                    self.cliente.nombre,
+                    self.cliente.segundo_nombre,
+                    self.cliente.apellido_paterno,
+                    self.cliente.apellido_materno,
+                ) if parte
+            )
+            return nombre or self.cliente.email
         return self.cliente_nombre
 
     @property

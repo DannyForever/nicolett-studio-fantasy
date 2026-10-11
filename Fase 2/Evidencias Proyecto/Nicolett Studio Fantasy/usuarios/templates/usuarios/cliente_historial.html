@@ -1,0 +1,65 @@
+{% extends 'usuarios/cliente_base.html' %}
+
+{% block title %}Historial de citas | Nicolett Studio Fantasy{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-4xl">
+        <section class="border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8">
+            <h1 class="mb-3 font-serif text-2xl">Historial de citas</h1>
+            <p class="text-sm leading-relaxed text-[#7a6e6a]">
+                Aquí puedes revisar las solicitudes que has enviado y el estado de tus citas.
+            </p>
+        </section>
+
+        <section class="mt-6 space-y-4" aria-label="Tus citas">
+            {% for reserva in reservas %}
+                <article class="border border-[#e8e0da] bg-white p-5 shadow-sm sm:p-6">
+                    <div class="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <p class="mb-1 text-xs uppercase tracking-widest text-[#7a6e6a]">
+                                {{ reserva.fecha_hora|date:"d/m/Y" }} · {{ reserva.fecha_hora|date:"H:i" }}
+                            </p>
+                            <h2 class="font-serif text-xl">
+                                {{ reserva.servicio_nombre|default:reserva.servicio.nombre|default:"Servicio no disponible" }}
+                            </h2>
+                        </div>
+                        <span class="border px-3 py-1 text-xs font-medium
+                            {% if reserva.estado == 'confirmada' %}border-green-200 bg-green-50 text-green-800
+                            {% elif reserva.estado == 'pendiente' %}border-amber-200 bg-amber-50 text-amber-800
+                            {% elif reserva.estado == 'suspendida' %}border-red-200 bg-red-50 text-red-800
+                            {% elif reserva.estado == 'cancelada' %}border-[#e8e0da] bg-[#f7f3f0] text-[#7a6e6a]
+                            {% else %}border-blue-200 bg-blue-50 text-blue-800{% endif %}">
+                            {{ reserva.get_estado_display }}
+                        </span>
+                    </div>
+
+                    <div class="mt-4 grid gap-3 border-t border-[#e8e0da] pt-4 text-sm text-[#7a6e6a] sm:grid-cols-2">
+                        <p><span class="font-medium text-[#2a2320]">Profesional:</span>
+                            {% if reserva.profesional %}
+                                {{ reserva.profesional.nombre }} {{ reserva.profesional.apellido_paterno }} {{ reserva.profesional.apellido_materno }}
+                            {% else %}
+                                Sin profesional asignado
+                            {% endif %}
+                        </p>
+                        <p><span class="font-medium text-[#2a2320]">Duración:</span> {{ reserva.duracion_minutos }} min</p>
+                        <p><span class="font-medium text-[#2a2320]">Solicitud:</span> {{ reserva.get_origen_display|default:"Reserva" }}</p>
+                        {% if reserva.motivo_cancelacion %}
+                            <p class="sm:col-span-2"><span class="font-medium text-[#2a2320]">Motivo de cancelación:</span> {{ reserva.motivo_cancelacion }}</p>
+                        {% endif %}
+                        {% if reserva.estado == 'suspendida' and reserva.motivo_suspension %}
+                            <p class="sm:col-span-2"><span class="font-medium text-[#2a2320]">Aviso:</span> {{ reserva.motivo_suspension }}</p>
+                        {% endif %}
+                    </div>
+                </article>
+            {% empty %}
+                <div class="border border-[#e8e0da] bg-white p-8 text-center shadow-sm">
+                    <p class="font-serif text-lg">Todavía no tienes citas registradas.</p>
+                    <p class="mt-2 text-sm text-[#7a6e6a]">Cuando solicites una cita, podrás consultar aquí su estado.</p>
+                    <a href="{% url 'cliente_agendamiento' %}" class="mt-5 inline-block bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline transition hover:bg-[#604536]">
+                        Agendar una cita
+                    </a>
+                </div>
+            {% endfor %}
+        </section>
+    </div>
+{% endblock %}

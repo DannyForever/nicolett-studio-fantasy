@@ -1,0 +1,310 @@
+{% extends 'usuarios/cliente_base.html' %}
+
+{% block title %}Carrito de compra | Nicolett Studio Fantasy{% endblock %}
+
+{% block content %}
+    <section id="cart-page" data-initial-products="{{ total_productos }}" data-initial-total="{{ total_pedido }}" data-initial-pay="{{ total_pagar }}" class="mx-auto max-w-4xl border border-[#e8e0da] bg-white shadow-sm" aria-label="Carrito de compra">
+        <div class="p-6 sm:p-8">
+            <h1 class="font-serif text-2xl">Carrito de compra</h1>
+        </div>
+        <div class="px-6 pb-6 sm:px-8 sm:pb-8">
+        {% if messages %}
+            <div class="mb-5 space-y-2" aria-live="polite">
+                {% for message in messages %}
+                    <p class="border p-3 text-sm {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %}" role="status">{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if not productos and not servicios %}
+            <div class="border-t border-[#e8e0da] py-8 text-center">
+                <i class="fa-solid fa-cart-shopping text-3xl text-[#c9a99b]" aria-hidden="true"></i>
+                <h2 class="mt-4 font-serif text-xl">Tu carrito está vacío</h2>
+                <p class="mt-2 text-sm text-[#7a6e6a]">Añade productos o servicios para continuar.</p>
+                <div class="mt-5 flex flex-wrap justify-center gap-3">
+                    <a href="{% url 'cliente_productos' %}" class="bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline">Ver productos</a>
+                    <a href="{% url 'cliente_servicios' %}" class="border border-[#765747] px-5 py-3 text-sm font-medium text-[#765747] no-underline">Ver servicios</a>
+                </div>
+            </div>
+        {% else %}
+            {% if productos %}
+                <section class="border-t border-[#e8e0da] py-5" aria-label="Productos en el carrito">
+                    <h2 class="mb-2 font-serif text-xl">Productos</h2>
+                    {% for item in productos %}
+                        <article class="flex flex-wrap items-center justify-between gap-4 border-b border-[#e8e0da] py-4 last:border-b-0" data-cart-product data-price="{{ item.precio }}">
+                            <div class="min-w-0">
+                                <h3 class="font-medium">{{ item.nombre }}</h3>
+                                {% if item.disponible %}
+                                    <p class="mt-1 text-sm text-[#7a6e6a]">$<span data-unit-price>{{ item.precio|floatformat:0 }}</span> c/u · Subtotal $<span data-line-total>{{ item.subtotal|floatformat:0 }}</span></p>
+                                {% else %}
+                                    <p class="mt-1 text-sm text-red-700">No disponible o stock insuficiente. Ajusta la cantidad o elimínalo.</p>
+                                {% endif %}
+                            </div>
+                            <form method="post" action="{% url 'cliente_carrito_actualizar' %}" class="flex items-center gap-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="tipo" value="producto">
+                                <input type="hidden" name="clave" value="{{ item.id }}">
+                                <input type="hidden" name="return_to" value="{{ request.path }}">
+                                <input type="hidden" name="cantidad" value="{{ item.cantidad }}">
+                                <div class="flex items-center border border-[#ded5cf]">
+                                    <button type="button" data-quantity-delta="-1" {% if item.cantidad <= 1 %}disabled{% endif %} aria-label="Disminuir cantidad de {{ item.nombre }}" class="h-9 w-9 border-0 bg-white text-lg hover:bg-[#f7f3f0] disabled:cursor-not-allowed disabled:opacity-40">&minus;</button>
+                                    <output data-cart-quantity class="min-w-9 text-center text-sm">{{ item.cantidad }}</output>
+                                    <button type="button" data-quantity-delta="1" aria-label="Aumentar cantidad de {{ item.nombre }}" class="h-9 w-9 border-0 bg-white text-lg hover:bg-[#f7f3f0]">+</button>
+                                </div>
+                                <button type="submit" data-remove-cart-item name="cantidad" value="0" aria-label="Eliminar {{ item.nombre }}" class="ml-1 border-0 bg-transparent px-2 text-sm text-red-700 hover:text-red-900">Eliminar</button>
+                            </form>
+                        </article>
+                    {% endfor %}
+                </section>
+            {% endif %}
+
+            {% if servicios %}
+                <section class="border-t border-[#e8e0da] py-5" aria-label="Servicios en el carrito">
+                    <h2 class="mb-2 font-serif text-xl">Servicios y agenda</h2>
+                    {% for item in servicios %}
+                        <article class="border-b border-[#e8e0da] py-5 last:border-b-0" data-cart-service data-price="{{ item.precio }}">
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <h3 class="font-serif text-lg">{{ item.nombre }}</h3>
+                                    {% if item.disponible %}
+                                        <p class="mt-1 text-sm text-[#7a6e6a]">${{ item.precio|floatformat:0 }} · {{ item.duracion }} min</p>
+                                    {% else %}
+                                        <p class="mt-1 text-sm text-red-700">Este servicio ya no está activo. Elimínalo para continuar.</p>
+                                    {% endif %}
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <form method="post" action="{% url 'cliente_carrito_actualizar' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="tipo" value="servicio">
+                                        <input type="hidden" name="clave" value="{{ item.key }}">
+                                        <input type="hidden" name="return_to" value="{{ request.path }}">
+                                        <button type="submit" aria-label="Disminuir cantidad de {{ item.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ded5cf] text-sm hover:bg-[#f7f3f0]">&minus;</button>
+                                    </form>
+                                    <form method="post" action="{% url 'cliente_carrito_agregar_servicio' item.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="return_to" value="{{ request.path }}">
+                                        <button type="submit" aria-label="Añadir otra cita de {{ item.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ded5cf] text-sm hover:bg-[#f7f3f0]">+</button>
+                                    </form>
+                                    <form method="post" action="{% url 'cliente_carrito_actualizar' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="tipo" value="servicio">
+                                        <input type="hidden" name="clave" value="{{ item.key }}">
+                                        <input type="hidden" name="return_to" value="{{ request.path }}">
+                                        <button type="submit" aria-label="Eliminar cita de {{ item.nombre }}" class="text-sm text-red-700 underline">Eliminar</button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            {% if item.disponible %}
+                                <form method="post" action="{% url 'cliente_carrito_guardar_cita' item.key %}" class="js-cart-service mt-5 space-y-4 border-t border-[#e8e0da] pt-5"
+                                      data-service="{{ item.id }}" data-profesional-original="{{ item.profesional_id }}"
+                                      data-fecha-original="{{ item.fecha }}" data-hora-original="{{ item.hora }}">
+                                    {% csrf_token %}
+                                    <div class="grid gap-4 sm:grid-cols-3">
+                                        <div>
+                                            <label for="date-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Día de atención</label>
+                                            <input id="date-{{ forloop.counter }}" name="fecha" type="date" min="{{ hoy }}" value="{{ item.fecha }}" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                        </div>
+                                        <div>
+                                            <label for="professional-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Profesional</label>
+                                            <select id="professional-{{ forloop.counter }}" name="profesional" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                                                <option value="">Consultando disponibilidad...</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label for="hour-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Hora</label>
+                                            <select id="hour-{{ forloop.counter }}" name="hora" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                                                <option value="">Selecciona profesional...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="payment-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Pago del servicio</label>
+                                        <select id="payment-{{ forloop.counter }}" name="pago" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                            <option value="">Selecciona pago completo o abono...</option>
+                                            <option value="completo" {% if item.pago == 'completo' %}selected{% endif %}>Pagar completo · ${{ item.precio|floatformat:0 }}</option>
+                                            <option value="abono" {% if item.pago == 'abono' %}selected{% endif %}>Abonar $5.000{% if item.precio <= 5000 %} · pago completo por ser menor o igual al abono{% else %} · saldo ${{ item.saldo|floatformat:0 }} en el salón{% endif %}</option>
+                                        </select>
+                                    </div>
+                                    <p class="js-cart-status text-sm text-[#7a6e6a]" aria-live="polite">
+                                        {% if item.cita_completa %}
+                                            Cita guardada · pagar ahora ${{ item.monto_pagar|floatformat:0 }}{% if item.saldo %} · saldo pendiente ${{ item.saldo|floatformat:0 }}{% endif %}
+                                        {% else %}
+                                            Selecciona día, profesional, hora y modalidad de pago; luego guarda la cita.
+                                        {% endif %}
+                                    </p>
+                                    <button type="submit" class="border border-[#765747] px-4 py-2 text-sm font-medium text-[#765747] transition hover:bg-[#f7f3f0]">Guardar servicio y cita</button>
+                                </form>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                </section>
+            {% endif %}
+
+            <section class="border-t border-[#e8e0da] pt-6" aria-label="Resumen de compra">
+                <h2 class="font-serif text-xl">Resumen de pago ficticio</h2>
+                <dl class="mt-4 space-y-3 text-sm">
+                    <div class="flex justify-between gap-4"><dt>Productos (pago completo)</dt><dd>$<span id="cart-products-total">{{ total_productos|floatformat:0 }}</span></dd></div>
+                    <div class="flex justify-between gap-4"><dt>Servicios (valor completo)</dt><dd>${{ total_servicios|floatformat:0 }}</dd></div>
+                    <div class="flex justify-between gap-4 border-t border-[#e8e0da] pt-3 font-medium"><dt>Valor total de la compra</dt><dd>$<span id="cart-order-total">{{ total_pedido|floatformat:0 }}</span></dd></div>
+                    <div class="flex justify-between gap-4 text-[#765747]"><dt>A pagar ahora</dt><dd class="font-semibold">$<span id="cart-pay-total">{{ total_pagar|floatformat:0 }}</span></dd></div>
+                    <div class="flex justify-between gap-4 text-[#7a6e6a]"><dt>Saldo de servicios a pagar en el salón</dt><dd>${{ saldo_pendiente|floatformat:0 }}</dd></div>
+                </dl>
+                <p class="mt-4 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    Este pago es solo una simulación; no se solicitarán ni procesarán datos bancarios.
+                    Los productos se pagan completos. El abono de $5.000 solo aplica a servicios.
+                </p>
+                <form method="post" action="{% url 'cliente_carrito_pagar' %}" class="mt-5">
+                    {% csrf_token %}
+                    <button id="confirmar-pago-carrito" type="submit" {% if not puede_pagar %}disabled{% endif %} class="bg-[#765747] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#604536] disabled:cursor-not-allowed disabled:opacity-50">
+                        Confirmar pago ficticio
+                    </button>
+                    {% if not puede_pagar %}
+                        <p class="mt-2 text-sm text-red-700">Para pagar, corrige los productos sin stock y completa la agenda y modalidad de cada servicio.</p>
+                    {% endif %}
+                </form>
+            </section>
+        {% endif %}
+        </div>
+    </section>
+
+    {{ profesionales_url|json_script:"cart-professionals-url" }}
+    {{ horas_url|json_script:"cart-hours-url" }}
+    <script>
+        (() => {
+            for (const product of document.querySelectorAll('[data-cart-product]')) {
+                const quantity = product.querySelector('[data-cart-quantity]');
+                const lineTotal = product.querySelector('[data-line-total]');
+                const quantityInput = product.querySelector('input[name="cantidad"]');
+                const minusButton = product.querySelector('[data-quantity-delta="-1"]');
+                const unitPrice = Number(product.dataset.price);
+                const page = document.getElementById('cart-page');
+                if (!quantity || !lineTotal || !quantityInput || !minusButton) continue;
+                for (const button of product.querySelectorAll('[data-quantity-delta]')) {
+                    button.addEventListener('click', () => {
+                        const nextQuantity = Number(quantity.textContent) + Number(button.dataset.quantityDelta);
+                        if (nextQuantity < 1) return;
+                        quantityInput.value = String(nextQuantity);
+                        quantity.textContent = String(nextQuantity);
+                        lineTotal.textContent = String(unitPrice * nextQuantity);
+                        minusButton.disabled = nextQuantity <= 1;
+
+                        const productsTotal = Array.from(document.querySelectorAll('[data-line-total]'))
+                            .reduce((sum, value) => sum + Number(value.textContent), 0);
+                        const difference = productsTotal - Number(page.dataset.initialProducts);
+                        document.getElementById('cart-products-total').textContent = String(productsTotal);
+                        document.getElementById('cart-order-total').textContent =
+                            String(Number(page.dataset.initialTotal) + difference);
+                        document.getElementById('cart-pay-total').textContent =
+                            String(Number(page.dataset.initialPay) + difference);
+                        window.setTimeout(() => product.querySelector('form').requestSubmit(), 120);
+                    });
+                }
+            }
+
+            const professionalsUrl = JSON.parse(document.getElementById('cart-professionals-url').textContent);
+            const hoursUrl = JSON.parse(document.getElementById('cart-hours-url').textContent);
+            const checkoutButton = document.getElementById('confirmar-pago-carrito');
+
+            function reset(select, placeholder) {
+                select.replaceChildren(new Option(placeholder, ''));
+                select.disabled = true;
+            }
+
+            for (const form of document.querySelectorAll('.js-cart-service')) {
+                const date = form.querySelector('[name="fecha"]');
+                const professional = form.querySelector('[name="profesional"]');
+                const hour = form.querySelector('[name="hora"]');
+                const payment = form.querySelector('[name="pago"]');
+                const status = form.querySelector('.js-cart-status');
+                const serviceId = form.dataset.service;
+
+                function markUnsaved() {
+                    form.dataset.dirty = 'true';
+                    if (checkoutButton) {
+                        checkoutButton.disabled = true;
+                    }
+                    status.textContent = 'Tienes cambios sin guardar. Guarda el servicio y la cita antes de pagar.';
+                }
+
+                async function loadHours() {
+                    reset(hour, 'Consultando horas...');
+                    if (!date.value || !professional.value) {
+                        return;
+                    }
+                    const params = new URLSearchParams({
+                        servicio: serviceId,
+                        fecha: date.value,
+                        profesional: professional.value,
+                    });
+                    const response = await fetch(`${hoursUrl}?${params}`);
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || 'No se pudieron consultar las horas.');
+                    }
+                    reset(hour, data.hours.length ? 'Selecciona una hora...' : 'No hay horas disponibles.');
+                    for (const value of data.hours) {
+                        hour.add(new Option(value, value));
+                    }
+                    hour.disabled = !data.hours.length;
+                    if (
+                        date.value === form.dataset.fechaOriginal
+                        && professional.value === form.dataset.profesionalOriginal
+                        && data.hours.includes(form.dataset.horaOriginal)
+                    ) {
+                        hour.value = form.dataset.horaOriginal;
+                    }
+                }
+
+                async function loadProfessionals() {
+                    reset(professional, 'Buscando profesionales...');
+                    reset(hour, 'Selecciona profesional...');
+                    if (!date.value) {
+                        status.textContent = 'Selecciona un día para consultar los profesionales y horarios.';
+                        return;
+                    }
+                    const params = new URLSearchParams({servicio: serviceId, fecha: date.value});
+                    const response = await fetch(`${professionalsUrl}?${params}`);
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || 'No se pudieron consultar los profesionales.');
+                    }
+                    reset(professional, data.professionals.length ? 'Selecciona profesional...' : 'Sin profesionales disponibles.');
+                    for (const item of data.professionals) {
+                        professional.add(new Option(item.name, item.id));
+                    }
+                    professional.disabled = !data.professionals.length;
+                    if (data.professionals.some(item => String(item.id) === form.dataset.profesionalOriginal)) {
+                        professional.value = form.dataset.profesionalOriginal;
+                        await loadHours();
+                    }
+                    if (form.dataset.dirty !== 'true') {
+                        status.textContent = data.professionals.length
+                            ? 'Selecciona día, profesional, hora y forma de pago.'
+                            : 'No hay profesionales con horas disponibles para ese día.';
+                    }
+                }
+
+                date.addEventListener('change', () => {
+                    markUnsaved();
+                    loadProfessionals().catch(() => {
+                    status.textContent = 'No se pudo consultar disponibilidad. Intenta nuevamente.';
+                    });
+                });
+                professional.addEventListener('change', () => {
+                    markUnsaved();
+                    loadHours().catch(() => {
+                    status.textContent = 'No se pudieron consultar las horas. Intenta nuevamente.';
+                    });
+                });
+                hour.addEventListener('change', markUnsaved);
+                payment.addEventListener('change', () => {
+                    markUnsaved();
+                });
+                loadProfessionals().catch(() => {
+                    status.textContent = 'No se pudo consultar disponibilidad. Intenta nuevamente.';
+                });
+            }
+        })();
+    </script>
+{% endblock %}

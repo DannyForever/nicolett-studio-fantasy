@@ -30,17 +30,100 @@
     </script>
 </head>
 <body class="flex min-h-screen flex-col bg-[#faf7f4] font-sans text-[#2a2320] antialiased">
-    <header class="sticky top-0 z-30 flex items-center justify-between border-b border-[#e8e0da] bg-[#faf7f4]/95 px-8 py-5 backdrop-blur-sm lg:px-16">
-        <a href="{% url 'cliente_home' %}" aria-label="Ir al inicio de cliente" class="text-[#2a2320] no-underline">
-            <span class="font-serif text-xl font-bold tracking-widest">Nicolett</span>
-            <span class="block text-[10px] uppercase tracking-widest text-[#7a6e6a]">Studio Fantasy</span>
+    <header class="sticky top-0 z-30 flex items-center justify-between border-b border-[#38302d] bg-[#262120] px-5 py-3 text-[#f8f5f2] shadow-sm sm:px-8 lg:px-16">
+        <a href="{% url 'cliente_home' %}" aria-label="Ir al inicio de cliente" class="flex items-baseline gap-2 text-[#f8f5f2] no-underline">
+            <span class="font-serif text-xl font-bold">Nicolett</span>
+            <span class="text-[10px] uppercase tracking-[0.2em] text-[#c9bdb5]">Studio</span>
         </a>
         <div class="flex items-center gap-5 text-sm">
-            <span class="text-[#faf7f4]/80">Hola, <strong class="text-[#faf7f4]">{{ request.user.nombre }}</strong></span>
-            <a href="{% url 'cliente_productos' %}" aria-label="Productos" class="text-lg text-[#c9a99b] no-underline"><i class="fa-solid fa-bag-shopping"></i></a>
+            <span class="hidden text-[#d8cfca] sm:inline">Hola, <strong class="text-white">{{ request.user.nombre }}</strong></span>
+            <div class="relative">
+                <button id="cart-summary-toggle" type="button" aria-label="Abrir resumen de compra" aria-expanded="false" aria-controls="cart-summary-panel" class="relative border-0 bg-transparent text-lg text-[#eee7e2] transition hover:text-white">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    {% if cantidad_articulos_carrito %}<span class="absolute -right-3 -top-2 min-w-4 rounded-full bg-[#a84a3f] px-1 text-center text-[10px] leading-4 text-white">{{ cantidad_articulos_carrito }}</span>{% endif %}
+                </button>
+                <section id="cart-summary-panel" hidden class="absolute right-0 top-full z-50 mt-3 w-[min(92vw,380px)] border border-[#e8e0da] bg-white text-[#2a2320] shadow-xl" aria-label="Resumen de compra">
+                    <header class="flex items-center justify-between border-b border-[#e8e0da] px-4 py-3">
+                        <h2 class="font-serif text-lg">Resumen de compra</h2>
+                        <button id="cart-summary-close" type="button" aria-label="Cerrar resumen" class="border-0 bg-transparent px-2 text-xl text-[#7a6e6a] hover:text-[#2a2320]">&times;</button>
+                    </header>
+                    <div class="max-h-[55vh] space-y-3 overflow-y-auto p-4">
+                        {% for item in resumen_carrito %}
+                            <article class="border-b border-[#e8e0da] pb-3 last:border-b-0">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <h3 class="truncate text-sm font-medium">{{ item.nombre }}</h3>
+                                        <p class="mt-1 text-xs text-[#7a6e6a]">${{ item.precio|floatformat:0 }} c/u · Subtotal ${{ item.subtotal|floatformat:0 }}</p>
+                                    </div>
+                                    {% if item.tipo == 'producto' %}
+                                        <form method="post" action="{{ item.url }}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="tipo" value="{{ item.tipo }}">
+                                            <input type="hidden" name="clave" value="{{ item.key }}">
+                                            <input type="hidden" name="cantidad" value="0">
+                                            <input type="hidden" name="return_to" value="{{ request.path }}">
+                                            <button type="submit" aria-label="Eliminar {{ item.nombre }}" class="border-0 bg-transparent px-1 text-sm text-red-700 hover:text-red-900">Eliminar</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                                {% if item.tipo == 'producto' %}
+                                    <div class="mt-2 flex items-center gap-2">
+                                        <form method="post" action="{{ item.url }}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="tipo" value="producto">
+                                            <input type="hidden" name="clave" value="{{ item.key }}">
+                                            <input type="hidden" name="cantidad" value="{{ item.cantidad|add:'-1' }}">
+                                            <input type="hidden" name="return_to" value="{{ request.path }}">
+                                            <button type="submit" aria-label="Disminuir cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ded5cf] text-sm hover:bg-[#f7f3f0]">&minus;</button>
+                                        </form>
+                                        <span class="min-w-6 text-center text-xs">{{ item.cantidad }}</span>
+                                        <form method="post" action="{{ item.url }}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="tipo" value="producto">
+                                            <input type="hidden" name="clave" value="{{ item.key }}">
+                                            <input type="hidden" name="cantidad" value="{{ item.cantidad|add:'1' }}">
+                                            <input type="hidden" name="return_to" value="{{ request.path }}">
+                                            <button type="submit" aria-label="Aumentar cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ded5cf] text-sm hover:bg-[#f7f3f0]">+</button>
+                                        </form>
+                                    </div>
+                                {% else %}
+                                    <div class="mt-2 flex items-center gap-2">
+                                        <form method="post" action="{{ item.url }}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="tipo" value="servicio">
+                                            <input type="hidden" name="clave" value="{{ item.key }}">
+                                            <input type="hidden" name="return_to" value="{{ request.path }}">
+                                            <button type="submit" aria-label="Disminuir cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ded5cf] text-sm hover:bg-[#f7f3f0]">&minus;</button>
+                                        </form>
+                                        <span class="min-w-6 text-center text-xs">1</span>
+                                        <form method="post" action="{{ item.agregar_url }}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="return_to" value="{{ request.path }}">
+                                            <button type="submit" aria-label="Aumentar citas de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ded5cf] text-sm hover:bg-[#f7f3f0]">+</button>
+                                        </form>
+                                        <form method="post" action="{{ item.url }}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="tipo" value="servicio">
+                                            <input type="hidden" name="clave" value="{{ item.key }}">
+                                            <input type="hidden" name="return_to" value="{{ request.path }}">
+                                            <button type="submit" aria-label="Eliminar {{ item.nombre }}" class="border-0 bg-transparent px-1 text-xs text-red-700 hover:text-red-900">Eliminar</button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            </article>
+                        {% empty %}
+                            <p class="bg-[#f2f0ef] p-3 text-sm text-[#7a6e6a]">El carrito está vacío.</p>
+                        {% endfor %}
+                    </div>
+                    <footer class="border-t border-[#e8e0da] p-4">
+                        <p class="mb-3 flex justify-between text-sm font-medium"><span>Total</span><span>${{ total_resumen_carrito|floatformat:0 }}</span></p>
+                        <a href="{% url 'cliente_carrito' %}" class="block bg-[#765747] px-4 py-3 text-center text-sm font-medium text-white no-underline transition hover:bg-[#604536]">Ir al carrito de compras</a>
+                    </footer>
+                </section>
+            </div>
             <form action="{% url 'logout' %}" method="post" class="m-0">
                 {% csrf_token %}
-                <button type="submit" class="border-0 bg-transparent text-[11px] uppercase tracking-[0.12em] text-[#c9a99b] hover:text-white">Cerrar sesión</button>
+                <button type="submit" class="border-0 bg-transparent text-[11px] uppercase tracking-[0.12em] text-[#d8cfca] hover:text-white">Cerrar sesión</button>
             </form>
         </div>
     </header>
@@ -57,14 +140,14 @@
                 <a href="{% url 'cliente_productos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-box-open w-4 text-center text-[#c9a99b]"></i> Productos
                 </a>
-                <a href="{% url 'cliente_agendamiento' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
-                    <i class="fa-regular fa-calendar-plus w-4 text-center text-[#c9a99b]"></i> Agendamiento
-                </a>
                 <a href="{% url 'cliente_historial' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-clock-rotate-left w-4 text-center text-[#c9a99b]"></i> Historial de citas
                 </a>
-                <a href="{% url 'cliente_cancelar_cita' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_cancelar_cita' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#b25d5d]{% else %}border-transparent text-[#b25d5d] hover:bg-[#faf7f4]{% endif %}" {% if request.resolver_match.url_name == 'cliente_cancelar_cita' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-calendar-xmark w-4 text-center"></i> Cancelar cita
+                <a href="{% url 'cliente_agendamiento' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
+                    <i class="fa-regular fa-calendar-plus w-4 text-center text-[#c9a99b]"></i> Agendar citas
+                </a>
+                <a href="{% url 'cliente_gestionar_citas' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}aria-current="page"{% endif %}>
+                    <i class="fa-regular fa-calendar-check w-4 text-center text-[#c9a99b]"></i> Gestionar citas
                 </a>
             </nav>
         </aside>
@@ -80,6 +163,28 @@
                 window.location.reload();
             }
         });
+        (() => {
+            const toggle = document.getElementById('cart-summary-toggle');
+            const panel = document.getElementById('cart-summary-panel');
+            const close = document.getElementById('cart-summary-close');
+            if (!toggle || !panel || !close) return;
+
+            function setOpen(open) {
+                panel.hidden = !open;
+                toggle.setAttribute('aria-expanded', String(open));
+            }
+
+            toggle.addEventListener('click', () => setOpen(panel.hidden));
+            close.addEventListener('click', () => setOpen(false));
+            document.addEventListener('click', event => {
+                if (!panel.hidden && !panel.parentElement.contains(event.target)) {
+                    setOpen(false);
+                }
+            });
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape') setOpen(false);
+            });
+        })();
     </script>
 </body>
 </html>
