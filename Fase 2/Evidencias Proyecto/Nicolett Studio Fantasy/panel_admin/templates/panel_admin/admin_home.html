@@ -1,93 +1,81 @@
 {% extends 'panel_admin/base_dashboard.html' %}
 
-{% block title %}Dashboard - Nicolett Studio Fantasy{% endblock %}
+{% block title %}Dashboard | Nicolett Studio{% endblock %}
 
 {% block content %}
 <div class="mb-4 pb-2 border-bottom">
-    <h1 class="h2 mb-1" style="font-weight: 600;">Dashboard</h1>
-    <p class="text-muted small">Resumen general de Nicolett Studio · Octubre 2026</p>
+    <h1 class="h2 mb-1">Dashboard</h1>
+    <p class="text-muted small mb-0">Resumen operativo de Nicolett Studio · {% now "l, d F Y" %}</p>
 </div>
 
-<!-- Tarjetas de Estadísticas Superiores -->
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card-stat">
-            <div class="title">Ingresos del Mes</div>
-            <div class="value">$1.284.500</div>
-            <small class="text-success" style="font-size: 0.75rem;">+8.2% vs mes anterior</small>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card-stat">
-            <div class="title">Citas este Mes</div>
-            <div class="value">47</div>
-            <small class="text-muted" style="font-size: 0.75rem;">+3 vs mes anterior</small>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card-stat">
-            <div class="title">Clientas Activas</div>
-            <div class="value">284</div>
-            <small class="text-success" style="font-size: 0.75rem;">+12 nuevas</small>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card-stat">
-            <div class="title">Tasa de Cancelación</div>
-            <div class="value">4.3%</div>
-            <small class="text-danger" style="font-size: 0.75rem;">-1.2% vs mes anterior</small>
-        </div>
-    </div>
-</div>
-
-<!-- Sección Inferior Dividida -->
-<div class="row g-4">
-    <!-- Citas de Hoy -->
-    <div class="col-lg-8">
-        <div class="card-stat">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0" style="font-family: 'Playfair Display', serif; font-size: 1.1rem;">Citas de hoy</h5>
-                <a href="{% url 'admin_agenda' %}" class="text-decoration-none small text-dark fw-bold">Ver todas</a>
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <a class="dashboard-stat-link" href="{% url 'admin_agenda' %}">
+            <div class="card-stat h-100">
+                <div class="title">Citas de hoy</div>
+                <div class="value">{{ total_citas_hoy }}</div>
             </div>
-            <div class="table-responsive">
-                <table class="table table-borderless align-middle mb-0" style="font-size: 0.9rem;">
-                    <tbody>
-                        <tr class="border-bottom">
-                            <td class="text-muted">09:00</td>
-                            <td class="fw-bold">Isabella R.</td>
-                            <td>Colorimetría</td>
-                            <td><span class="badge bg-light text-dark border">Confirmada</span></td>
-                        </tr>
-                        <tr class="border-bottom">
-                            <td class="text-muted">10:30</td>
-                            <td class="fw-bold">Sofía L.</td>
-                            <td>Corte & Estilo</td>
-                            <td><span class="badge bg-success-subtle text-success">En curso</span></td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">12:00</td>
-                            <td class="fw-bold">Camila B.</td>
-                            <td>Manicure Gel</td>
-                            <td><span class="badge bg-light text-dark border">Confirmada</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        </a>
     </div>
-
-    <!-- Servicios por Categoría -->
-    <div class="col-lg-4">
-        <div class="card-stat">
-            <h5 class="mb-3" style="font-family: 'Playfair Display', serif; font-size: 1.1rem;">Servicios por categoría</h5>
-            <ul class="list-unstyled mb-0" style="font-size: 0.9rem;">
-                <li class="d-flex justify-content-between py-2 border-bottom"><span>Cabello</span> <span class="text-muted">2 activos</span></li>
-                <li class="d-flex justify-content-between py-2 border-bottom"><span>Tratamientos</span> <span class="text-muted">1 activo</span></li>
-                <li class="d-flex justify-content-between py-2 border-bottom"><span>Uñas</span> <span class="text-muted">2 activos</span></li>
-                <li class="d-flex justify-content-between py-2 border-bottom"><span>Maquillaje</span> <span class="text-muted">0 activos</span></li>
-                <li class="d-flex justify-content-between py-2"><span>Depilación</span> <span class="text-muted">1 activo</span></li>
-            </ul>
-        </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="dashboard-stat-link" href="{% url 'admin_ventas' %}">
+            <div class="card-stat h-100">
+                <div class="title">Ventas del mes</div>
+                <div class="value">${{ ventas_mes|floatformat:0 }}</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="dashboard-stat-link" href="{% url 'listar_servicios' %}">
+            <div class="card-stat h-100">
+                <div class="title">Servicios activos</div>
+                <div class="value">{{ servicios_activos }}</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="dashboard-stat-link" href="{% url 'admin_productos' %}">
+            <div class="card-stat h-100">
+                <div class="title">Productos activos</div>
+                <div class="value">{{ productos_activos }}</div>
+            </div>
+        </a>
     </div>
 </div>
+
+<section class="card-stat">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h2 class="h5 mb-1">Agenda de hoy</h2>
+            <p class="small text-muted mb-0">Citas registradas para el día de hoy.</p>
+        </div>
+        <a class="btn salon-btn-outline btn-sm" href="{% url 'admin_agenda' %}">Ver agendamientos</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>HORA</th>
+                    <th>CLIENTE</th>
+                    <th>SERVICIO</th>
+                    <th>PROFESIONAL</th>
+                    <th>ESTADO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reserva in citas_hoy %}
+                    <tr>
+                        <td class="text-nowrap">{{ reserva.fecha_hora|date:"H:i" }}</td>
+                        <td>{{ reserva.nombre_cliente|default:"Cliente sin nombre" }}</td>
+                        <td>{% if reserva.servicio_nombre %}{{ reserva.servicio_nombre }}{% elif reserva.servicio %}{{ reserva.servicio.nombre }}{% else %}Servicio eliminado{% endif %}</td>
+                        <td>{{ reserva.profesional.nombre|default:"Sin asignar" }}</td>
+                        <td><span class="badge text-bg-light border">{{ reserva.get_estado_display }}</span></td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">No hay citas registradas para hoy.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 {% endblock %}

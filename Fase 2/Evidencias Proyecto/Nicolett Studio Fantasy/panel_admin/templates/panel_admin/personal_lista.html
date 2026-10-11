@@ -25,24 +25,50 @@
         </div>
     {% endif %}
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card-stat">
+    <div class="row g-3 align-items-start">
+        <aside class="col-xl-3 col-md-4">
+            <div class="card-stat mb-3">
+                <div class="title">Total de personal</div>
+                <div class="value">{{ total_personal }}</div>
+            </div>
+            <div class="card-stat mb-3">
                 <div class="title">Personal activo</div>
                 <div class="value">{{ total_activos }}</div>
             </div>
-        </div>
-        <div class="col-md-4">
             <div class="card-stat">
                 <div class="title">Personal inactivo</div>
                 <div class="value">{{ total_inactivos }}</div>
             </div>
-        </div>
-    </div>
-
-    <div class="card services-table-card">
-        <div class="table-responsive">
-            <table class="table align-middle mb-0">
+        </aside>
+        <div class="col-xl-9 col-md-8">
+            <div class="card-stat mb-3">
+                <div class="row g-2" data-live-filter="#personalTabla">
+                    <div class="col-lg-6">
+                        <label class="visually-hidden" for="buscarPersonal">Buscar personal</label>
+                        <input id="buscarPersonal" class="form-control" type="search" placeholder="Buscar por nombre, correo o teléfono..." data-filter-search>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label class="visually-hidden" for="filtrarEstadoPersonal">Estado</label>
+                        <select id="filtrarEstadoPersonal" class="form-select" data-filter-field="status">
+                            <option value="">Todos los estados</option>
+                            <option value="activo">Activos</option>
+                            <option value="inactivo">Inactivos</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label class="visually-hidden" for="filtrarCategoriaPersonal">Especialización</label>
+                        <select id="filtrarCategoriaPersonal" class="form-select" data-filter-field="category">
+                            <option value="">Todas las especializaciones</option>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.pk }}">{{ categoria.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card services-table-card">
+                <div class="table-responsive">
+                    <table id="personalTabla" class="table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>NOMBRE</th>
@@ -54,7 +80,7 @@
                 </thead>
                 <tbody>
                     {% for colaborador in personal %}
-                        <tr>
+                        <tr data-filter-row data-status="{{ colaborador.is_active|yesno:'activo,inactivo' }}" data-category="{{ colaborador.especializacion_ids|join:',' }}" data-search="{{ colaborador.nombre }} {{ colaborador.segundo_nombre }} {{ colaborador.apellido_paterno }} {{ colaborador.apellido_materno }} {{ colaborador.email }} {{ colaborador.telefono }}">
                             <td class="fw-semibold text-dark">
                                 {{ colaborador.nombre }}{% if colaborador.segundo_nombre %} {{ colaborador.segundo_nombre }}{% endif %}
                                 {{ colaborador.apellido_paterno }} {{ colaborador.apellido_materno }}
@@ -114,8 +140,11 @@
                     {% empty %}
                         <tr><td colspan="5" class="text-center py-5 text-muted">Aún no hay personal registrado.</td></tr>
                     {% endfor %}
+                    <tr data-filter-empty hidden><td colspan="5" class="text-center py-4 text-muted">No hay colaboradores que coincidan con los filtros.</td></tr>
                 </tbody>
             </table>
+        </div>
+            </div>
         </div>
     </div>
     <p class="small text-muted mt-3">

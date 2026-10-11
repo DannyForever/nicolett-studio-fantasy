@@ -1,5 +1,7 @@
 from django.db import models
 
+# The catalog tables are maintained by the legacy catalogo migrations.
+
 # Create your models here.
 class Categoria(models.Model):
     nombre = models.CharField(max_length=100)
@@ -7,6 +9,7 @@ class Categoria(models.Model):
     activa = models.BooleanField(default=True)
 
     class Meta:
+        managed = False
         db_table = 'categoria'
 
     def __str__(self):
@@ -23,6 +26,7 @@ class Servicio(models.Model):
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, db_column='categoria_id')
 
     class Meta:
+        managed = False
         db_table = 'servicio'
 
     def __str__(self):
@@ -50,6 +54,7 @@ class Producto(models.Model):
     )
 
     class Meta:
+        managed = False
         db_table = 'producto'
 
     def __str__(self):

@@ -24,24 +24,50 @@
         </div>
     {% endif %}
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card-stat">
-                <div class="title">Servicios Activos</div>
+    <div class="row g-3 align-items-start">
+        <aside class="col-xl-3 col-md-4">
+            <div class="card-stat mb-3">
+                <div class="title">Total de servicios</div>
+                <div class="value">{{ total_servicios }}</div>
+            </div>
+            <div class="card-stat mb-3">
+                <div class="title">Servicios activos</div>
                 <div class="value">{{ total_activos }}</div>
             </div>
-        </div>
-        <div class="col-md-4">
             <div class="card-stat">
-                <div class="title">Servicios Inactivos</div>
+                <div class="title">Servicios inactivos</div>
                 <div class="value">{{ total_inactivos }}</div>
             </div>
-        </div>
-    </div>
-
-    <div class="card services-table-card">
-        <div class="table-responsive">
-            <table class="table align-middle mb-0">
+        </aside>
+        <div class="col-xl-9 col-md-8">
+            <div class="card-stat mb-3">
+                <div class="row g-2" data-live-filter="#serviciosTabla">
+                    <div class="col-lg-6">
+                        <label class="visually-hidden" for="buscarServicio">Buscar servicios</label>
+                        <input id="buscarServicio" class="form-control" type="search" placeholder="Buscar por nombre, categoría o descripción..." data-filter-search>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label class="visually-hidden" for="filtrarEstadoServicio">Estado</label>
+                        <select id="filtrarEstadoServicio" class="form-select" data-filter-field="status">
+                            <option value="">Todos los estados</option>
+                            <option value="activo">Activos</option>
+                            <option value="inactivo">Inactivos</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label class="visually-hidden" for="filtrarCategoriaServicio">Categoría</label>
+                        <select id="filtrarCategoriaServicio" class="form-select" data-filter-field="category">
+                            <option value="">Todas las categorías</option>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.pk }}">{{ categoria.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card services-table-card">
+                <div class="table-responsive">
+                    <table id="serviciosTabla" class="table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>IMAGEN</th>
@@ -56,7 +82,7 @@
                 </thead>
                 <tbody>
                     {% for servicio in servicios %}
-                    <tr>
+                    <tr data-filter-row data-status="{{ servicio.activo|yesno:'activo,inactivo' }}" data-category="{{ servicio.categoria_id }}" data-search="{{ servicio.nombre }} {{ servicio.categoria.nombre }} {{ servicio.descripcion }} {{ servicio.precio }} {{ servicio.duracion_minutos }}">
                         <td>
                             {% if servicio.imagen_url %}
                                 <img src="{{ servicio.imagen_url.url }}" alt="{{ servicio.nombre }}" width="44" height="44" class="service-thumbnail">
@@ -119,8 +145,11 @@
                         <td colspan="8" class="text-center py-5 text-muted">No hay servicios registrados.</td>
                     </tr>
                     {% endfor %}
+                    <tr data-filter-empty hidden><td colspan="8" class="text-center py-4 text-muted">No hay servicios que coincidan con los filtros.</td></tr>
                 </tbody>
             </table>
+        </div>
+            </div>
         </div>
     </div>
 </div>

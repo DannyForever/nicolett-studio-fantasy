@@ -9,6 +9,10 @@ from .models import Categoria, Producto, Servicio
 Usuario = get_user_model()
 
 
+def _texto_caracteristica(valor):
+    return ' '.join((valor or '').casefold().split())
+
+
 class ServicioForm(forms.ModelForm):
     activo = forms.TypedChoiceField(
         choices=(('true', 'Activo'), ('false', 'Desactivado')),
@@ -45,6 +49,35 @@ class ServicioForm(forms.ModelForm):
             'imagen_url': 'Imagen',
             'activo': 'Disponibilidad',
         }
+
+    def clean(self):
+        cleaned = super().clean()
+        nombre = cleaned.get('nombre')
+        categoria = cleaned.get('categoria')
+        precio = cleaned.get('precio')
+        duracion = cleaned.get('duracion_minutos')
+        if not all((nombre, categoria, precio is not None, duracion is not None)):
+            return cleaned
+
+        similares = Servicio.objects.filter(
+            categoria=categoria,
+            precio=precio,
+            duracion_minutos=duracion,
+        )
+        if self.instance.pk:
+            similares = similares.exclude(pk=self.instance.pk)
+        nombre_normalizado = _texto_caracteristica(nombre)
+        descripcion = _texto_caracteristica(cleaned.get('descripcion'))
+        if any(
+            _texto_caracteristica(item.nombre) == nombre_normalizado
+            and _texto_caracteristica(item.descripcion) == descripcion
+            for item in similares
+        ):
+            self.add_error(
+                None,
+                'Ya existe un servicio con estas características. Modifica al menos un dato para guardarlo.',
+            )
+        return cleaned
 
     def clean_precio(self):
         precio = self.cleaned_data['precio']
@@ -101,6 +134,33 @@ class ProductoForm(forms.ModelForm):
         self.fields['categoria'].queryset = Categoria.objects.filter(activa=True).order_by('nombre')
         self.fields['imagen_url'].required = not bool(self.instance.pk)
 
+    def clean(self):
+        cleaned = super().clean()
+        nombre = cleaned.get('nombre')
+        categoria = cleaned.get('categoria')
+        precio = cleaned.get('precio')
+        if not all((nombre, categoria, precio is not None)):
+            return cleaned
+
+        similares = Producto.objects.filter(
+            categoria=categoria,
+            precio=precio,
+        )
+        if self.instance.pk:
+            similares = similares.exclude(pk=self.instance.pk)
+        nombre_normalizado = _texto_caracteristica(nombre)
+        descripcion = _texto_caracteristica(cleaned.get('descripcion'))
+        if any(
+            _texto_caracteristica(item.nombre) == nombre_normalizado
+            and _texto_caracteristica(item.descripcion) == descripcion
+            for item in similares
+        ):
+            self.add_error(
+                None,
+                'Ya existe un producto con estas características. Modifica al menos un dato para guardarlo.',
+            )
+        return cleaned
+
     def clean_precio(self):
         precio = self.cleaned_data['precio']
         if precio <= 0:
@@ -137,6 +197,52 @@ class CategoriaForm(forms.ModelForm):
         if commit:
             categoria.save()
         return categoria
+
+
+class ConfiguracionRecordatoriosForm(forms.Form):
+    horas_cita = forms.CharField(
+        label='Horas antes de la cita',
+        max_length=80,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '48, 24',
+            'autocomplete': 'off',
+        }),
+        help_text='Escribe uno o más intervalos separados por coma. Ejemplo: 48, 24.',
+    )
+    dias_seguimiento = forms.CharField(
+        label='Días después de la atención',
+        max_length=80,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '15, 30',
+            'autocomplete': 'off',
+        }),
+        help_text='Escribe uno o más intervalos separados por coma. Ejemplo: 15, 30.',
+    )
+
+    def _validar_intervalos(self, campo, minimo, maximo, unidad):
+        valor = self.cleaned_data[campo]
+        try:
+            intervalos = [int(item.strip()) for item in valor.split(',') if item.strip()]
+        except ValueError:
+            raise forms.ValidationError('Ingresa solo números enteros separados por coma.')
+
+        if not intervalos:
+            raise forms.ValidationError('Ingresa al menos un intervalo.')
+        if any(not minimo <= intervalo <= maximo for intervalo in intervalos):
+            raise forms.ValidationError(
+                f'Cada intervalo debe ser entre {minimo} y {maximo} {unidad}.',
+            )
+        if len(intervalos) != len(set(intervalos)):
+            raise forms.ValidationError('No repitas intervalos.')
+        return sorted(intervalos, reverse=True)
+
+    def clean_horas_cita(self):
+        return self._validar_intervalos('horas_cita', 1, 720, 'horas')
+
+    def clean_dias_seguimiento(self):
+        return self._validar_intervalos('dias_seguimiento', 1, 365, 'días')
 
 
 class PersonalForm(forms.ModelForm):
@@ -219,3 +325,79 @@ class PersonalForm(forms.ModelForm):
                 'Formato requerido: +569 XXXX XXXX o 9 XXXX XXXX.',
             )
         return f'+56{numero_nacional}'
+
+
+class AdminProfileForm(forms.ModelForm):
+    class Meta:
+        model = Usuario
+        fields = (
+            'nombre',
+            'segundo_nombre',
+            'apellido_paterno',
+            'apellido_materno',
+            'email',
+        )
+        labels = {
+            'nombre': 'Nombre',
+            'segundo_nombre': 'Segundo nombre (opcional)',
+            'apellido_paterno': 'Apellido paterno',
+            'apellido_materno': 'Apellido materno',
+            'email': 'Correo electrónico',
+        }
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'given-name'}),
+            'segundo_nombre': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'additional-name'}),
+            'apellido_paterno': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'family-name'}),
+            'apellido_materno': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'family-name'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'autocomplete': 'email'}),
+        }
+
+    def clean_email(self):
+        email = BaseUserManager.normalize_email(self.cleaned_data['email'].strip())
+        if Usuario.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('Ya existe una cuenta con este correo electrónico.')
+        return email
+
+
+class AdminPasswordChangeForm(forms.Form):
+    actual = forms.CharField(
+        label='Contraseña actual',
+        strip=False,
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'current-password'}),
+    )
+    nueva = forms.CharField(
+        label='Nueva contraseña',
+        strip=False,
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'new-password'}),
+    )
+    confirmar = forms.CharField(
+        label='Confirmar nueva contraseña',
+        strip=False,
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'new-password'}),
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_actual(self):
+        actual = self.cleaned_data['actual']
+        if not self.user.check_password(actual):
+            raise forms.ValidationError('La contraseña actual no es correcta.')
+        return actual
+
+    def clean(self):
+        cleaned = super().clean()
+        nueva = cleaned.get('nueva')
+        confirmar = cleaned.get('confirmar')
+        if nueva and confirmar and nueva != confirmar:
+            self.add_error('confirmar', 'Las contraseñas nuevas no coinciden.')
+        if nueva and not self.errors.get('nueva'):
+            from django.contrib.auth.password_validation import validate_password
+            from django.core.exceptions import ValidationError
+
+            try:
+                validate_password(nueva, self.user)
+            except ValidationError as error:
+                self.add_error('nueva', error)
+        return cleaned

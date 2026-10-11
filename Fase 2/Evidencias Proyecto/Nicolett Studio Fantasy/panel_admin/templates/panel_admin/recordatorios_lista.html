@@ -1,0 +1,140 @@
+{% extends 'panel_admin/base_dashboard.html' %}
+
+{% block title %}Recordatorios | Nicolett Studio{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h2 mb-1">Recordatorios</h1>
+    <p class="text-muted mb-0">Programa avisos antes de las citas y seguimientos después de la atención.</p>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<section class="card-stat mb-4">
+    <h2 class="h5 mb-1">Programación de avisos</h2>
+    <p class="small text-muted mb-3">
+        Define varios intervalos separados por coma. El proceso automático debe ejecutarse periódicamente
+        con el programador del servidor para enviar los correos a la hora indicada.
+    </p>
+    <form method="post" class="row g-3">
+        {% csrf_token %}
+        <div class="col-md-6">
+            <label class="form-label" for="{{ form_recordatorios.horas_cita.id_for_label }}">Horas antes de la cita</label>
+            {{ form_recordatorios.horas_cita }}
+            {% for error in form_recordatorios.horas_cita.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="{{ form_recordatorios.dias_seguimiento.id_for_label }}">Días después de la atención</label>
+            {{ form_recordatorios.dias_seguimiento }}
+            {% for error in form_recordatorios.dias_seguimiento.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        {% for error in form_recordatorios.non_field_errors %}<div class="col-12 text-danger small">{{ error }}</div>{% endfor %}
+        <div class="col-12">
+            <button class="btn salon-btn-outline" type="submit">Guardar programación</button>
+        </div>
+    </form>
+</section>
+
+<section class="card-stat mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <div>
+            <h2 class="h5 mb-1">Recordatorios de citas</h2>
+            <p class="small text-muted mb-0">Avisos programados para citas pendientes o confirmadas.</p>
+        </div>
+        <form method="get" class="col-md-5" data-live-filter="#citasRecordatoriosTabla">
+            <label class="visually-hidden" for="buscarCitasRecordatorios">Buscar citas</label>
+            <input id="buscarCitasRecordatorios" name="q" value="{{ busqueda }}" class="form-control form-control-sm"
+                   type="search" placeholder="Buscar cliente o servicio..." data-filter-search>
+        </form>
+    </div>
+    <div class="table-responsive services-table-card">
+        <table id="citasRecordatoriosTabla" class="table align-middle mb-0">
+            <thead><tr><th>AVISO PROGRAMADO</th><th>CITA</th><th>CLIENTE</th><th>SERVICIO</th><th>ACCIÓN</th></tr></thead>
+            <tbody>
+                {% for tarea in recordatorios_cita %}
+                    {% with reserva=tarea.reserva %}
+                    <tr data-filter-row data-search="{{ reserva.nombre_cliente }} {{ reserva.correo_cliente }} {{ reserva.servicio_nombre }} {% if reserva.servicio %}{{ reserva.servicio.nombre }}{% endif %} {{ tarea.desfase }} horas">
+                        <td class="text-nowrap">{{ tarea.programado|date:"d-m-Y H:i" }}<small class="d-block text-muted">{{ tarea.desfase }} horas antes</small></td>
+                        <td class="text-nowrap">{{ reserva.fecha_hora|date:"d-m-Y H:i" }}</td>
+                        <td>{{ reserva.nombre_cliente|default:"Cliente sin nombre" }}<small class="d-block text-muted">{{ reserva.correo_cliente|default:"Sin correo registrado" }}</small></td>
+                        <td>{% if reserva.servicio_nombre %}{{ reserva.servicio_nombre }}{% elif reserva.servicio %}{{ reserva.servicio.nombre }}{% else %}Servicio eliminado{% endif %}</td>
+                        <td>
+                            {% if tarea.vencido and reserva.correo_cliente %}
+                                <form method="post" action="{% url 'enviar_recordatorio' reserva.pk %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="tipo" value="cita">
+                                    <input type="hidden" name="desfase" value="{{ tarea.desfase }}">
+                                    <button class="btn btn-sm salon-btn-outline" type="submit">Enviar ahora</button>
+                                </form>
+                            {% elif not reserva.correo_cliente %}
+                                <span class="small text-muted">Falta correo</span>
+                            {% else %}
+                                <span class="small text-muted">Se enviará automáticamente al vencer</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">No hay avisos de citas pendientes.</td></tr>
+                {% endfor %}
+                <tr data-filter-empty hidden><td colspan="5" class="text-center text-muted py-4">No hay citas que coincidan con la búsqueda.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="card-stat">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <div>
+            <h2 class="h5 mb-1">Seguimiento después de la atención</h2>
+            <p class="small text-muted mb-0">Avisos posteriores para continuar tratamientos o agendar retoques.</p>
+        </div>
+        <form method="get" class="col-md-5" data-live-filter="#seguimientosRecordatoriosTabla">
+            <label class="visually-hidden" for="buscarSeguimientosRecordatorios">Buscar seguimientos</label>
+            <input id="buscarSeguimientosRecordatorios" name="q" value="{{ busqueda }}" class="form-control form-control-sm"
+                   type="search" placeholder="Buscar cliente o servicio..." data-filter-search>
+        </form>
+    </div>
+    <div class="table-responsive services-table-card">
+        <table id="seguimientosRecordatoriosTabla" class="table align-middle mb-0">
+            <thead><tr><th>AVISO PROGRAMADO</th><th>ATENCIÓN</th><th>CLIENTE</th><th>SERVICIO</th><th>ACCIÓN</th></tr></thead>
+            <tbody>
+                {% for tarea in recordatorios_seguimiento %}
+                    {% with reserva=tarea.reserva %}
+                    <tr data-filter-row data-search="{{ reserva.nombre_cliente }} {{ reserva.correo_cliente }} {{ reserva.servicio_nombre }} {% if reserva.servicio %}{{ reserva.servicio.nombre }}{% endif %} {{ tarea.desfase }} días">
+                        <td class="text-nowrap">{{ tarea.programado|date:"d-m-Y H:i" }}<small class="d-block text-muted">{{ tarea.desfase }} días después</small></td>
+                        <td class="text-nowrap">{{ reserva.fecha_hora|date:"d-m-Y" }}</td>
+                        <td>{{ reserva.nombre_cliente|default:"Cliente sin nombre" }}<small class="d-block text-muted">{{ reserva.correo_cliente|default:"Sin correo registrado" }}</small></td>
+                        <td>{% if reserva.servicio_nombre %}{{ reserva.servicio_nombre }}{% elif reserva.servicio %}{{ reserva.servicio.nombre }}{% else %}Servicio eliminado{% endif %}</td>
+                        <td>
+                            {% if tarea.vencido and reserva.correo_cliente %}
+                                <form method="post" action="{% url 'enviar_recordatorio' reserva.pk %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="tipo" value="seguimiento">
+                                    <input type="hidden" name="desfase" value="{{ tarea.desfase }}">
+                                    <button class="btn btn-sm salon-btn-outline" type="submit">Enviar ahora</button>
+                                </form>
+                            {% elif not reserva.correo_cliente %}
+                                <span class="small text-muted">Falta correo</span>
+                            {% else %}
+                                <span class="small text-muted">Se enviará automáticamente al vencer</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">No hay seguimientos pendientes.</td></tr>
+                {% endfor %}
+                <tr data-filter-empty hidden><td colspan="5" class="text-center text-muted py-4">No hay seguimientos que coincidan con la búsqueda.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

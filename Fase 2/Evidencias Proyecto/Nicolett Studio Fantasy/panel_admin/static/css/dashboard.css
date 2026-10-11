@@ -634,6 +634,36 @@ h1, h2, h3, .brand-title {
     text-transform: uppercase;
 }
 
+.dashboard-stat-link {
+    color: inherit;
+    display: block;
+    text-decoration: none;
+}
+
+.dashboard-stat-link:hover .card-stat {
+    border-color: #d9c8b9;
+    box-shadow: 0 5px 18px rgba(55, 37, 27, 0.08);
+    transform: translateY(-1px);
+}
+
+.dashboard-stat-link .card-stat {
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.admin-filter-panel {
+    border: 1px solid #e9dfd5;
+    border-radius: 10px;
+    background: #fff;
+    padding: 1rem;
+}
+
+.reminder-card {
+    border: 1px solid #e9dfd5;
+    border-radius: 10px;
+    background: #fff;
+    padding: 1.1rem;
+}
+
 @media (max-width: 767.98px) {
     .main-content {
         margin-left: 0;

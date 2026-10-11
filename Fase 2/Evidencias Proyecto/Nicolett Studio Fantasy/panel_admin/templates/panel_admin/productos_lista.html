@@ -8,9 +8,14 @@
         <div>
             <h1 class="h3 mb-1 text-dark">Productos</h1>
         </div>
-        <button type="button" class="btn salon-btn-primary" data-bs-toggle="modal" data-bs-target="#modalProducto">
-            + NUEVO PRODUCTO
-        </button>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn salon-btn-outline" data-manage-categories>
+                Administrar categorías
+            </button>
+            <button type="button" class="btn salon-btn-primary" data-bs-toggle="modal" data-bs-target="#modalProducto">
+                + NUEVO PRODUCTO
+            </button>
+        </div>
     </div>
 
     {% if messages %}
@@ -23,25 +28,52 @@
             {% endfor %}
         </div>
     {% endif %}
+    <div id="mensajeCategoriasProducto" class="alert d-none" role="status" aria-live="polite"></div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card-stat">
+    <div class="row g-3 align-items-start">
+        <aside class="col-xl-3 col-md-4">
+            <div class="card-stat mb-3">
+                <div class="title">Total de productos</div>
+                <div class="value">{{ total_productos }}</div>
+            </div>
+            <div class="card-stat mb-3">
                 <div class="title">Productos Activos</div>
                 <div class="value">{{ total_activos }}</div>
             </div>
-        </div>
-        <div class="col-md-4">
             <div class="card-stat">
                 <div class="title">Productos Inactivos</div>
                 <div class="value">{{ total_inactivos }}</div>
             </div>
-        </div>
-    </div>
-
-    <div class="card services-table-card">
-        <div class="table-responsive">
-            <table class="table align-middle mb-0">
+        </aside>
+        <div class="col-xl-9 col-md-8">
+            <div class="card-stat mb-3">
+                <div class="row g-2" data-live-filter="#productosTabla">
+                    <div class="col-lg-6">
+                        <label class="visually-hidden" for="buscarProducto">Buscar productos</label>
+                        <input id="buscarProducto" class="form-control" type="search" placeholder="Buscar por nombre, categoría o descripción..." data-filter-search>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label class="visually-hidden" for="filtrarEstadoProducto">Estado</label>
+                        <select id="filtrarEstadoProducto" class="form-select" data-filter-field="status">
+                            <option value="">Todos los estados</option>
+                            <option value="activo">Activos</option>
+                            <option value="inactivo">Inactivos</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label class="visually-hidden" for="filtrarCategoriaProducto">Categoría</label>
+                        <select id="filtrarCategoriaProducto" class="form-select" data-filter-field="category">
+                            <option value="">Todas las categorías</option>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.pk }}">{{ categoria.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card services-table-card">
+                <div class="table-responsive">
+                    <table id="productosTabla" class="table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>IMAGEN</th>
@@ -56,7 +88,7 @@
                 </thead>
                 <tbody>
                     {% for producto in productos %}
-                    <tr>
+                    <tr data-filter-row data-status="{{ producto.activo|yesno:'activo,inactivo' }}" data-category="{{ producto.categoria_id }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion }} {{ producto.precio }} {{ producto.stock }}">
                         <td>
                             {% if producto.imagen_url %}
                                 <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" width="44" height="44" class="service-thumbnail">
@@ -116,8 +148,11 @@
                         <td colspan="8" class="text-center py-5 text-muted">No hay productos registrados.</td>
                     </tr>
                     {% endfor %}
+                    <tr data-filter-empty hidden><td colspan="8" class="text-center py-4 text-muted">No hay productos que coincidan con los filtros.</td></tr>
                 </tbody>
             </table>
+        </div>
+            </div>
         </div>
     </div>
 </div>
@@ -137,7 +172,7 @@
                 <div class="modal-body">
                     {% if not categorias %}
                         <div class="alert alert-warning" role="alert">
-                            No hay categorías activas. <a href="{% url 'listar_servicios' %}">Crea una categoría en Servicios</a> para poder asociar los productos a sus tratamientos.
+                            No hay categorías activas. Usa el botón «Administrar categorías» para crear una y asociarla a este producto.
                         </div>
                     {% endif %}
                     <div class="row g-3">
@@ -147,12 +182,15 @@
                         </div>
                         <div class="col-md-6">
                             <label for="productoCategoria" class="form-label">Categoría del tratamiento</label>
-                            <select id="productoCategoria" name="categoria" class="form-select" required>
-                                <option value="">Selecciona una categoría...</option>
-                                {% for categoria in categorias %}
-                                    <option value="{{ categoria.id }}">{{ categoria.nombre }} ({{ categoria.tipo }})</option>
-                                {% endfor %}
-                            </select>
+                            <div class="input-group">
+                                <select id="productoCategoria" name="categoria" class="form-select" required>
+                                    <option value="">Selecciona una categoría...</option>
+                                    {% for categoria in categorias %}
+                                        <option value="{{ categoria.id }}">{{ categoria.nombre }} ({{ categoria.tipo }})</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn salon-btn-outline" data-manage-categories data-from-product>Administrar</button>
+                            </div>
                             <div class="form-text">Asocia el producto al tipo de servicio cuyos resultados ayuda a mantener.</div>
                         </div>
                         <div class="col-12">
@@ -197,6 +235,62 @@
     </div>
 </div>
 
+<div class="modal fade salon-modal" id="modalCategoriasProducto" tabindex="-1" aria-labelledby="tituloCategoriasProducto" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <span class="salon-modal-eyebrow">CATÁLOGO DEL SALÓN</span>
+                    <h5 class="modal-title" id="tituloCategoriasProducto">Administrar categorías</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCategoriaProducto" method="post" action="{% url 'crear_categoria' %}" class="mb-4">
+                    {% csrf_token %}
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label for="categoriaProductoNombre" class="form-label">Nombre</label>
+                            <input id="categoriaProductoNombre" name="nombre" class="form-control" maxlength="100" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="categoriaProductoTipo" class="form-label">Tipo o tratamiento</label>
+                            <input id="categoriaProductoTipo" name="tipo" class="form-control" maxlength="100" required>
+                        </div>
+                        <div class="col-md-2 d-grid">
+                            <button id="guardarCategoriaProducto" type="submit" class="btn salon-btn-primary">Crear</button>
+                        </div>
+                    </div>
+                    <div id="errorCategoriaProducto" class="alert alert-danger d-none mt-3" role="alert"></div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Nombre</th><th>Tipo</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+                        <tbody id="listaCategoriasProducto">
+                            {% for categoria in categorias_admin %}
+                                <tr data-category-id="{{ categoria.pk }}">
+                                    <td class="category-name">{{ categoria.nombre }}</td>
+                                    <td class="category-type">{{ categoria.tipo }}</td>
+                                    <td class="category-status">{% if categoria.activa %}Activa{% else %}Inactiva{% endif %}</td>
+                                    <td class="text-end text-nowrap">
+                                        <button type="button" class="btn btn-sm salon-btn-outline" data-edit-category data-id="{{ categoria.pk }}" data-nombre="{{ categoria.nombre }}" data-tipo="{{ categoria.tipo }}" data-url="{% url 'editar_categoria' categoria.pk %}">Editar</button>
+                                        <button type="button" class="btn btn-sm salon-btn-danger" data-delete-category data-id="{{ categoria.pk }}" data-nombre="{{ categoria.nombre }}" data-url="{% url 'eliminar_categoria' categoria.pk %}">Eliminar</button>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr class="empty-categories"><td colspan="4" class="text-muted">Aún no hay categorías.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade salon-modal" id="modalConfirmarEliminarProducto" tabindex="-1" aria-labelledby="tituloConfirmarEliminarProducto" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -230,7 +324,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageStatus = document.getElementById('productoImagenEstado');
     const imageRequiredIndicator = document.getElementById('productoImagenObligatoria');
     const createUrl = form.action;
+    const categoryModalElement = document.getElementById('modalCategoriasProducto');
+    const categoryModal = bootstrap.Modal.getOrCreateInstance(categoryModalElement);
+    const categoryForm = document.getElementById('formCategoriaProducto');
+    const categoryList = document.getElementById('listaCategoriasProducto');
+    const categorySelect = document.getElementById('productoCategoria');
+    const categoryFilter = document.getElementById('filtrarCategoriaProducto');
+    const categoryError = document.getElementById('errorCategoriaProducto');
+    const categoryMessage = document.getElementById('mensajeCategoriasProducto');
+    const csrfToken = categoryForm.querySelector('[name=csrfmiddlewaretoken]').value;
+    const categoryCreateUrl = categoryForm.action;
+    const categoryEditUrl = "{% url 'editar_categoria' 0 %}";
+    const categoryDeleteUrl = "{% url 'eliminar_categoria' 0 %}";
     let savedImageUrl = '';
+    let preserveProductForm = false;
+    let returnToProduct = false;
 
     function resetForm() {
         form.reset();
@@ -247,6 +355,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     modalElement.addEventListener('show.bs.modal', (event) => {
+        if (preserveProductForm) {
+            preserveProductForm = false;
+            return;
+        }
         const trigger = event.relatedTarget;
         if (!trigger || trigger.dataset.mode !== 'edit') {
             resetForm();
@@ -275,6 +387,160 @@ document.addEventListener('DOMContentLoaded', () => {
             imageStatus.textContent = 'Este producto aún no tiene imagen. Puedes adjuntar una para agregarla.';
         }
     });
+
+    document.querySelectorAll('[data-manage-categories]').forEach((button) => {
+        button.addEventListener('click', () => {
+            if (!button.hasAttribute('data-from-product')) {
+                categoryModal.show();
+                return;
+            }
+            returnToProduct = true;
+            preserveProductForm = true;
+            modalElement.addEventListener('hidden.bs.modal', () => categoryModal.show(), {once: true});
+            modal.hide();
+        });
+    });
+
+    categoryModalElement.addEventListener('hidden.bs.modal', () => {
+        if (returnToProduct) {
+            returnToProduct = false;
+            preserveProductForm = true;
+            modal.show();
+        }
+    });
+
+    function resetCategoryForm() {
+        categoryForm.reset();
+        categoryForm.action = categoryCreateUrl;
+        document.getElementById('guardarCategoriaProducto').textContent = 'Crear';
+        categoryError.classList.add('d-none');
+        categoryError.textContent = '';
+    }
+
+    function showCategoryMessage(message, isError = false) {
+        categoryMessage.textContent = message;
+        categoryMessage.className = `alert ${isError ? 'alert-danger' : 'alert-success'}`;
+    }
+
+    function updateProductCategoryOptions(data) {
+        let option = categorySelect.querySelector(`option[value="${data.id}"]`);
+        if (!option) {
+            option = document.createElement('option');
+            option.value = data.id;
+            categorySelect.append(option);
+        }
+        option.textContent = `${data.nombre} (${data.tipo})`;
+        categorySelect.value = data.id;
+
+        let filterOption = categoryFilter.querySelector(`option[value="${data.id}"]`);
+        if (!filterOption) {
+            filterOption = document.createElement('option');
+            filterOption.value = data.id;
+            categoryFilter.append(filterOption);
+        }
+        filterOption.textContent = data.nombre;
+        document.getElementById('btnGuardarProducto').disabled = false;
+    }
+
+    function updateCategoryRow(data) {
+        let row = categoryList.querySelector(`[data-category-id="${data.id}"]`);
+        if (!row) {
+            categoryList.querySelector('.empty-categories')?.remove();
+            row = document.createElement('tr');
+            row.dataset.categoryId = data.id;
+            row.innerHTML = '<td class="category-name"></td><td class="category-type"></td><td class="category-status">Activa</td><td class="text-end text-nowrap"><button type="button" class="btn btn-sm salon-btn-outline" data-edit-category>Editar</button> <button type="button" class="btn btn-sm salon-btn-danger" data-delete-category>Eliminar</button></td>';
+            categoryList.append(row);
+        }
+        row.querySelector('.category-name').textContent = data.nombre;
+        row.querySelector('.category-type').textContent = data.tipo;
+        const editButton = row.querySelector('[data-edit-category]');
+        editButton.dataset.id = data.id;
+        editButton.dataset.nombre = data.nombre;
+        editButton.dataset.tipo = data.tipo;
+        editButton.dataset.url = categoryEditUrl.replace('/0/', `/${data.id}/`);
+        const deleteButton = row.querySelector('[data-delete-category]');
+        deleteButton.dataset.id = data.id;
+        deleteButton.dataset.nombre = data.nombre;
+        deleteButton.dataset.url = categoryDeleteUrl.replace('/0/', `/${data.id}/`);
+
+        document.querySelectorAll(`#productosTabla tr[data-category="${data.id}"]`).forEach((productRow) => {
+            productRow.querySelector('td:nth-child(3)').textContent = data.nombre;
+            productRow.dataset.search = productRow.textContent.replace(/\s+/g, ' ').trim();
+        });
+    }
+
+    function postCategory(url, body) {
+        return fetch(url, {
+            method: 'POST',
+            body,
+            headers: {'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest'}
+        }).then(async (response) => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error((data.errors || ['No se pudo guardar la categoría.']).join(' '));
+            }
+            return data;
+        });
+    }
+
+    categoryForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const submitButton = document.getElementById('guardarCategoriaProducto');
+        submitButton.disabled = true;
+        categoryError.classList.add('d-none');
+        postCategory(categoryForm.action, new FormData(categoryForm))
+            .then((data) => {
+                updateCategoryRow(data);
+                updateProductCategoryOptions(data);
+                resetCategoryForm();
+                showCategoryMessage(data.message);
+                categoryModal.hide();
+            })
+            .catch((error) => {
+                categoryError.textContent = error.message;
+                categoryError.classList.remove('d-none');
+            })
+            .finally(() => {
+                submitButton.disabled = false;
+            });
+    });
+
+    categoryList.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-edit-category], [data-delete-category]');
+        if (!button) return;
+
+        if (button.hasAttribute('data-edit-category')) {
+            categoryForm.action = button.dataset.url;
+            document.getElementById('categoriaProductoNombre').value = button.dataset.nombre;
+            document.getElementById('categoriaProductoTipo').value = button.dataset.tipo;
+            document.getElementById('guardarCategoriaProducto').textContent = 'Guardar';
+            categoryError.classList.add('d-none');
+            return;
+        }
+
+        if (!window.confirm(`¿Eliminar la categoría "${button.dataset.nombre}"?`)) return;
+        button.disabled = true;
+        postCategory(button.dataset.url, new FormData())
+            .then((data) => {
+                categoryList.querySelector(`[data-category-id="${button.dataset.id}"]`).remove();
+                categorySelect.querySelector(`option[value="${button.dataset.id}"]`)?.remove();
+                categoryFilter.querySelector(`option[value="${button.dataset.id}"]`)?.remove();
+                if (categorySelect.options.length === 1) {
+                    document.getElementById('btnGuardarProducto').disabled = true;
+                }
+                if (!categoryList.querySelector('tr[data-category-id]')) {
+                    categoryList.innerHTML = '<tr class="empty-categories"><td colspan="4" class="text-muted">Aún no hay categorías.</td></tr>';
+                }
+                if (categorySelect.value === button.dataset.id) categorySelect.value = '';
+                showCategoryMessage(data.message);
+            })
+            .catch((error) => showCategoryMessage(error.message, true))
+            .finally(() => {
+                button.disabled = false;
+            });
+    });
+
+    document.getElementById('modalCategoriasProducto').addEventListener('hidden.bs.modal', resetCategoryForm);
 
     fileInput.addEventListener('change', () => {
         if (fileInput.files.length) {

@@ -36,6 +36,11 @@ urlpatterns = [
 
     # 5. Sistema de Recordatorios Automáticos
     path('recordatorios/', views.gestion_recordatorios, name='admin_recordatorios'),
+    path(
+        'recordatorios/enviar/<int:reserva_id>/',
+        views.enviar_recordatorio,
+        name='enviar_recordatorio',
+    ),
 
     # 6. Gestión de cuentas para los trabajadores (Personal)
     path('personal/', views.lista_personal, name='admin_personal'),
@@ -43,4 +48,7 @@ urlpatterns = [
     path('personal/editar/<int:pk>/', views.editar_personal, name='editar_personal'),
     path('personal/eliminar/<int:pk>/', views.eliminar_personal, name='eliminar_personal'),
     path('personal/desactivar/<int:pk>/', views.desactivar_personal, name='desactivar_personal'),
+
+    # Configuración de la cuenta administrativa activa
+    path('configuracion/', views.configuracion_admin, name='admin_configuracion'),
 ]

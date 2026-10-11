@@ -1,23 +1,59 @@
 import logging
+import smtplib
+from decimal import Decimal
 
 from django.db import transaction
-from django.http import JsonResponse
+from django.db.models import Q, Sum
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import CategoriaForm, PersonalForm, ProductoForm, ServicioForm
+from .forms import (
+    AdminPasswordChangeForm,
+    AdminProfileForm,
+    CategoriaForm,
+    ConfiguracionRecordatoriosForm,
+    PersonalForm,
+    ProductoForm,
+    ServicioForm,
+)
 from .models import Servicio, Categoria, Producto
 from usuarios.models import Rol, Usuario
+from usuarios.permissions import es_administrador
 from agenda.models import ProfesionalCategoria, Reserva
+from notificaciones.recordatorios import (
+    enviar_recordatorio as enviar_recordatorio_email,
+    listar_recordatorios_pendientes,
+    obtener_configuracion_recordatorios,
+    guardar_configuracion_recordatorios as guardar_intervalos_recordatorios,
+)
+from pagos.models import Pago
+from ventas.models import Venta
 
 logger = logging.getLogger(__name__)
 
 
 def dashboard_home(request):
-    return render(request, 'panel_admin/admin_home.html')
+    hoy = timezone.localdate()
+    citas_hoy = Reserva.objects.select_related(
+        'cliente', 'profesional', 'servicio',
+    ).filter(fecha_hora__date=hoy).order_by('fecha_hora')
+    ventas_mes = Venta.objects.filter(
+        fecha_venta__year=hoy.year,
+        fecha_venta__month=hoy.month,
+    ).aggregate(total=Sum('total'))['total'] or Decimal('0.00')
+    return render(request, 'panel_admin/admin_home.html', {
+        'citas_hoy': citas_hoy,
+        'total_citas_hoy': citas_hoy.count(),
+        'ventas_mes': ventas_mes,
+        'servicios_activos': Servicio.objects.filter(activo=True).count(),
+        'productos_activos': Producto.objects.filter(activo=True).count(),
+    })
 
 def listar_servicios(request):
     servicios = Servicio.objects.select_related('categoria').all()
@@ -31,6 +67,7 @@ def listar_servicios(request):
     context = {
         'servicios': servicios,
         'categorias': categorias,
+        'total_servicios': total_activos + total_inactivos,
         'total_activos': total_activos,
         'total_inactivos': total_inactivos,
     }
@@ -225,10 +262,45 @@ def lista_productos(request):
     context = {
         'productos': productos,
         'categorias': Categoria.objects.filter(activa=True).order_by('nombre'),
+        'categorias_admin': Categoria.objects.all().order_by('nombre'),
         'total_activos': productos.filter(activo=True).count(),
         'total_inactivos': productos.filter(activo=False).count(),
     }
+    context['total_productos'] = context['total_activos'] + context['total_inactivos']
     return render(request, 'panel_admin/productos_lista.html', context)
+
+
+@login_required(login_url='login')
+def configuracion_admin(request):
+    if not es_administrador(request.user):
+        return HttpResponseForbidden()
+
+    perfil_form = AdminProfileForm(instance=request.user)
+    password_form = AdminPasswordChangeForm(request.user)
+    if request.method == 'POST':
+        if request.POST.get('form_type') == 'password':
+            password_form = AdminPasswordChangeForm(request.user, request.POST)
+            if password_form.is_valid():
+                request.user.set_password(password_form.cleaned_data['nueva'])
+                request.user.save(update_fields=['password'])
+                update_session_auth_hash(request, request.user)
+                messages.success(request, 'La contraseña se actualizó correctamente.')
+                return redirect('admin_configuracion')
+        else:
+            perfil_form = AdminProfileForm(request.POST, instance=request.user)
+            if perfil_form.is_valid():
+                perfil_form.save()
+                messages.success(request, 'Los datos personales se actualizaron correctamente.')
+                return redirect('admin_configuracion')
+
+    return render(
+        request,
+        'panel_admin/configuracion_admin.html',
+        {
+            'perfil_form': perfil_form,
+            'password_form': password_form,
+        },
+    )
 
 
 @require_POST
@@ -300,10 +372,182 @@ def detalle_ficha_cliente(request, pk): pass
 def configurar_google_calendar(request): return render(request, 'panel_admin/base_dashboard.html')
 def gestionar_disponibilidad_horaria(request): pass
 
-def lista_ventas(request): return render(request, 'panel_admin/base_dashboard.html')
-def detalle_venta(request, pk): pass
 
-def gestion_recordatorios(request): return render(request, 'panel_admin/base_dashboard.html')
+def lista_ventas(request):
+    busqueda = request.GET.get('q', '').strip()
+    estado_venta = request.GET.get('estado_venta', '').strip()
+    estado_pago = request.GET.get('estado_pago', '').strip()
+
+    ventas = Venta.objects.select_related('cliente').prefetch_related('pagos').order_by('-fecha_venta')
+    if estado_venta:
+        ventas = ventas.filter(estado__iexact=estado_venta)
+    if busqueda:
+        criterio = (
+            Q(cliente__nombre__icontains=busqueda)
+            | Q(cliente__apellido_paterno__icontains=busqueda)
+            | Q(cliente__apellido_materno__icontains=busqueda)
+            | Q(cliente__email__icontains=busqueda)
+        )
+        if busqueda.isdecimal():
+            criterio |= Q(pk=int(busqueda))
+        ventas = ventas.filter(criterio)
+
+    for venta in ventas:
+        venta.total_pagado = sum(
+            (
+                pago.monto for pago in venta.pagos.all()
+                if pago.estado_pago.casefold() == 'aprobado'
+            ),
+            Decimal('0.00'),
+        )
+        venta.saldo_pendiente = max(venta.total - venta.total_pagado, Decimal('0.00'))
+
+    pagos = Pago.objects.select_related('venta', 'venta__cliente').order_by('-fecha_pago')
+    if estado_pago:
+        pagos = pagos.filter(estado_pago__iexact=estado_pago)
+    if busqueda:
+        criterio_pago = (
+            Q(venta__cliente__nombre__icontains=busqueda)
+            | Q(venta__cliente__apellido_paterno__icontains=busqueda)
+            | Q(venta__cliente__apellido_materno__icontains=busqueda)
+            | Q(venta__cliente__email__icontains=busqueda)
+            | Q(metodo_pago__icontains=busqueda)
+            | Q(transaccion_id__icontains=busqueda)
+        )
+        if busqueda.isdecimal():
+            criterio_pago |= Q(venta_id=int(busqueda))
+        pagos = pagos.filter(criterio_pago)
+
+    hoy = timezone.localdate()
+    return render(request, 'panel_admin/ventas_lista.html', {
+        'ventas': ventas,
+        'pagos': pagos,
+        'busqueda': busqueda,
+        'estado_venta': estado_venta,
+        'estado_pago': estado_pago,
+        'estados_venta': Venta.objects.order_by().values_list('estado', flat=True).distinct(),
+        'estados_pago': Pago.objects.order_by().values_list('estado_pago', flat=True).distinct(),
+        'total_ventas': Venta.objects.count(),
+        'total_pagos': Pago.objects.count(),
+        'ventas_mes': Venta.objects.filter(
+            fecha_venta__year=hoy.year,
+            fecha_venta__month=hoy.month,
+        ).aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
+        'pagos_aprobados_mes': Pago.objects.filter(
+            fecha_pago__year=hoy.year,
+            fecha_pago__month=hoy.month,
+            estado_pago__iexact='Aprobado',
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00'),
+    })
+
+
+def detalle_venta(request, pk):
+    venta = get_object_or_404(
+        Venta.objects.select_related('cliente').prefetch_related(
+            'detalles__producto',
+            'detalles__servicio',
+            'pagos',
+        ),
+        pk=pk,
+    )
+    venta.total_pagado = sum(
+        (
+            pago.monto for pago in venta.pagos.all()
+            if pago.estado_pago.casefold() == 'aprobado'
+        ),
+        Decimal('0.00'),
+    )
+    venta.saldo_pendiente = max(venta.total - venta.total_pagado, Decimal('0.00'))
+    return render(request, 'panel_admin/venta_detalle.html', {'venta': venta})
+
+
+def gestion_recordatorios(request):
+    horas_cita, dias_seguimiento = obtener_configuracion_recordatorios()
+    if request.method == 'POST':
+        form = ConfiguracionRecordatoriosForm(request.POST)
+        if form.is_valid():
+            guardar_intervalos_recordatorios(
+                form.cleaned_data['horas_cita'],
+                form.cleaned_data['dias_seguimiento'],
+            )
+            messages.success(request, 'La programación de recordatorios quedó actualizada.')
+            return redirect('admin_recordatorios')
+    else:
+        form = ConfiguracionRecordatoriosForm(initial={
+            'horas_cita': ', '.join(map(str, horas_cita)),
+            'dias_seguimiento': ', '.join(map(str, dias_seguimiento)),
+        })
+
+    busqueda = request.GET.get('q', '').strip()
+    tareas = listar_recordatorios_pendientes()
+    if busqueda:
+        busqueda_normalizada = busqueda.casefold()
+        tareas = [
+            tarea for tarea in tareas
+            if busqueda_normalizada in ' '.join((
+                tarea['reserva'].nombre_cliente,
+                tarea['reserva'].correo_cliente,
+                tarea['reserva'].servicio_nombre,
+                str(tarea['reserva'].servicio or ''),
+            )).casefold()
+        ]
+
+    return render(request, 'panel_admin/recordatorios_lista.html', {
+        'recordatorios_cita': [tarea for tarea in tareas if tarea['tipo'] == 'cita'],
+        'recordatorios_seguimiento': [tarea for tarea in tareas if tarea['tipo'] == 'seguimiento'],
+        'form_recordatorios': form,
+        'busqueda': busqueda,
+    })
+
+
+@require_POST
+def enviar_recordatorio(request, reserva_id):
+    tipo = request.POST.get('tipo', '')
+    if tipo not in {'cita', 'seguimiento'}:
+        messages.error(request, 'El tipo de recordatorio indicado no es válido.')
+        return redirect('admin_recordatorios')
+
+    try:
+        desfase = int(request.POST.get('desfase', ''))
+    except ValueError:
+        messages.error(request, 'El intervalo del recordatorio no es válido.')
+        return redirect('admin_recordatorios')
+
+    tarea = next((
+        item for item in listar_recordatorios_pendientes()
+        if item['reserva'].pk == reserva_id
+        and item['tipo'] == tipo
+        and item['desfase'] == desfase
+    ), None)
+    if tarea is None:
+        messages.error(request, 'Este recordatorio ya se envió o no está dentro de su período de envío.')
+        return redirect('admin_recordatorios')
+    if not tarea['vencido']:
+        messages.info(request, 'Este recordatorio todavía no vence; se enviará cuando llegue la fecha programada.')
+        return redirect('admin_recordatorios')
+
+    try:
+        enviado = enviar_recordatorio_email(tarea)
+    except ValueError as error:
+        messages.error(request, str(error))
+        return redirect('admin_recordatorios')
+    except (OSError, smtplib.SMTPException, RuntimeError):
+        logger.exception(
+            'No se pudo enviar el recordatorio %s de la reserva %s.',
+            tipo,
+            reserva_id,
+        )
+        messages.error(request, 'No se pudo enviar el correo. Revisa la configuración de correo e inténtalo otra vez.')
+        return redirect('admin_recordatorios')
+
+    if enviado:
+        messages.success(
+            request,
+            f'El recordatorio se envió a {tarea["reserva"].correo_cliente}.',
+        )
+    else:
+        messages.info(request, 'Este recordatorio ya se había enviado.')
+    return redirect('admin_recordatorios')
 
 def _contexto_personal(personal_form=None, form_action=None, form_is_edit=False):
     personal = Usuario.objects.filter(
@@ -320,8 +564,9 @@ def _contexto_personal(personal_form=None, form_action=None, form_is_edit=False)
             for especialidad in colaborador.especialidades.all()
         ]
     personal_form = personal_form or PersonalForm()
-    return {
+    context = {
         'personal': personal,
+        'categorias': Categoria.objects.filter(activa=True).order_by('nombre'),
         'total_activos': personal.filter(is_active=True).count(),
         'total_inactivos': personal.filter(is_active=False).count(),
         'personal_form': personal_form,
@@ -329,6 +574,8 @@ def _contexto_personal(personal_form=None, form_action=None, form_is_edit=False)
         'form_is_edit': form_is_edit,
         'form_has_errors': bool(personal_form.errors),
     }
+    context['total_personal'] = context['total_activos'] + context['total_inactivos']
+    return context
 
 
 def lista_personal(request):

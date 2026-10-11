@@ -1,0 +1,76 @@
+{% extends 'panel_admin/base_dashboard.html' %}
+
+{% block title %}Venta #{{ venta.pk }} | Nicolett Studio{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <a class="small text-decoration-none" href="{% url 'admin_ventas' %}"><i class="fas fa-arrow-left me-1"></i>Volver a ventas y pagos</a>
+        <h1 class="h2 mt-2 mb-1">Venta #{{ venta.pk }}</h1>
+        <p class="text-muted mb-0">Registrada el {{ venta.fecha_venta|date:"d-m-Y H:i" }}</p>
+    </div>
+    <span class="badge text-bg-light border fs-6">{{ venta.estado }}</span>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <section class="card-stat h-100">
+            <h2 class="h5 mb-3">Cliente</h2>
+            <p class="mb-1 fw-semibold">{{ venta.cliente.nombre }} {{ venta.cliente.segundo_nombre }} {{ venta.cliente.apellido_paterno }} {{ venta.cliente.apellido_materno }}</p>
+            <a href="mailto:{{ venta.cliente.email }}">{{ venta.cliente.email }}</a>
+        </section>
+    </div>
+    <div class="col-lg-8">
+        <section class="card-stat h-100">
+            <h2 class="h5 mb-3">Resumen de pago</h2>
+            <div class="row g-3">
+                <div class="col-sm-4"><span class="small text-muted d-block">Total venta</span><strong>${{ venta.total|floatformat:0 }}</strong></div>
+                <div class="col-sm-4"><span class="small text-muted d-block">Pagado (aprobado)</span><strong>${{ venta.total_pagado|floatformat:0 }}</strong></div>
+                <div class="col-sm-4"><span class="small text-muted d-block">Saldo pendiente</span><strong>${{ venta.saldo_pendiente|floatformat:0 }}</strong></div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<section class="card-stat mb-4">
+    <h2 class="h5 mb-3">Detalle de la venta</h2>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>PRODUCTO O SERVICIO</th><th>CANTIDAD</th><th>SUBTOTAL</th></tr></thead>
+            <tbody>
+                {% for detalle in venta.detalles.all %}
+                    <tr>
+                        <td>{% if detalle.producto %}{{ detalle.producto.nombre }}{% elif detalle.servicio %}{{ detalle.servicio.nombre }}{% else %}Ítem eliminado{% endif %}</td>
+                        <td>{{ detalle.cantidad }}</td>
+                        <td>${{ detalle.subtotal|floatformat:0 }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="3" class="text-center text-muted py-4">Esta venta no tiene ítems asociados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="card-stat">
+    <h2 class="h5 mb-3">Pagos recibidos</h2>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>FECHA</th><th>MONTO</th><th>MÉTODO</th><th>TRANSACCIÓN</th><th>ESTADO</th></tr></thead>
+            <tbody>
+                {% for pago in venta.pagos.all %}
+                    <tr>
+                        <td>{{ pago.fecha_pago|date:"d-m-Y H:i" }}</td>
+                        <td>${{ pago.monto|floatformat:0 }}</td>
+                        <td>{{ pago.metodo_pago }}</td>
+                        <td>{{ pago.transaccion_id|default:"—" }}</td>
+                        <td><span class="badge text-bg-light border">{{ pago.estado_pago }}</span></td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">Esta venta aún no tiene pagos registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

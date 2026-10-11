@@ -1,10 +1,13 @@
 import json
 import tempfile
+from datetime import timedelta
+from decimal import Decimal
 from io import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from PIL import Image
 
 from .models import Categoria, Producto, Servicio
@@ -60,12 +63,15 @@ class ServiciosPageTests(TestCase):
         )
 
     def test_servicios_page_renders_service_and_category_controls(self):
+        self.crear_servicio()
         response = self.client.get(reverse('listar_servicios'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'action="/panel_admin/categorias/crear/"')
         self.assertContains(response, 'Administrar categorías')
         self.assertContains(response, 'Disponibilidad para clientes')
+        self.assertContains(response, 'data-live-filter="#serviciosTabla"')
+        self.assertContains(response, 'data-filter-row')
 
     def test_create_service_persists_active_or_inactive_value(self):
         response = self.client.post(
@@ -240,6 +246,8 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, 'Aceite nutritivo')
         self.assertContains(response, 'Cuidado en casa')
         self.assertContains(response, 'Manicure (Uñas)')
+        self.assertContains(response, 'data-live-filter="#productosTabla"')
+        self.assertContains(response, 'data-filter-row')
 
     def test_create_product_saves_all_fields_to_database(self):
         response = self.client.post(
@@ -501,6 +509,8 @@ class PersonalTests(TestCase):
         self.assertContains(response, 'juan.perez@example.com')
         self.assertNotContains(response, 'cliente@example.com')
         self.assertContains(response, 'Colaborador')
+        self.assertContains(response, 'data-live-filter="#personalTabla"')
+        self.assertContains(response, 'data-filter-row')
         self.assertTrue(Usuario.objects.filter(pk=colaborador.pk, rol_id=5).exists())
 
     def test_deleting_unused_specialty_category_unlinks_it_from_collaborators(self):
@@ -849,3 +859,435 @@ class PersonalTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['professionals'][0]['id'], especialista.pk)
+
+
+class DuplicateCatalogEntryTests(TestCase):
+    def setUp(self):
+        self.categoria = Categoria.objects.create(nombre='Manicure', tipo='Uñas')
+        administrador = Usuario.objects.create_superuser(
+            email='admin.duplicados@example.com',
+            password='Admin123!Test',
+            nombre='Admin',
+            apellido_paterno='Prueba',
+            apellido_materno='Studio',
+            telefono='+56912345678',
+        )
+        self.client.force_login(administrador)
+
+    def crear_imagen_producto(self):
+        imagen = Image.new('RGB', (1, 1), color='white')
+        contenido = BytesIO()
+        imagen.save(contenido, format='PNG')
+        return SimpleUploadedFile(
+            'producto.png',
+            contenido.getvalue(),
+            content_type='image/png',
+        )
+
+    def test_identical_service_is_rejected_but_editing_itself_is_allowed(self):
+        from .forms import ServicioForm
+
+        servicio = Servicio.objects.create(
+            nombre='Manicure clásica',
+            categoria=self.categoria,
+            descripcion='Atención tradicional',
+            duracion_minutos=45,
+            precio='12000',
+        )
+        datos = {
+            'nombre': 'MANICURE CLÁSICA',
+            'categoria': self.categoria.pk,
+            'descripcion': '  Atención   tradicional ',
+            'duracion_minutos': '45',
+            'precio': '12000',
+            'activo': 'true',
+        }
+
+        duplicado = ServicioForm(data=datos)
+        self.assertFalse(duplicado.is_valid())
+        self.assertIn('__all__', duplicado.errors)
+
+        edicion = ServicioForm(data=datos, instance=servicio)
+        self.assertTrue(edicion.is_valid(), edicion.errors)
+
+        servicio_diferente = ServicioForm(data={**datos, 'duracion_minutos': '60'})
+        self.assertTrue(servicio_diferente.is_valid(), servicio_diferente.errors)
+
+    def test_duplicate_service_creation_request_does_not_add_a_second_record(self):
+        Servicio.objects.create(
+            nombre='Manicure clásica',
+            categoria=self.categoria,
+            descripcion='Atención tradicional',
+            duracion_minutos=45,
+            precio='12000',
+        )
+
+        response = self.client.post(
+            reverse('crear_servicio'),
+            {
+                'nombre': 'MANICURE CLÁSICA',
+                'categoria': self.categoria.pk,
+                'descripcion': '  Atención   tradicional ',
+                'duracion_minutos': '45',
+                'precio': '12000',
+                'activo': 'true',
+            },
+        )
+
+        self.assertRedirects(response, reverse('listar_servicios'))
+        self.assertEqual(Servicio.objects.filter(categoria=self.categoria).count(), 1)
+
+    def test_identical_product_is_rejected_even_with_different_stock(self):
+        from .forms import ProductoForm
+
+        producto = Producto.objects.create(
+            nombre='Aceite nutritivo',
+            categoria=self.categoria,
+            descripcion='Aceite para uñas',
+            precio='5000',
+            stock=4,
+        )
+        datos = {
+            'nombre': producto.nombre,
+            'categoria': self.categoria.pk,
+            'descripcion': producto.descripcion,
+            'precio': '5000',
+            'stock': '99',
+            'activo': 'true',
+        }
+        imagen = Image.new('RGB', (1, 1), color='white')
+        contenido = BytesIO()
+        imagen.save(contenido, format='PNG')
+        archivo = SimpleUploadedFile(
+            'producto.png',
+            contenido.getvalue(),
+            content_type='image/png',
+        )
+
+        form = ProductoForm(data=datos, files={'imagen_url': archivo})
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('__all__', form.errors)
+
+    def test_duplicate_product_creation_request_does_not_add_a_second_record(self):
+        Producto.objects.create(
+            nombre='Aceite nutritivo',
+            categoria=self.categoria,
+            descripcion='Aceite para uñas',
+            precio='5000',
+            stock=4,
+        )
+
+        response = self.client.post(
+            reverse('crear_producto'),
+            {
+                'nombre': 'Aceite nutritivo',
+                'categoria': self.categoria.pk,
+                'descripcion': 'Aceite para uñas',
+                'precio': '5000',
+                'stock': '99',
+                'activo': 'true',
+                'imagen_url': self.crear_imagen_producto(),
+            },
+        )
+
+        self.assertRedirects(response, reverse('admin_productos'))
+        self.assertEqual(Producto.objects.filter(categoria=self.categoria).count(), 1)
+
+    def test_product_with_a_different_characteristic_is_allowed(self):
+        from .forms import ProductoForm
+
+        Producto.objects.create(
+            nombre='Aceite nutritivo',
+            categoria=self.categoria,
+            descripcion='Aceite para uñas',
+            precio='5000',
+            stock=4,
+        )
+        form = ProductoForm(
+            data={
+                'nombre': 'Aceite nutritivo',
+                'categoria': self.categoria.pk,
+                'descripcion': 'Aceite para uñas sensibles',
+                'precio': '5000',
+                'stock': '4',
+                'activo': 'true',
+            },
+            files={'imagen_url': self.crear_imagen_producto()},
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_product_page_has_category_management(self):
+        response = self.client.get(reverse('admin_productos'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Administrar categorías')
+        self.assertContains(response, 'categoriaProductoTipo')
+        self.assertNotContains(response, 'Crea una categoría en Servicios')
+
+
+class AdminConfigurationTests(TestCase):
+    def setUp(self):
+        self.admin = Usuario.objects.create_superuser(
+            email='admin.configuracion@example.com',
+            password='Admin123!Test',
+            nombre='Admin',
+            apellido_paterno='Prueba',
+            apellido_materno='Studio',
+            telefono='+56912345678',
+        )
+        self.client.force_login(self.admin)
+
+    def test_configuration_page_displays_profile_and_password_forms_without_account_deletion(self):
+        response = self.client.get(reverse('admin_configuracion'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Segundo nombre (opcional)')
+        self.assertContains(response, 'Contraseña actual')
+        self.assertContains(response, 'no permite eliminar la cuenta administradora')
+        self.assertNotContains(response, 'Eliminar cuenta')
+
+    def test_profile_form_updates_the_current_administrator_only(self):
+        response = self.client.post(
+            reverse('admin_configuracion'),
+            {
+                'form_type': 'profile',
+                'nombre': 'Daniela',
+                'segundo_nombre': 'María',
+                'apellido_paterno': 'Ejemplo',
+                'apellido_materno': 'Prueba',
+                'email': 'daniela.admin@example.com',
+            },
+        )
+
+        self.assertRedirects(response, reverse('admin_configuracion'))
+        self.admin.refresh_from_db()
+        self.assertEqual(self.admin.nombre, 'Daniela')
+        self.assertEqual(self.admin.segundo_nombre, 'María')
+        self.assertEqual(self.admin.apellido_paterno, 'Ejemplo')
+        self.assertEqual(self.admin.apellido_materno, 'Prueba')
+        self.assertEqual(self.admin.email, 'daniela.admin@example.com')
+
+    def test_password_change_requires_current_password_and_keeps_admin_logged_in(self):
+        response = self.client.post(
+            reverse('admin_configuracion'),
+            {
+                'form_type': 'password',
+                'actual': 'Admin123!Test',
+                'nueva': 'NuevaClave-Fuerte-86!',
+                'confirmar': 'NuevaClave-Fuerte-86!',
+            },
+        )
+
+        self.assertRedirects(response, reverse('admin_configuracion'))
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.check_password('NuevaClave-Fuerte-86!'))
+        self.assertEqual(self.client.get(reverse('admin_configuracion')).status_code, 200)
+
+    def test_non_administrator_cannot_open_account_configuration(self):
+        rol_cliente, _ = Rol.objects.get_or_create(nombre='Cliente')
+        cliente = Usuario.objects.create_user(
+            email='cliente.configuracion@example.com',
+            password='Cliente123!Test',
+            nombre='Cliente',
+            apellido_paterno='Prueba',
+            apellido_materno='Studio',
+            telefono='+56912345679',
+            rol=rol_cliente,
+        )
+        cliente_client = Client()
+        cliente_client.force_login(cliente)
+
+        response = cliente_client.get(reverse('admin_configuracion'))
+
+        self.assertEqual(response.status_code, 403)
+
+class SalesAndReminderPageTests(TestCase):
+    def setUp(self):
+        self.admin = Usuario.objects.create_superuser(
+            email='admin.sales@example.com',
+            password='Admin123!Test',
+            nombre='Admin',
+            apellido_paterno='Studio',
+            apellido_materno='',
+            telefono='+56912345678',
+        )
+        self.client.force_login(self.admin)
+
+    def test_sales_page_shows_sales_and_payments_from_database(self):
+        from pagos.models import Pago
+        from ventas.models import Venta
+
+        venta = Venta.objects.create(
+            cliente=self.admin,
+            total='15000.00',
+            estado='Pendiente',
+        )
+        Pago.objects.create(
+            venta=venta,
+            monto='5000.00',
+            metodo_pago='Tarjeta',
+            estado_pago='Aprobado',
+            transaccion_id='TX-TEST-1',
+        )
+
+        response = self.client.get(reverse('admin_ventas'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'#{venta.pk}')
+        self.assertContains(response, 'TX-TEST-1')
+        self.assertContains(response, 'Ventas registradas')
+        self.assertEqual(response.context['ventas'][0].total_pagado, Decimal('5000.00'))
+        self.assertEqual(response.context['ventas'][0].saldo_pendiente, Decimal('10000.00'))
+
+        detalle = self.client.get(reverse('admin_detalle_venta', args=[venta.pk]))
+        self.assertEqual(detalle.status_code, 200)
+        self.assertContains(detalle, 'Pagos recibidos')
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_upcoming_appointment_reminder_is_sent_once_and_tracked(self):
+        from django.core import mail
+
+        from agenda.models import Reserva
+        from notificaciones.models import RecordatorioEnviado
+
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.now() + timedelta(hours=36),
+            estado='confirmada',
+            cliente_nombre='Camila Pérez',
+            cliente_email='camila@example.com',
+            servicio_nombre='Manicure',
+        )
+
+        response = self.client.get(reverse('admin_recordatorios'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Camila Pérez')
+
+        url = reverse('enviar_recordatorio', args=[reserva.pk])
+        self.client.post(url, {'tipo': 'cita', 'desfase': '48'})
+        self.client.post(url, {'tipo': 'cita', 'desfase': '48'})
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
+            RecordatorioEnviado.objects.filter(
+                reserva=reserva,
+                tipo='cita',
+                desfase=48,
+            ).count(),
+            1,
+        )
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_completed_appointment_can_receive_a_followup_after_selected_days(self):
+        from django.core import mail
+
+        from agenda.models import Reserva
+        from notificaciones.models import RecordatorioEnviado
+
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.now() - timedelta(days=30),
+            estado='completada',
+            cliente_nombre='Sofía López',
+            cliente_email='sofia@example.com',
+            servicio_nombre='Tratamiento capilar',
+        )
+
+        response = self.client.get(reverse('admin_recordatorios'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Sofía López')
+
+        self.client.post(
+            reverse('enviar_recordatorio', args=[reserva.pk]),
+            {'tipo': 'seguimiento', 'desfase': '30'},
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertTrue(
+            RecordatorioEnviado.objects.filter(
+                reserva=reserva,
+                tipo='seguimiento',
+                desfase=30,
+            ).exists(),
+        )
+
+    def test_reminder_intervals_can_be_saved_and_are_displayed(self):
+        from notificaciones.models import Configuracion
+
+        response = self.client.post(
+            reverse('admin_recordatorios'),
+            {'horas_cita': '72, 12', 'dias_seguimiento': '20, 10'},
+        )
+
+        self.assertRedirects(response, reverse('admin_recordatorios'))
+        self.assertEqual(
+            Configuracion.objects.get(clave='recordatorios_horas_antes').valor,
+            '72,12',
+        )
+        self.assertEqual(
+            Configuracion.objects.get(clave='recordatorios_dias_despues').valor,
+            '20,10',
+        )
+        response = self.client.get(reverse('admin_recordatorios'))
+        self.assertContains(response, '72, 12')
+        self.assertContains(response, '20, 10')
+
+    def test_reminder_interval_form_rejects_duplicate_or_out_of_range_values(self):
+        response = self.client.post(
+            reverse('admin_recordatorios'),
+            {'horas_cita': '24, 24', 'dias_seguimiento': '366'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['form_recordatorios'].errors)
+
+    def test_reminder_tasks_include_each_configured_offset_and_scheduled_time(self):
+        from agenda.models import Reserva
+
+        ahora = timezone.now()
+        reserva = Reserva.objects.create(
+            fecha_hora=ahora + timedelta(hours=36),
+            estado='confirmada',
+            cliente_nombre='Camila Pérez',
+            cliente_email='camila@example.com',
+            servicio_nombre='Manicure',
+        )
+
+        response = self.client.get(reverse('admin_recordatorios'))
+        tareas = response.context['recordatorios_cita']
+
+        self.assertEqual([tarea['desfase'] for tarea in tareas], [48, 24])
+        self.assertTrue(tareas[0]['vencido'])
+        self.assertFalse(tareas[1]['vencido'])
+        self.assertEqual(
+            tareas[0]['programado'],
+            reserva.fecha_hora - timedelta(hours=48),
+        )
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_scheduled_runner_sends_due_reminders_only_once(self):
+        from django.core import mail
+
+        from agenda.models import Reserva
+        from notificaciones.models import RecordatorioEnviado
+        from notificaciones.recordatorios import enviar_recordatorios_vencidos
+
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.now() + timedelta(hours=36),
+            estado='confirmada',
+            cliente_nombre='Camila Pérez',
+            cliente_email='camila@example.com',
+            servicio_nombre='Manicure',
+        )
+
+        self.assertEqual(enviar_recordatorios_vencidos(), (1, 0))
+        self.assertEqual(enviar_recordatorios_vencidos(), (0, 0))
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertTrue(
+            RecordatorioEnviado.objects.filter(
+                reserva=reserva,
+                tipo='cita',
+                desfase=48,
+            ).exists(),
+        )

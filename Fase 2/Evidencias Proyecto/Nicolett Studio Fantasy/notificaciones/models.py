@@ -28,3 +28,30 @@ class Auditoria(models.Model):
 
     class Meta:
         db_table = 'auditoria'
+
+
+class RecordatorioEnviado(models.Model):
+    TIPOS = [
+        ('cita', 'Cita próxima'),
+        ('seguimiento', 'Seguimiento posterior'),
+    ]
+
+    reserva = models.ForeignKey(
+        'agenda.Reserva',
+        on_delete=models.CASCADE,
+        related_name='recordatorios_enviados',
+    )
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    desfase = models.PositiveSmallIntegerField(default=0)
+    email = models.EmailField()
+    enviado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'recordatorio_enviado'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['reserva', 'tipo', 'desfase'],
+                name='uniq_recordatorio_reserva_tipo_desfase',
+            ),
+        ]
+        ordering = ['-enviado_en']

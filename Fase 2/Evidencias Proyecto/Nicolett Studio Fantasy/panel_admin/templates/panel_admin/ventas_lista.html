@@ -1,0 +1,119 @@
+{% extends 'panel_admin/base_dashboard.html' %}
+
+{% block title %}Ventas y pagos | Nicolett Studio{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1">Ventas y pagos</h1>
+        <p class="text-muted mb-0">Consulta las ventas registradas, sus abonos y los pagos recibidos.</p>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3"><div class="card-stat h-100"><div class="title">Ventas registradas</div><div class="value">{{ total_ventas }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="card-stat h-100"><div class="title">Ventas del mes</div><div class="value">${{ ventas_mes|floatformat:0 }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="card-stat h-100"><div class="title">Pagos registrados</div><div class="value">{{ total_pagos }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="card-stat h-100"><div class="title">Pagos aprobados del mes</div><div class="value">${{ pagos_aprobados_mes|floatformat:0 }}</div></div></div>
+</div>
+
+<section class="card-stat mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h2 class="h5 mb-1">Ventas</h2>
+            <p class="small text-muted mb-0">El saldo considera únicamente pagos aprobados.</p>
+        </div>
+        <div class="row g-2" data-live-filter="#ventasTabla">
+            <div class="col-md-7">
+                <label class="visually-hidden" for="buscarVentas">Buscar ventas</label>
+                <input id="buscarVentas" class="form-control form-control-sm" type="search" placeholder="Buscar cliente o folio..." value="{{ busqueda }}" data-filter-search>
+            </div>
+            <div class="col-md-5">
+                <label class="visually-hidden" for="filtrarEstadoVenta">Estado de venta</label>
+                <select id="filtrarEstadoVenta" class="form-select form-select-sm" data-filter-field="status">
+                    <option value="">Todos los estados</option>
+                    {% for estado in estados_venta %}
+                        <option value="{{ estado|lower }}" {% if estado_venta|lower == estado|lower %}selected{% endif %}>{{ estado }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive services-table-card">
+        <table id="ventasTabla" class="table align-middle mb-0">
+            <thead><tr><th>FOLIO</th><th>FECHA</th><th>CLIENTE</th><th>TOTAL</th><th>PAGADO</th><th>SALDO</th><th>ESTADO</th><th></th></tr></thead>
+            <tbody>
+                {% for venta in ventas %}
+                    <tr data-filter-row data-status="{{ venta.estado|lower }}" data-search="{{ venta.pk }} {{ venta.cliente.nombre }} {{ venta.cliente.apellido_paterno }} {{ venta.cliente.apellido_materno }} {{ venta.cliente.email }} {{ venta.estado }}">
+                        <td>#{{ venta.pk }}</td>
+                        <td class="text-nowrap">{{ venta.fecha_venta|date:"d-m-Y H:i" }}</td>
+                        <td>{{ venta.cliente.nombre }} {{ venta.cliente.apellido_paterno }}</td>
+                        <td>${{ venta.total|floatformat:0 }}</td>
+                        <td>${{ venta.total_pagado|floatformat:0 }}</td>
+                        <td>${{ venta.saldo_pendiente|floatformat:0 }}</td>
+                        <td><span class="badge text-bg-light border">{{ venta.estado }}</span></td>
+                        <td><a class="btn btn-sm salon-btn-outline" href="{% url 'admin_detalle_venta' venta.pk %}">Ver detalle</a></td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">Aún no hay ventas registradas.</td></tr>
+                {% endfor %}
+                <tr data-filter-empty hidden><td colspan="8" class="text-center text-muted py-4">No hay ventas que coincidan con la búsqueda.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="card-stat">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h2 class="h5 mb-1">Pagos</h2>
+            <p class="small text-muted mb-0">Historial de transacciones asociadas a las ventas.</p>
+        </div>
+        <div class="row g-2" data-live-filter="#pagosTabla">
+            <div class="col-md-7">
+                <label class="visually-hidden" for="buscarPagos">Buscar pagos</label>
+                <input id="buscarPagos" class="form-control form-control-sm" type="search" placeholder="Buscar cliente, método o transacción..." value="{{ busqueda }}" data-filter-search>
+            </div>
+            <div class="col-md-5">
+                <label class="visually-hidden" for="filtrarEstadoPago">Estado de pago</label>
+                <select id="filtrarEstadoPago" class="form-select form-select-sm" data-filter-field="status">
+                    <option value="">Todos los estados</option>
+                    {% for estado in estados_pago %}
+                        <option value="{{ estado|lower }}" {% if estado_pago|lower == estado|lower %}selected{% endif %}>{{ estado }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive services-table-card">
+        <table id="pagosTabla" class="table align-middle mb-0">
+            <thead><tr><th>FECHA</th><th>VENTA</th><th>CLIENTE</th><th>MONTO</th><th>MÉTODO</th><th>TRANSACCIÓN</th><th>ESTADO</th></tr></thead>
+            <tbody>
+                {% for pago in pagos %}
+                    <tr data-filter-row data-status="{{ pago.estado_pago|lower }}" data-search="{{ pago.venta_id }} {{ pago.venta.cliente.nombre }} {{ pago.venta.cliente.apellido_paterno }} {{ pago.venta.cliente.email }} {{ pago.metodo_pago }} {{ pago.transaccion_id }} {{ pago.estado_pago }}">
+                        <td class="text-nowrap">{{ pago.fecha_pago|date:"d-m-Y H:i" }}</td>
+                        <td><a href="{% url 'admin_detalle_venta' pago.venta_id %}">#{{ pago.venta_id }}</a></td>
+                        <td>{{ pago.venta.cliente.nombre }} {{ pago.venta.cliente.apellido_paterno }}</td>
+                        <td>${{ pago.monto|floatformat:0 }}</td>
+                        <td>{{ pago.metodo_pago }}</td>
+                        <td>{{ pago.transaccion_id|default:"—" }}</td>
+                        <td><span class="badge text-bg-light border">{{ pago.estado_pago }}</span></td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">Aún no hay pagos registrados.</td></tr>
+                {% endfor %}
+                <tr data-filter-empty hidden><td colspan="7" class="text-center text-muted py-4">No hay pagos que coincidan con la búsqueda.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
