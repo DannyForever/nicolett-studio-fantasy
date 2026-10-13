@@ -12,9 +12,9 @@ from .models import Configuracion, RecordatorioEnviado
 logger = logging.getLogger(__name__)
 
 HORAS_CITA_KEY = 'recordatorios_horas_antes'
-DIAS_SEGUIMIENTO_KEY = 'recordatorios_dias_despues'
+HORAS_SEGUIMIENTO_KEY = 'recordatorios_horas_despues'
 HORAS_CITA_DEFAULT = [48, 24]
-DIAS_SEGUIMIENTO_DEFAULT = [30, 15]
+HORAS_SEGUIMIENTO_DEFAULT = 24
 VENTANA_ENVIO = timedelta(hours=24)
 
 
@@ -35,14 +35,17 @@ def _obtener_intervalos(clave, predeterminados):
 
 def obtener_configuracion_recordatorios():
     horas_cita = _obtener_intervalos(HORAS_CITA_KEY, HORAS_CITA_DEFAULT)
-    dias_seguimiento = _obtener_intervalos(
-        DIAS_SEGUIMIENTO_KEY,
-        DIAS_SEGUIMIENTO_DEFAULT,
+    horas_seguimiento = _obtener_intervalos(
+        HORAS_SEGUIMIENTO_KEY,
+        [HORAS_SEGUIMIENTO_DEFAULT],
     )
-    return horas_cita, dias_seguimiento
+    if len(horas_seguimiento) != 1:
+        logger.error('La configuración de horas de seguimiento debe contener un único intervalo.')
+        raise ValueError('La configuración de horas de seguimiento no es válida.')
+    return horas_cita, horas_seguimiento[0]
 
 
-def guardar_configuracion_recordatorios(horas_cita, dias_seguimiento):
+def guardar_configuracion_recordatorios(horas_cita, horas_seguimiento):
     valores = (
         (
             HORAS_CITA_KEY,
@@ -50,9 +53,9 @@ def guardar_configuracion_recordatorios(horas_cita, dias_seguimiento):
             'Horas antes de una cita para enviar recordatorios.',
         ),
         (
-            DIAS_SEGUIMIENTO_KEY,
-            dias_seguimiento,
-            'Días después de una atención para enviar recordatorios de seguimiento.',
+            HORAS_SEGUIMIENTO_KEY,
+            [horas_seguimiento],
+            'Horas después de la atención para enviar un único correo de seguimiento.',
         ),
     )
     for clave, intervalos, descripcion in valores:
@@ -63,11 +66,12 @@ def guardar_configuracion_recordatorios(horas_cita, dias_seguimiento):
                 'descripcion': descripcion,
             },
         )
+    Configuracion.objects.filter(clave='recordatorios_dias_despues').delete()
 
 
 def listar_recordatorios_pendientes(ahora=None):
     ahora = ahora or timezone.now()
-    horas_cita, dias_seguimiento = obtener_configuracion_recordatorios()
+    horas_cita, horas_seguimiento = obtener_configuracion_recordatorios()
     tareas = []
 
     reservas_proximas = Reserva.objects.select_related(
@@ -86,6 +90,7 @@ def listar_recordatorios_pendientes(ahora=None):
                 reserva=reserva,
                 tipo='cita',
                 desfase=desfase,
+                fecha_hora_cita=reserva.fecha_hora,
             ).exists():
                 continue
             tareas.append({
@@ -97,34 +102,31 @@ def listar_recordatorios_pendientes(ahora=None):
                 'unidad': 'horas',
             })
 
-    visitas_completadas = Reserva.objects.select_related(
-        'cliente', 'servicio',
-    ).filter(
+    visitas_completadas = Reserva.objects.select_related('cliente', 'servicio').filter(
         estado='completada',
-        fecha_hora__gte=ahora - timedelta(days=max(dias_seguimiento)) - VENTANA_ENVIO,
         fecha_hora__lte=ahora,
     )
     for reserva in visitas_completadas:
-        for desfase in dias_seguimiento:
-            programado = reserva.fecha_hora + timedelta(days=desfase)
-            if programado > ahora + timedelta(days=max(dias_seguimiento)):
-                continue
-            if programado < ahora - VENTANA_ENVIO:
-                continue
-            if RecordatorioEnviado.objects.filter(
-                reserva=reserva,
-                tipo='seguimiento',
-                desfase=desfase,
-            ).exists():
-                continue
-            tareas.append({
-                'reserva': reserva,
-                'tipo': 'seguimiento',
-                'desfase': desfase,
-                'programado': programado,
-                'vencido': programado <= ahora,
-                'unidad': 'días',
-            })
+        if RecordatorioEnviado.objects.filter(
+            reserva=reserva,
+            tipo='seguimiento',
+        ).exists():
+            continue
+        programado = (
+            reserva.fecha_hora
+            + timedelta(minutes=reserva.duracion_minutos)
+            + timedelta(hours=horas_seguimiento)
+        )
+        if programado > ahora + VENTANA_ENVIO or programado < ahora - VENTANA_ENVIO:
+            continue
+        tareas.append({
+            'reserva': reserva,
+            'tipo': 'seguimiento',
+            'desfase': horas_seguimiento,
+            'programado': programado,
+            'vencido': programado <= ahora,
+            'unidad': 'horas',
+        })
 
     return sorted(tareas, key=lambda tarea: tarea['programado'])
 
@@ -142,11 +144,16 @@ def enviar_recordatorio(tarea, ahora=None):
         raise ValueError('El recordatorio aún no está dentro de su ventana de envío.')
     if not reserva.correo_cliente:
         raise ValueError('La cita no tiene correo electrónico registrado.')
-    if RecordatorioEnviado.objects.filter(
+    envios_anteriores = RecordatorioEnviado.objects.filter(
         reserva=reserva,
         tipo=tipo,
-        desfase=desfase,
-    ).exists():
+    )
+    if tipo == 'cita':
+        envios_anteriores = envios_anteriores.filter(
+            desfase=desfase,
+            fecha_hora_cita=reserva.fecha_hora,
+        )
+    if envios_anteriores.exists():
         return False
 
     if tipo == 'cita':
@@ -162,12 +169,11 @@ def enviar_recordatorio(tarea, ahora=None):
     else:
         if reserva.estado != 'completada':
             raise ValueError('La atención no está marcada como completada.')
-        asunto = '¿Agendamos tu próxima atención? - Nicolett Studio'
+        asunto = '¿Qué tal estuvo tu atención? - Nicolett Studio'
         mensaje = (
-            f'Hola {reserva.nombre_cliente}, han pasado {desfase} días desde tu atención de '
+            f'Hola {reserva.nombre_cliente}, queremos saber cómo estuvo tu atención de '
             f'{reserva.servicio_nombre or reserva.servicio or "servicio"}. '
-            'Si deseas continuar tu tratamiento o realizar retoques, estaremos felices '
-            'de ayudarte a agendar una nueva cita.'
+            'Gracias por preferir Nicolett Studio. Nos encantará conocer tu opinión.'
         )
 
     enviado = send_mail(
@@ -184,6 +190,7 @@ def enviar_recordatorio(tarea, ahora=None):
         reserva=reserva,
         tipo=tipo,
         desfase=desfase,
+        fecha_hora_cita=reserva.fecha_hora if tipo == 'cita' else None,
         email=reserva.correo_cliente,
     )
     return True

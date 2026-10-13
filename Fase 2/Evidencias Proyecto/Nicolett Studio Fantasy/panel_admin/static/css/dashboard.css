@@ -170,6 +170,17 @@ h1, h2, h3, .brand-title {
     border-color: #f0e9e2;
 }
 
+.dashboard-appointments-table thead th {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.dashboard-appointments-table td {
+    font-size: 0.82rem;
+}
+
 .service-thumbnail {
     object-fit: cover;
     border-radius: 9px;
@@ -665,6 +676,19 @@ h1, h2, h3, .brand-title {
 }
 
 @media (max-width: 767.98px) {
+    .salon-modal .modal-dialog {
+        max-height: calc(100% - 1rem);
+    }
+
+    .salon-modal .modal-content {
+        max-height: calc(100vh - 1rem);
+    }
+
+    .salon-modal .modal-body {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
     .main-content {
         margin-left: 0;
         padding: 24px 16px;

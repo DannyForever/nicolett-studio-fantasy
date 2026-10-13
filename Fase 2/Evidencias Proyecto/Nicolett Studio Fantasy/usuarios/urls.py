@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from agenda import views as agenda_views
 from carrito import views as carrito_views
+from fichas import views as fichas_views
 
 urlpatterns = [
     path('login/', views.login_view, name='login'),
@@ -28,6 +29,11 @@ urlpatterns = [
         name='cliente_horas_disponibles',
     ),
     path(
+        'cliente/agendamiento/calendario/',
+        agenda_views.cliente_calendario_disponibilidad_json,
+        name='cliente_calendario_disponibilidad',
+    ),
+    path(
         'cliente/agendamiento/crear/',
         agenda_views.crear_reserva_cliente,
         name='cliente_crear_reserva',
@@ -48,6 +54,10 @@ urlpatterns = [
         name='cliente_reagendar_reserva',
     ),
     path('cliente/historial/', views.cliente_historial_view, name='cliente_historial'),
+    path('cliente/ficha-tecnica/', fichas_views.ficha_tecnica_cliente_pdf, name='cliente_ficha_tecnica_pdf'),
+    path('cliente/historial-pagos/', views.cliente_historial_pagos_view, name='cliente_historial_pagos'),
+    path('cliente/configuracion/', views.cliente_configuracion_view, name='cliente_configuracion'),
+    path('cliente/configuracion/eliminar-cuenta/', views.cliente_eliminar_cuenta_view, name='cliente_eliminar_cuenta'),
     path('cliente/cancelar-cita/', views.cliente_cancelar_cita_view, name='cliente_cancelar_cita'),
     path('logout/', views.logout_view, name='logout'),
 ]

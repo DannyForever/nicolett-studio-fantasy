@@ -18,42 +18,38 @@
 {% endif %}
 
 <section class="card-stat mb-4">
-    <h2 class="h5 mb-1">Programación de avisos</h2>
-    <p class="small text-muted mb-3">
-        Define varios intervalos separados por coma. El proceso automático debe ejecutarse periódicamente
-        con el programador del servidor para enviar los correos a la hora indicada.
-    </p>
-    <form method="post" class="row g-3">
-        {% csrf_token %}
-        <div class="col-md-6">
-            <label class="form-label" for="{{ form_recordatorios.horas_cita.id_for_label }}">Horas antes de la cita</label>
-            {{ form_recordatorios.horas_cita }}
-            {% for error in form_recordatorios.horas_cita.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-        </div>
-        <div class="col-md-6">
-            <label class="form-label" for="{{ form_recordatorios.dias_seguimiento.id_for_label }}">Días después de la atención</label>
-            {{ form_recordatorios.dias_seguimiento }}
-            {% for error in form_recordatorios.dias_seguimiento.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-        </div>
-        {% for error in form_recordatorios.non_field_errors %}<div class="col-12 text-danger small">{{ error }}</div>{% endfor %}
-        <div class="col-12">
-            <button class="btn salon-btn-outline" type="submit">Guardar programación</button>
-        </div>
-    </form>
-</section>
-
-<section class="card-stat mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
         <div>
             <h2 class="h5 mb-1">Recordatorios de citas</h2>
-            <p class="small text-muted mb-0">Avisos programados para citas pendientes o confirmadas.</p>
+            <p class="small text-muted mb-0">Configura los avisos previos para las citas pendientes o confirmadas.</p>
         </div>
-        <form method="get" class="col-md-5" data-live-filter="#citasRecordatoriosTabla">
-            <label class="visually-hidden" for="buscarCitasRecordatorios">Buscar citas</label>
-            <input id="buscarCitasRecordatorios" name="q" value="{{ busqueda }}" class="form-control form-control-sm"
-                   type="search" placeholder="Buscar cliente o servicio..." data-filter-search>
-        </form>
     </div>
+    <form method="post" class="row g-2 align-items-end mb-4">
+        {% csrf_token %}
+        <input type="hidden" name="horas_seguimiento" value="{{ horas_seguimiento_valor }}">
+        <div class="col-md-6">
+            <label class="form-label" for="{{ form_recordatorios.horas_cita.id_for_label }}">Horas antes de la cita para enviar cada correo</label>
+            {{ form_recordatorios.horas_cita }}
+            <div class="form-text">Predeterminado: 48 y 24 horas antes. Puedes indicar otros intervalos separados por coma.</div>
+            {% for error in form_recordatorios.horas_cita.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-auto">
+            <button class="btn salon-btn-outline" type="submit">Guardar recordatorios de citas</button>
+        </div>
+        {% for error in form_recordatorios.non_field_errors %}<div class="col-12 text-danger small">{{ error }}</div>{% endfor %}
+    </form>
+    <form method="get" class="row g-2 align-items-end mb-3" data-live-filter="#citasRecordatoriosTabla">
+        <div class="col-md-5">
+            <label class="form-label" for="buscarCitasRecordatorios">Buscar cliente o servicio</label>
+            <input id="buscarCitasRecordatorios" name="q" value="{{ busqueda }}" class="form-control form-control-sm"
+                   type="search" placeholder="Nombre, correo o servicio..." data-filter-search>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="fechaCitaRecordatorios">Fecha de atención</label>
+            <input id="fechaCitaRecordatorios" name="fecha_cita" value="{{ fecha_cita }}" class="form-control form-control-sm" type="date">
+        </div>
+        <div class="col-auto"><button class="btn salon-btn-outline btn-sm" type="submit">Filtrar</button></div>
+    </form>
     <div class="table-responsive services-table-card">
         <table id="citasRecordatoriosTabla" class="table align-middle mb-0">
             <thead><tr><th>AVISO PROGRAMADO</th><th>CITA</th><th>CLIENTE</th><th>SERVICIO</th><th>ACCIÓN</th></tr></thead>
@@ -94,22 +90,43 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
         <div>
             <h2 class="h5 mb-1">Seguimiento después de la atención</h2>
-            <p class="small text-muted mb-0">Avisos posteriores para continuar tratamientos o agendar retoques.</p>
+            <p class="small text-muted mb-0">Se envía una sola vez para conocer la experiencia del cliente.</p>
         </div>
-        <form method="get" class="col-md-5" data-live-filter="#seguimientosRecordatoriosTabla">
-            <label class="visually-hidden" for="buscarSeguimientosRecordatorios">Buscar seguimientos</label>
-            <input id="buscarSeguimientosRecordatorios" name="q" value="{{ busqueda }}" class="form-control form-control-sm"
-                   type="search" placeholder="Buscar cliente o servicio..." data-filter-search>
-        </form>
     </div>
+    <form method="post" class="row g-2 align-items-end mb-4">
+        {% csrf_token %}
+        <input type="hidden" name="horas_cita" value="{{ horas_cita_texto }}">
+        <div class="col-md-5">
+            <label class="form-label" for="{{ form_recordatorios.horas_seguimiento.id_for_label }}">Horas después de finalizar la atención</label>
+            {{ form_recordatorios.horas_seguimiento }}
+            <div class="form-text">Predeterminado: 24 horas. Solo se enviará un correo por atención.</div>
+            {% for error in form_recordatorios.horas_seguimiento.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-auto">
+            <button class="btn salon-btn-outline" type="submit">Guardar seguimiento</button>
+        </div>
+        {% for error in form_recordatorios.non_field_errors %}<div class="col-12 text-danger small">{{ error }}</div>{% endfor %}
+    </form>
+    <form method="get" class="row g-2 align-items-end mb-3" data-live-filter="#seguimientosRecordatoriosTabla">
+        <div class="col-md-5">
+            <label class="form-label" for="buscarSeguimientosRecordatorios">Buscar cliente o servicio</label>
+            <input id="buscarSeguimientosRecordatorios" name="q" value="{{ busqueda }}" class="form-control form-control-sm"
+                   type="search" placeholder="Nombre, correo o servicio..." data-filter-search>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="fechaSeguimientoRecordatorios">Fecha de atención</label>
+            <input id="fechaSeguimientoRecordatorios" name="fecha_seguimiento" value="{{ fecha_seguimiento }}" class="form-control form-control-sm" type="date">
+        </div>
+        <div class="col-auto"><button class="btn salon-btn-outline btn-sm" type="submit">Filtrar</button></div>
+    </form>
     <div class="table-responsive services-table-card">
         <table id="seguimientosRecordatoriosTabla" class="table align-middle mb-0">
             <thead><tr><th>AVISO PROGRAMADO</th><th>ATENCIÓN</th><th>CLIENTE</th><th>SERVICIO</th><th>ACCIÓN</th></tr></thead>
             <tbody>
                 {% for tarea in recordatorios_seguimiento %}
                     {% with reserva=tarea.reserva %}
-                    <tr data-filter-row data-search="{{ reserva.nombre_cliente }} {{ reserva.correo_cliente }} {{ reserva.servicio_nombre }} {% if reserva.servicio %}{{ reserva.servicio.nombre }}{% endif %} {{ tarea.desfase }} días">
-                        <td class="text-nowrap">{{ tarea.programado|date:"d-m-Y H:i" }}<small class="d-block text-muted">{{ tarea.desfase }} días después</small></td>
+                    <tr data-filter-row data-search="{{ reserva.nombre_cliente }} {{ reserva.correo_cliente }} {{ reserva.servicio_nombre }} {% if reserva.servicio %}{{ reserva.servicio.nombre }}{% endif %} {{ tarea.desfase }} horas">
+                        <td class="text-nowrap">{{ tarea.programado|date:"d-m-Y H:i" }}<small class="d-block text-muted">{{ tarea.desfase }} horas después</small></td>
                         <td class="text-nowrap">{{ reserva.fecha_hora|date:"d-m-Y" }}</td>
                         <td>{{ reserva.nombre_cliente|default:"Cliente sin nombre" }}<small class="d-block text-muted">{{ reserva.correo_cliente|default:"Sin correo registrado" }}</small></td>
                         <td>{% if reserva.servicio_nombre %}{{ reserva.servicio_nombre }}{% elif reserva.servicio %}{{ reserva.servicio.nombre }}{% else %}Servicio eliminado{% endif %}</td>

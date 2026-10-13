@@ -69,6 +69,14 @@ class ServiciosPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'action="/panel_admin/categorias/crear/"')
         self.assertContains(response, 'Administrar categorías')
+        self.assertContains(response, 'id="btnAdministrarCategoriasServicios"')
+        self.assertContains(response, 'id="buscarCategoriaServicio"')
+        self.assertContains(response, 'No hay categorías que coincidan con la búsqueda.')
+        self.assertNotContains(response, 'class="category-manager"')
+        self.assertNotContains(response, 'id="btnNuevaCategoria"')
+        self.assertNotContains(response, '<th>Estado</th>')
+        self.assertNotContains(response, 'data-bs-dismiss="modal">Cerrar')
+        self.assertNotContains(response, 'Nueva categoría</h5>')
         self.assertContains(response, 'Disponibilidad para clientes')
         self.assertContains(response, 'data-live-filter="#serviciosTabla"')
         self.assertContains(response, 'data-filter-row')
@@ -246,8 +254,20 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, 'Aceite nutritivo')
         self.assertContains(response, 'Cuidado en casa')
         self.assertContains(response, 'Manicure (Uñas)')
+        self.assertContains(response, 'id="buscarCategoriaProducto"')
+        self.assertNotContains(response, 'listaCategoriasInlineProducto')
+        self.assertNotContains(response, 'data-add-product-category')
         self.assertContains(response, 'data-live-filter="#productosTabla"')
         self.assertContains(response, 'data-filter-row')
+
+    def test_admin_dashboard_uses_compact_sentence_case_appointment_headers(self):
+        response = self.client.get(reverse('admin_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'dashboard-appointments-table')
+        for heading in ('Hora', 'Cliente', 'Servicio', 'Profesional', 'Estado'):
+            self.assertContains(response, f'<th>{heading}</th>', html=True)
+        self.assertNotContains(response, '<th>HORA</th>', html=True)
 
     def test_create_product_saves_all_fields_to_database(self):
         response = self.client.post(
@@ -771,7 +791,10 @@ class PersonalTests(TestCase):
             cliente_nombre='Clienta de prueba',
         )
 
-        response = self.client.post(reverse('eliminar_personal', args=[usuario.pk]))
+        response = self.client.post(
+            reverse('eliminar_personal', args=[usuario.pk]),
+            {'confirmar_agenda': '1'},
+        )
 
         self.assertRedirects(response, reverse('admin_personal'))
         usuario.refresh_from_db()
@@ -792,6 +815,150 @@ class PersonalTests(TestCase):
         self.client.post(url)
         usuario.refresh_from_db()
         self.assertTrue(usuario.is_active)
+
+    def test_last_professional_deactivation_disables_and_reactivation_restores_only_owned_future_slots(self):
+        from agenda.models import Disponibilidad, ProfesionalCategoria
+        usuario = self.crear_personal()
+        ProfesionalCategoria.objects.create(
+            profesional=usuario,
+            categoria_id=self.categoria_unas.pk,
+        )
+        servicio = Servicio.objects.create(
+            nombre='Manicure',
+            categoria=self.categoria_unas,
+            duracion_minutos=60,
+            precio='12000',
+        )
+        fecha = timezone.localdate() + timedelta(days=8)
+        bloque_activo = Disponibilidad.objects.create(
+            fecha_especifica=fecha,
+            dia_semana=str(fecha.weekday()),
+            hora_inicio='09:00',
+            hora_fin='10:00',
+            activo=True,
+            profesional=usuario,
+            servicio_id=servicio.pk,
+        )
+        bloque_inactivo = Disponibilidad.objects.create(
+            fecha_especifica=fecha + timedelta(days=1),
+            dia_semana=str((fecha + timedelta(days=1)).weekday()),
+            hora_inicio='09:00',
+            hora_fin='10:00',
+            activo=False,
+            profesional=usuario,
+            servicio_id=servicio.pk,
+        )
+        url = reverse('desactivar_personal', args=[usuario.pk])
+
+        self.client.post(url)
+        bloque_activo.refresh_from_db()
+        bloque_inactivo.refresh_from_db()
+        servicio.refresh_from_db()
+        self.assertFalse(bloque_activo.activo)
+        self.assertTrue(bloque_activo.desactivado_por_personal)
+        self.assertFalse(bloque_inactivo.activo)
+        self.assertFalse(bloque_inactivo.desactivado_por_personal)
+        self.assertFalse(servicio.activo)
+
+        self.client.post(url)
+        bloque_activo.refresh_from_db()
+        bloque_inactivo.refresh_from_db()
+        servicio.refresh_from_db()
+        self.assertTrue(bloque_activo.activo)
+        self.assertFalse(bloque_activo.desactivado_por_personal)
+        self.assertFalse(bloque_inactivo.activo)
+        self.assertTrue(servicio.activo)
+
+    def test_service_stays_active_when_another_active_professional_has_same_specialty(self):
+        from agenda.models import Disponibilidad, ProfesionalCategoria
+
+        profesional_a = self.crear_personal()
+        profesional_b = self.crear_personal(email='otra@example.com', nombre='Ana')
+        for profesional in (profesional_a, profesional_b):
+            ProfesionalCategoria.objects.create(
+                profesional=profesional,
+                categoria_id=self.categoria_unas.pk,
+            )
+        servicio = Servicio.objects.create(
+            nombre='Manicure',
+            categoria=self.categoria_unas,
+            duracion_minutos=60,
+            precio='12000',
+        )
+        fecha = timezone.localdate() + timedelta(days=8)
+        bloque = Disponibilidad.objects.create(
+            fecha_especifica=fecha,
+            dia_semana=str(fecha.weekday()),
+            hora_inicio='09:00',
+            hora_fin='10:00',
+            activo=True,
+            profesional=profesional_a,
+            servicio_id=servicio.pk,
+        )
+
+        self.client.post(reverse('desactivar_personal', args=[profesional_a.pk]))
+
+        servicio.refresh_from_db()
+        bloque.refresh_from_db()
+        self.assertTrue(servicio.activo)
+        self.assertFalse(bloque.activo)
+        self.assertTrue(bloque.desactivado_por_personal)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_forced_deactivation_warns_and_can_send_personalized_notice_to_account_clients(self):
+        from django.core import mail
+        from agenda.models import ProfesionalCategoria, Reserva
+
+        profesional = self.crear_personal()
+        ProfesionalCategoria.objects.create(
+            profesional=profesional,
+            categoria_id=self.categoria_unas.pk,
+        )
+        servicio = Servicio.objects.create(
+            nombre='Manicure',
+            categoria=self.categoria_unas,
+            duracion_minutos=60,
+            precio='12000',
+        )
+        cliente = Usuario.objects.create_user(
+            email='cliente@example.com',
+            password='Cliente123!Test',
+            nombre='Camila',
+            apellido_paterno='Prueba',
+            apellido_materno='Cliente',
+            telefono='+56911112222',
+            rol=Rol.objects.get(nombre='Cliente'),
+        )
+        Reserva.objects.create(
+            fecha_hora=timezone.now() + timedelta(days=7),
+            servicio_id=servicio.pk,
+            servicio_nombre=servicio.nombre,
+            duracion_minutos=servicio.duracion_minutos,
+            profesional=profesional,
+            cliente=cliente,
+            cliente_email=cliente.email,
+            cliente_nombre='Camila Prueba Cliente',
+            estado='confirmada',
+            origen='cliente',
+        )
+        url = reverse('desactivar_personal', args=[profesional.pk])
+
+        self.client.post(url)
+        profesional.refresh_from_db()
+        self.assertTrue(profesional.is_active)
+        self.assertEqual(len(mail.outbox), 0)
+
+        self.client.post(url, {
+            'confirmar_agenda': '1',
+            'notificar_clientes': '1',
+            'mensaje_clientes': 'Debido a vacaciones, coordinaremos un cambio para tu cita.',
+        })
+        profesional.refresh_from_db()
+        self.assertFalse(profesional.is_active)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [cliente.email])
+        self.assertIn('Debido a vacaciones', mail.outbox[0].body)
+        self.assertNotIn('dejó de trabajar', mail.outbox[0].body)
 
     def test_agenda_professional_choices_contain_active_collaborators_only(self):
         activo = self.crear_personal()
@@ -1024,6 +1191,13 @@ class DuplicateCatalogEntryTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Administrar categorías')
         self.assertContains(response, 'categoriaProductoTipo')
+        self.assertContains(response, 'id="buscarCategoriaProducto"')
+        self.assertContains(response, 'No hay categorías que coincidan con la búsqueda.')
+        self.assertNotContains(response, 'listaCategoriasInlineProducto')
+        self.assertNotContains(response, 'data-add-product-category')
+        self.assertNotContains(response, '<th>Estado</th>')
+        self.assertNotContains(response, 'data-bs-dismiss="modal">Cerrar')
+        self.assertEqual(response.content.count(b'data-manage-categories>'), 1)
         self.assertNotContains(response, 'Crea una categoría en Servicios')
 
 
@@ -1140,6 +1314,13 @@ class SalesAndReminderPageTests(TestCase):
         self.assertContains(response, 'Ventas registradas')
         self.assertEqual(response.context['ventas'][0].total_pagado, Decimal('5000.00'))
         self.assertEqual(response.context['ventas'][0].saldo_pendiente, Decimal('10000.00'))
+        self.assertEqual(response.context['ventas_mes_formateado'], '15.000')
+        self.assertEqual(response.context['pagos_aprobados_mes_formateado'], '5.000')
+        self.assertContains(response, '$15.000')
+        self.assertContains(response, '$5.000')
+
+        dashboard = self.client.get(reverse('admin_dashboard'))
+        self.assertContains(dashboard, '$15.000')
 
         detalle = self.client.get(reverse('admin_detalle_venta', args=[venta.pk]))
         self.assertEqual(detalle.status_code, 200)
@@ -1179,14 +1360,15 @@ class SalesAndReminderPageTests(TestCase):
         )
 
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
-    def test_completed_appointment_can_receive_a_followup_after_selected_days(self):
+    def test_completed_appointment_receives_only_one_followup_after_24_hours(self):
         from django.core import mail
 
         from agenda.models import Reserva
         from notificaciones.models import RecordatorioEnviado
+        from notificaciones.recordatorios import enviar_recordatorio
 
         reserva = Reserva.objects.create(
-            fecha_hora=timezone.now() - timedelta(days=30),
+            fecha_hora=timezone.now() - timedelta(hours=25),
             estado='completada',
             cliente_nombre='Sofía López',
             cliente_email='sofia@example.com',
@@ -1199,24 +1381,37 @@ class SalesAndReminderPageTests(TestCase):
 
         self.client.post(
             reverse('enviar_recordatorio', args=[reserva.pk]),
-            {'tipo': 'seguimiento', 'desfase': '30'},
+            {'tipo': 'seguimiento', 'desfase': '24'},
         )
 
         self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('qué tal estuvo tu atención', mail.outbox[0].subject.casefold())
         self.assertTrue(
             RecordatorioEnviado.objects.filter(
                 reserva=reserva,
                 tipo='seguimiento',
-                desfase=30,
+                desfase=24,
             ).exists(),
         )
+        response = self.client.get(reverse('admin_recordatorios'))
+        self.assertFalse(response.context['recordatorios_seguimiento'])
+        self.assertEqual(
+            enviar_recordatorio({
+                'reserva': reserva,
+                'tipo': 'seguimiento',
+                'desfase': 24,
+                'programado': reserva.fecha_hora + timedelta(minutes=reserva.duracion_minutos, hours=24),
+            }),
+            False,
+        )
+        self.assertEqual(len(mail.outbox), 1)
 
-    def test_reminder_intervals_can_be_saved_and_are_displayed(self):
+    def test_reminder_intervals_and_single_followup_hour_can_be_saved(self):
         from notificaciones.models import Configuracion
 
         response = self.client.post(
             reverse('admin_recordatorios'),
-            {'horas_cita': '72, 12', 'dias_seguimiento': '20, 10'},
+            {'horas_cita': '72, 12', 'horas_seguimiento': '36'},
         )
 
         self.assertRedirects(response, reverse('admin_recordatorios'))
@@ -1225,17 +1420,19 @@ class SalesAndReminderPageTests(TestCase):
             '72,12',
         )
         self.assertEqual(
-            Configuracion.objects.get(clave='recordatorios_dias_despues').valor,
-            '20,10',
+            Configuracion.objects.get(clave='recordatorios_horas_despues').valor,
+            '36',
         )
         response = self.client.get(reverse('admin_recordatorios'))
         self.assertContains(response, '72, 12')
-        self.assertContains(response, '20, 10')
+        self.assertContains(response, 'value="36"')
+        self.assertNotContains(response, 'Programación de avisos')
+        self.assertNotContains(response, 'dias_seguimiento')
 
     def test_reminder_interval_form_rejects_duplicate_or_out_of_range_values(self):
         response = self.client.post(
             reverse('admin_recordatorios'),
-            {'horas_cita': '24, 24', 'dias_seguimiento': '366'},
+            {'horas_cita': '24, 24', 'horas_seguimiento': '721'},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -1262,6 +1459,106 @@ class SalesAndReminderPageTests(TestCase):
         self.assertEqual(
             tareas[0]['programado'],
             reserva.fecha_hora - timedelta(hours=48),
+        )
+
+    def test_cancelled_reservations_leave_reminders_and_rescheduled_dates_refresh_them(self):
+        from agenda.models import Reserva
+        from notificaciones.models import RecordatorioEnviado
+        from notificaciones.recordatorios import listar_recordatorios_pendientes
+
+        ahora = timezone.now()
+        reserva = Reserva.objects.create(
+            fecha_hora=ahora + timedelta(hours=36),
+            estado='confirmada',
+            cliente_nombre='Camila Pérez',
+            cliente_email='camila@example.com',
+            servicio_nombre='Manicure',
+        )
+        RecordatorioEnviado.objects.create(
+            reserva=reserva,
+            tipo='cita',
+            desfase=48,
+            fecha_hora_cita=reserva.fecha_hora,
+            email=reserva.cliente_email,
+        )
+        reserva.fecha_hora += timedelta(days=1)
+        reserva.save(update_fields=['fecha_hora', 'updated_at'])
+
+        tareas = [
+            tarea for tarea in listar_recordatorios_pendientes(ahora)
+            if tarea['reserva'].pk == reserva.pk
+        ]
+        self.assertEqual([tarea['desfase'] for tarea in tareas], [48, 24])
+        self.assertTrue(all(tarea['reserva'].fecha_hora == reserva.fecha_hora for tarea in tareas))
+
+        reserva.estado = 'cancelada'
+        reserva.save(update_fields=['estado', 'updated_at'])
+        tareas = [
+            tarea for tarea in listar_recordatorios_pendientes(ahora)
+            if tarea['reserva'].pk == reserva.pk
+        ]
+        self.assertFalse(tareas)
+
+    def test_reminder_date_filters_use_the_appointment_date(self):
+        from agenda.models import Reserva
+
+        ahora = timezone.now()
+        cita_hoy = Reserva.objects.create(
+            fecha_hora=ahora + timedelta(hours=36),
+            estado='confirmada',
+            cliente_nombre='Cita de hoy',
+            cliente_email='hoy@example.com',
+            servicio_nombre='Manicure',
+        )
+        cita_manana = Reserva.objects.create(
+            fecha_hora=ahora + timedelta(hours=60),
+            estado='confirmada',
+            cliente_nombre='Cita de mañana',
+            cliente_email='manana@example.com',
+            servicio_nombre='Limpieza',
+        )
+        seguimiento_hoy = Reserva.objects.create(
+            fecha_hora=ahora - timedelta(hours=5),
+            duracion_minutos=30,
+            estado='completada',
+            cliente_nombre='Seguimiento de hoy',
+            cliente_email='seguimiento-hoy@example.com',
+            servicio_nombre='Manicure',
+        )
+        seguimiento_ayer = Reserva.objects.create(
+            fecha_hora=ahora - timedelta(hours=28),
+            duracion_minutos=30,
+            estado='completada',
+            cliente_nombre='Seguimiento de ayer',
+            cliente_email='seguimiento-ayer@example.com',
+            servicio_nombre='Limpieza',
+        )
+
+        response = self.client.get(
+            reverse('admin_recordatorios'),
+            {'fecha_cita': timezone.localtime(cita_hoy.fecha_hora).date().isoformat()},
+        )
+        citas = response.context['recordatorios_cita']
+        self.assertEqual(
+            {tarea['reserva'].pk for tarea in citas},
+            {cita_hoy.pk},
+        )
+        self.assertEqual(
+            {tarea['reserva'].pk for tarea in response.context['recordatorios_seguimiento']},
+            {seguimiento_hoy.pk, seguimiento_ayer.pk},
+        )
+
+        response = self.client.get(
+            reverse('admin_recordatorios'),
+            {'fecha_seguimiento': timezone.localtime(seguimiento_ayer.fecha_hora).date().isoformat()},
+        )
+        self.assertEqual(
+            {tarea['reserva'].pk for tarea in response.context['recordatorios_seguimiento']},
+            {seguimiento_ayer.pk},
+        )
+        self.assertEqual(
+            {tarea['reserva'].pk for tarea in response.context['recordatorios_cita']},
+            {cita_hoy.pk, cita_manana.pk},
         )
 
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')

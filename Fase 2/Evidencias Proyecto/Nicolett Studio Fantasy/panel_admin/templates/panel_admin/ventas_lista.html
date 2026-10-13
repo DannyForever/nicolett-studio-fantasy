@@ -21,9 +21,9 @@
 
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3"><div class="card-stat h-100"><div class="title">Ventas registradas</div><div class="value">{{ total_ventas }}</div></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="card-stat h-100"><div class="title">Ventas del mes</div><div class="value">${{ ventas_mes|floatformat:0 }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="card-stat h-100"><div class="title">Ventas del mes</div><div class="value">${{ ventas_mes_formateado }}</div></div></div>
     <div class="col-sm-6 col-xl-3"><div class="card-stat h-100"><div class="title">Pagos registrados</div><div class="value">{{ total_pagos }}</div></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="card-stat h-100"><div class="title">Pagos aprobados del mes</div><div class="value">${{ pagos_aprobados_mes|floatformat:0 }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="card-stat h-100"><div class="title">Pagos aprobados del mes</div><div class="value">${{ pagos_aprobados_mes_formateado }}</div></div></div>
 </div>
 
 <section class="card-stat mb-4">

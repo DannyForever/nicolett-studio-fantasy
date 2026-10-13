@@ -14,6 +14,7 @@ from .models import (
     CambioDisponibilidadPendiente,
     Disponibilidad,
     DiaCerrado,
+    HistorialReserva,
     ProfesionalCategoria,
     Reserva,
 )
@@ -56,7 +57,7 @@ class AgendaTests(TestCase):
             profesional=self.profesional,
             categoria_id=self.categoria.pk,
         )
-        self.fecha = timezone.localdate() + timedelta(days=1)
+        self.fecha = timezone.localdate() + timedelta(days=14)
         while self.fecha.weekday() != 1:
             self.fecha += timedelta(days=1)
 
@@ -118,6 +119,8 @@ class AgendaTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Calendario de disponibilidad')
+        self.assertContains(response, 'Horas disponibles')
+        self.assertNotContains(response, 'Quedan horas disponibles')
         self.assertContains(response, 'Añadir bloque horario')
         self.assertNotContains(response, 'Horizonte de agenda')
         self.assertNotContains(response, 'Configuración semanal avanzada')
@@ -162,18 +165,17 @@ class AgendaTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse('cliente_agendamiento'))
-        reserva = Reserva.objects.get(cliente=cliente)
-        self.assertEqual(reserva.estado, 'pendiente')
-        self.assertEqual(reserva.origen, 'cliente')
-        self.assertEqual(reserva.profesional, self.profesional)
-        self.assertEqual(reserva.servicio_id, self.servicio.pk)
-        self.assertEqual(reserva.cliente_email, cliente.email)
-        self.assertEqual(reserva.nombre_cliente, 'Camila Prueba Cliente')
-        historial = self.client.get(reverse('cliente_historial'))
-        self.assertContains(historial, self.servicio.nombre)
-        self.assertContains(historial, 'Pendiente')
-        self.assertContains(historial, 'Juan Pérez Soto')
+        self.assertRedirects(response, reverse('cliente_carrito'))
+        self.assertFalse(Reserva.objects.filter(cliente=cliente).exists())
+        cita_carrito = self.client.session['carrito_compra']['servicios'][0]
+        self.assertEqual(cita_carrito['id'], self.servicio.pk)
+        self.assertEqual(cita_carrito['fecha'], self.fecha.isoformat())
+        self.assertEqual(cita_carrito['profesional'], str(self.profesional.pk))
+        self.assertEqual(cita_carrito['hora'], '09:00')
+        carrito = self.client.get(reverse('cliente_carrito'))
+        self.assertContains(carrito, 'Manicure')
+        self.assertContains(carrito, self.fecha.isoformat())
+        self.assertContains(carrito, 'Juan Pérez')
         self.assertEqual(
             self.client.get(
                 reverse('cliente_horas_disponibles'),
@@ -183,8 +185,59 @@ class AgendaTests(TestCase):
                     'fecha': self.fecha.isoformat(),
                 },
             ).json()['hours'],
-            [],
+            ['09:00'],
         )
+
+    def test_client_calendar_marks_available_closed_and_past_days(self):
+        self.crear_bloque('09:00')
+        closed_date = self.fecha - timedelta(days=1)
+        if closed_date.month != self.fecha.month:
+            closed_date += timedelta(days=2)
+        DiaCerrado.objects.create(fecha=closed_date, motivo='Cierre de prueba')
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+
+        response = self.client.get(
+            reverse('cliente_calendario_disponibilidad'),
+            {
+                'servicio': self.servicio.pk,
+                'mes': self.fecha.strftime('%Y-%m'),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        days = {
+            day['date']: day
+            for week in response.json()['weeks']
+            for day in week
+        }
+        self.assertTrue(days[self.fecha.isoformat()]['available'])
+        self.assertTrue(days[closed_date.isoformat()]['closed'])
+        past_days = [
+            day for day in days.values()
+            if day['in_month'] and day['past']
+        ]
+        if past_days:
+            self.assertFalse(past_days[0]['available'])
+
+    def test_client_calendar_loads_month_and_combined_availability_without_service_filter(self):
+        self.crear_bloque('09:00')
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+
+        response = self.client.get(
+            reverse('cliente_calendario_disponibilidad'),
+            {'mes': self.fecha.strftime('%Y-%m')},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        days = {
+            day['date']: day
+            for week in response.json()['weeks']
+            for day in week
+        }
+        self.assertTrue(days[self.fecha.isoformat()]['available'])
+        self.assertContains(self.client.get(reverse('cliente_agendamiento')), 'id="bookingCalendar"')
 
     def test_client_cannot_book_unavailable_or_overlapping_appointment(self):
         self.crear_bloque('09:00')
@@ -309,6 +362,19 @@ class AgendaTests(TestCase):
         self.assertEqual(reserva.duracion_minutos, 45)
         self.assertEqual(timezone.localtime(reserva.fecha_hora).time(), time(11, 0))
         self.assertEqual(reserva.estado, 'confirmada')
+        historial = HistorialReserva.objects.get(
+            reserva=reserva,
+            evento='modificada',
+        )
+        self.assertEqual(historial.servicio_nombre, self.servicio.nombre)
+        self.assertEqual(historial.duracion_minutos, self.servicio.duracion_minutos)
+        self.assertEqual(historial.fecha_hora, timezone.make_aware(
+            datetime.combine(self.fecha, time(9, 0)),
+        ))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [cliente.email])
+        self.assertIn('tu cita fue modificada', mail.outbox[0].body)
+        self.assertIn('Nuevo servicio: Corte', mail.outbox[0].body)
 
     def test_client_can_cancel_own_booking_and_cannot_modify_another_clients_booking(self):
         cliente = self.crear_cliente()
@@ -349,6 +415,9 @@ class AgendaTests(TestCase):
         reserva.refresh_from_db()
         self.assertEqual(reserva.estado, 'cancelada')
         self.assertIn('Cancelada por la clienta', reserva.motivo_cancelacion)
+        evento = HistorialReserva.objects.get(reserva=reserva)
+        self.assertEqual(evento.evento, 'cancelada')
+        self.assertEqual(evento.fecha_hora, reserva.fecha_hora)
 
     def test_client_management_shows_only_their_upcoming_unresolved_bookings(self):
         cliente = self.crear_cliente()
@@ -385,10 +454,40 @@ class AgendaTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.servicio.nombre)
-        self.assertContains(response, 'Cancelar cita')
-        self.assertContains(response, 'Reagendar o cambiar servicio')
+        self.assertContains(response, f'action="{reverse("cliente_cancelar_reserva", args=[reserva_propia.pk])}"')
+        self.assertContains(response, 'Cancelar')
+        self.assertContains(response, 'Modificar')
+        self.assertNotContains(response, 'Cancelar citas seleccionadas')
+        self.assertNotContains(response, 'Selecciona una o más citas')
         self.assertNotContains(response, 'Cita ajena')
-        self.assertEqual(list(response.context['reservas']), [reserva_propia])
+        self.assertEqual(list(response.context['reservas_gestionables']), [reserva_propia])
+
+    def test_customer_cannot_change_or_cancel_appointment_inside_48_hour_window(self):
+        self.crear_bloque('09:00')
+        cliente = self.crear_cliente()
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.now() + timedelta(hours=24),
+            servicio_id=self.servicio.pk,
+            servicio_nombre=self.servicio.nombre,
+            duracion_minutos=self.servicio.duracion_minutos,
+            profesional=self.profesional,
+            cliente=cliente,
+            estado='confirmada',
+            origen='cliente',
+        )
+        self.client.force_login(cliente)
+
+        page = self.client.get(reverse('cliente_gestionar_citas'))
+        self.assertNotContains(page, f'value="{reserva.pk}" form="cancelSelectedBookings"')
+        self.assertNotContains(page, 'Cancelar citas seleccionadas')
+        self.assertNotIn(reserva, page.context['reservas_gestionables'])
+
+        cancel_response = self.client.post(
+            reverse('cliente_cancelar_reserva', args=[reserva.pk]),
+        )
+        self.assertRedirects(cancel_response, reverse('cliente_gestionar_citas'))
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, 'confirmada')
 
     def test_client_booking_endpoints_require_client_role(self):
         self.client.force_login(self.profesional)
@@ -524,6 +623,99 @@ class AgendaTests(TestCase):
         self.assertEqual(reserva.estado, 'confirmada')
         self.assertEqual(reserva.profesional_id, self.profesional.pk)
 
+    def test_admin_can_edit_booking_from_available_calendar_and_account_client_is_emailed(self):
+        servicio_nuevo = Servicio.objects.create(
+            nombre='Manicure express',
+            categoria=self.categoria,
+            duracion_minutos=60,
+            precio='10000',
+        )
+        profesional_nuevo = Usuario(
+            nombre='Ana',
+            segundo_nombre='',
+            apellido_paterno='Gómez',
+            apellido_materno='Rojas',
+            telefono='+56912345679',
+            email='ana.agenda@example.com',
+            rol=self.profesional.rol,
+        )
+        profesional_nuevo.set_unusable_password()
+        profesional_nuevo.save()
+        ProfesionalCategoria.objects.create(
+            profesional=profesional_nuevo,
+            categoria_id=self.categoria.pk,
+        )
+        nueva_fecha = self.fecha + timedelta(days=7)
+        Disponibilidad.objects.create(
+            servicio_id=servicio_nuevo.pk,
+            profesional=profesional_nuevo,
+            fecha_especifica=nueva_fecha,
+            dia_semana=str(nueva_fecha.weekday()),
+            hora_inicio=time(11, 0),
+            hora_fin=time(12, 0),
+            activo=True,
+        )
+        cliente = self.crear_cliente()
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.make_aware(datetime.combine(self.fecha, time(9, 0))),
+            servicio_id=self.servicio.pk,
+            servicio_nombre=self.servicio.nombre,
+            duracion_minutos=self.servicio.duracion_minutos,
+            profesional=self.profesional,
+            cliente=cliente,
+            cliente_email=cliente.email,
+            cliente_nombre='Camila Prueba Cliente',
+            estado='confirmada',
+            origen='cliente',
+        )
+
+        response = self.client.post(reverse('reagendar_cita', args=[reserva.pk]), {
+            'servicio': servicio_nuevo.pk,
+            'profesional': profesional_nuevo.pk,
+            'fecha': nueva_fecha.isoformat(),
+            'hora': '11:00',
+        })
+
+        self.assertRedirects(response, reverse('admin_agenda'))
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.servicio_id, servicio_nuevo.pk)
+        self.assertEqual(reserva.profesional_id, profesional_nuevo.pk)
+        self.assertEqual(timezone.localtime(reserva.fecha_hora).date(), nueva_fecha)
+        self.assertEqual(timezone.localtime(reserva.fecha_hora).time(), time(11, 0))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [cliente.email])
+        self.assertIn('Manicure express', mail.outbox[0].body)
+        self.assertIn('Ana Gómez Rojas', mail.outbox[0].body)
+
+    def test_technical_record_pdf_is_only_available_for_account_bookings(self):
+        cliente = self.crear_cliente()
+        Reserva.objects.create(
+            fecha_hora=timezone.now() - timedelta(days=2),
+            servicio_id=self.servicio.pk,
+            servicio_nombre=self.servicio.nombre,
+            duracion_minutos=self.servicio.duracion_minutos,
+            profesional=self.profesional,
+            cliente=cliente,
+            cliente_email=cliente.email,
+            cliente_nombre='Camila Prueba Cliente',
+            estado='completada',
+            origen='cliente',
+        )
+        self.crear_reserva(correo='presencial@example.com')
+
+        response = self.client.get(reverse('ficha_tecnica_pdf', args=[cliente.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn(b'%PDF-1.4', response.content)
+        self.assertIn(b'cliente.agenda@example.com', response.content)
+        self.assertIn(b'Manicure', response.content)
+        page = self.client.get(reverse('admin_agenda'))
+        self.assertContains(page, 'Ver ficha técnica')
+        self.assertContains(page, 'disabled')
+        self.assertContains(page, 'Editar')
+        self.assertContains(page, 'Cancelar')
+
     def test_blocking_day_keeps_existing_bookings_but_prevents_new_ones(self):
         self.crear_bloque('09:00')
         reserva = self.crear_reserva('09:00')
@@ -623,6 +815,8 @@ class AgendaTests(TestCase):
         nueva_fecha = self.fecha + timedelta(days=7)
         self.crear_bloque('09:00', fecha=nueva_fecha)
         response = self.client.post(reverse('reagendar_cita', args=[reserva.pk]), {
+            'servicio': self.servicio.pk,
+            'profesional': self.profesional.pk,
             'fecha': nueva_fecha.isoformat(),
             'hora': '09:00',
         })

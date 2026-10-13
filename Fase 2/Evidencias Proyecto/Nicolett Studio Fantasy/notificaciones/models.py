@@ -43,6 +43,7 @@ class RecordatorioEnviado(models.Model):
     )
     tipo = models.CharField(max_length=20, choices=TIPOS)
     desfase = models.PositiveSmallIntegerField(default=0)
+    fecha_hora_cita = models.DateTimeField(null=True, blank=True)
     email = models.EmailField()
     enviado_en = models.DateTimeField(auto_now_add=True)
 

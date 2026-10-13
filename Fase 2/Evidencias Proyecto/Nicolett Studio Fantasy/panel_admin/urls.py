@@ -1,6 +1,7 @@
 from django.urls import path
 from django.urls import include
 from . import views
+from fichas.views import ficha_tecnica_pdf
 
 urlpatterns = [
     # Vista principal / Resumen del panel
@@ -27,6 +28,11 @@ urlpatterns = [
 
     # 3. Agenda, Citas e Historial / Fichas de seguimiento de clientes
     path('agenda/', include('agenda.urls')),
+    path(
+        'agenda/ficha-tecnica/<int:cliente_id>/',
+        ficha_tecnica_pdf,
+        name='ficha_tecnica_pdf',
+    ),
     path('clientes/fichas/', views.lista_fichas_clientes, name='admin_fichas'),
     path('clientes/ficha/<int:pk>/', views.detalle_ficha_cliente, name='detalle_ficha_cliente'),
 

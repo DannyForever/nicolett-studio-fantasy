@@ -1,8 +1,11 @@
+from datetime import timedelta
+
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from agenda.models import Reserva
+from agenda.models import HistorialReserva, Reserva
+from carrito.models import DetallePedido, PagoSimulado, Pedido
 from panel_admin.models import Categoria, Producto, Servicio
 
 from .models import Rol, Usuario
@@ -117,7 +120,6 @@ class RoleAccessTests(TestCase):
             'cliente_productos',
             'cliente_agendamiento',
             'cliente_gestionar_citas',
-            'cliente_historial',
         )
 
         for name in section_names:
@@ -135,6 +137,9 @@ class RoleAccessTests(TestCase):
                     f'<a href="{reverse("cliente_home")}" aria-label="Ir al inicio de cliente"',
                 )
                 self.assertContains(response, '© 2026 Nicolett Studio Fantasy')
+        self.assertNotContains(self.client.get(reverse('cliente_gestionar_citas')), 'fa-clock-rotate-left')
+        legacy_history = self.client.get(reverse('cliente_historial'))
+        self.assertRedirects(legacy_history, f"{reverse('cliente_gestionar_citas')}?tab=historial")
         self.assertEqual(self.client.get(reverse('cliente_cancelar_cita')).status_code, 200)
 
     def test_customers_only_see_active_services_and_products(self):
@@ -156,6 +161,13 @@ class RoleAccessTests(TestCase):
             precio=10000,
             duracion_minutos=30,
             activo=False,
+        )
+        servicio_caro = Servicio.objects.create(
+            nombre='Masaje de prueba',
+            categoria=categoria,
+            precio=20000,
+            duracion_minutos=60,
+            activo=True,
         )
         producto = Producto.objects.create(
             nombre='Shampoo de prueba',
@@ -181,11 +193,23 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(servicios, 'Servicio oculto')
         self.assertContains(servicios, 'id="catalog-search"')
         self.assertContains(servicios, 'data-category-filter="Cabello"')
-        self.assertContains(servicios, 'data-category-filter="Tratamientos"')
+        self.assertNotContains(servicios, 'data-category-filter="Tratamientos"')
+        self.assertContains(servicios, 'Añadir al carrito')
+        self.assertContains(servicios, 'border-[#e8e0da]')
+        self.assertNotContains(servicios, 'Servicio de prueba para clientes.')
+        self.assertNotContains(
+            servicios,
+            'mt-auto flex items-center justify-between border-t border-[#e8e0da] pt-4 text-sm',
+        )
         self.assertContains(servicios, 'data-catalog-item')
         self.assertContains(servicios, 'card.style.display = visible ?')
         self.assertContains(servicios, 'No existe ningún ${itemSingular} llamado')
         self.assertContains(servicios, 'aria-label="Servicios"')
+        self.assertContains(servicios, 'Precio: mayor a menor')
+        ordenados = self.client.get(reverse('cliente_servicios'), {'orden': 'precio_desc'})
+        self.assertEqual(list(ordenados.context['servicios']), [servicio_caro, servicio])
+        self.assertNotContains(servicios, 'Aquí podrás conocer los servicios disponibles.')
+        self.assertNotContains(servicios, 'border-b border-[#e8e0da] p-6 sm:p-8')
         self.assertContains(
             servicios,
             f'action="{reverse("cliente_carrito_agregar_servicio", args=[servicio.pk])}"',
@@ -194,10 +218,19 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(productos, 'Producto oculto')
         self.assertContains(productos, 'id="catalog-search"')
         self.assertContains(productos, 'data-category-filter="Cabello"')
-        self.assertContains(productos, 'data-category-filter="Tratamientos"')
+        self.assertNotContains(productos, 'data-category-filter="Tratamientos"')
+        self.assertContains(productos, 'border-[#e8e0da]')
+        self.assertNotContains(productos, 'Producto de prueba para clientes.')
+        self.assertNotContains(
+            productos,
+            'mt-auto flex items-center justify-between border-t border-[#e8e0da] pt-4 text-sm',
+        )
         self.assertContains(productos, 'data-catalog-item')
         self.assertNotContains(productos, 'Al añadir un producto, su stock se reserva')
         self.assertContains(productos, 'aria-label="Productos"')
+        self.assertContains(productos, 'Nombre: Z-A')
+        self.assertNotContains(productos, 'Aquí podrás revisar los productos del estudio.')
+        self.assertNotContains(productos, 'border-b border-[#e8e0da] p-6 sm:p-8')
         self.assertContains(
             productos,
             f'action="{reverse("cliente_carrito_agregar_producto", args=[producto.pk])}"',
@@ -240,15 +273,67 @@ class RoleAccessTests(TestCase):
                 servicio_nombre=nombre,
                 duracion_minutos=45,
             )
+        reserva_propia = Reserva.objects.get(cliente=cliente)
+        HistorialReserva.objects.create(
+            reserva=reserva_propia,
+            evento='modificada',
+            fecha_hora=timezone.now() - timedelta(days=2),
+            servicio_nombre='Servicio anterior',
+            profesional_nombre='Profesional anterior',
+            estado='confirmada',
+        )
         self.client.force_login(cliente)
 
-        response = self.client.get(reverse('cliente_historial'))
+        response = self.client.get(
+            reverse('cliente_gestionar_citas'),
+            {'tab': 'historial'},
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Cita propia')
-        self.assertContains(response, 'Pendiente')
+        self.assertContains(response, 'En curso')
+        self.assertContains(response, 'Servicio anterior')
+        self.assertContains(response, 'Modificado')
         self.assertNotContains(response, 'Cita privada ajena')
-        self.assertEqual(response.context['reservas'].count(), 1)
+        self.assertEqual(len(response.context['reservas_historial']), 1)
+        self.assertEqual(len(response.context['historial_completo']), 2)
+        self.assertContains(response, 'Descargar ficha técnica (PDF)')
+
+    def test_requested_booking_is_manageable_and_history_status_updates_after_cancellation(self):
+        cliente = self.crear_cliente()
+        categoria = Categoria.objects.create(nombre='Manicure', tipo='Uñas')
+        servicio = Servicio.objects.create(
+            nombre='Manicure de prueba',
+            categoria=categoria,
+            precio=12000,
+            duracion_minutos=60,
+            activo=True,
+        )
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.now() + timedelta(days=5),
+            estado='pendiente',
+            origen='cliente',
+            cliente=cliente,
+            servicio_id=servicio.pk,
+            servicio_nombre=servicio.nombre,
+            duracion_minutos=servicio.duracion_minutos,
+        )
+        self.client.force_login(cliente)
+
+        page = self.client.get(reverse('cliente_gestionar_citas'))
+
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(page.content.count(b'Solicitado'), 2)
+        self.assertContains(page, 'Modificar')
+        self.assertContains(page, f'action="{reverse("cliente_cancelar_reserva", args=[reserva.pk])}"')
+        self.assertContains(page, 'Cancelar modificación')
+
+        response = self.client.post(reverse('cliente_cancelar_reserva', args=[reserva.pk]))
+
+        self.assertRedirects(response, reverse('cliente_gestionar_citas'))
+        historial = self.client.get(reverse('cliente_gestionar_citas'), {'tab': 'historial'})
+        self.assertEqual(historial.content.count(b'Cancelado'), 1)
+        self.assertContains(historial, 'border-red-200 bg-red-50 text-red-800')
 
     def test_public_login_logo_links_to_public_home(self):
         response = self.client.get(reverse('login'))
@@ -294,3 +379,174 @@ class RoleAccessTests(TestCase):
             response,
             'href="{}" class="nav-link active"'.format(reverse('listar_servicios')),
         )
+
+    def test_customer_can_update_account_details_and_password(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+
+        response = self.client.post(
+            reverse('cliente_configuracion'),
+            {
+                'accion': 'perfil',
+                'nombre': 'Valentina',
+                'segundo_nombre': 'Paz',
+                'apellido_paterno': 'Pérez',
+                'apellido_materno': 'Rojas',
+                'email': 'valentina.perez@example.com',
+                'telefono': '+56911112222',
+            },
+        )
+
+        self.assertRedirects(response, reverse('cliente_configuracion'))
+        cliente.refresh_from_db()
+        self.assertEqual(cliente.email, 'valentina.perez@example.com')
+        self.assertEqual(cliente.nombre, 'Valentina')
+        self.assertEqual(cliente.telefono, '+56911112222')
+
+        response = self.client.post(
+            reverse('cliente_configuracion'),
+            {
+                'accion': 'contrasena',
+                'password_actual': 'Cliente123!',
+                'password_nueva': 'NuevaClave123!',
+                'password_confirmacion': 'NuevaClave123!',
+            },
+        )
+        self.assertRedirects(response, reverse('cliente_configuracion'))
+        cliente.refresh_from_db()
+        self.assertTrue(cliente.check_password('NuevaClave123!'))
+        config = self.client.get(reverse('cliente_configuracion'))
+        self.assertEqual(config.status_code, 200)
+        self.assertContains(config, 'Actualizar contraseña')
+        self.assertContains(config, 'Modificar')
+        self.assertContains(config, 'disabled')
+        self.assertNotContains(config, 'Actualiza tus datos personales y credenciales.')
+
+    def test_customer_account_deletion_anonymizes_history_cancels_bookings_and_releases_email(self):
+        cliente = self.crear_cliente()
+        categoria = Categoria.objects.create(nombre='Cuidado', tipo='Cuidado')
+        servicio = Servicio.objects.create(
+            nombre='Servicio reservado',
+            categoria=categoria,
+            precio=10000,
+            duracion_minutos=30,
+        )
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.now() + timedelta(days=3),
+            estado='confirmada',
+            origen='cliente',
+            cliente=cliente,
+            cliente_nombre='Cliente Prueba Prueba',
+            cliente_email=cliente.email,
+            cliente_telefono=cliente.telefono,
+            servicio_id=servicio.pk,
+            servicio_nombre=servicio.nombre,
+            duracion_minutos=30,
+        )
+        pedido = Pedido.objects.create(
+            cliente=cliente,
+            total=10000,
+            monto_pagado=10000,
+            estado='pagado',
+        )
+        pago = PagoSimulado.objects.create(
+            pedido=pedido,
+            monto=10000,
+            transaccion_id='customer-delete-payment',
+        )
+        self.client.force_login(cliente)
+
+        response = self.client.post(
+            reverse('cliente_eliminar_cuenta'),
+            {'confirmar': 'eliminar'},
+        )
+
+        self.assertRedirects(response, reverse('login'))
+        cliente.refresh_from_db()
+        reserva.refresh_from_db()
+        self.assertFalse(cliente.is_active)
+        self.assertIsNotNone(cliente.deleted_at)
+        self.assertNotEqual(cliente.email, 'cliente@example.com')
+        self.assertFalse(cliente.check_password('Cliente123!'))
+        self.assertEqual(reserva.estado, 'cancelada')
+        self.assertEqual(reserva.cliente_email, '')
+        self.assertEqual(reserva.cliente_nombre, 'Cliente anonimizado')
+        self.assertTrue(HistorialReserva.objects.filter(
+            reserva=reserva,
+            evento='cancelada',
+        ).exists())
+        self.assertTrue(PagoSimulado.objects.filter(pk=pago.pk, pedido=pedido).exists())
+
+        registro = self.client.post(
+            reverse('register'),
+            {
+                'nombre': 'Nueva',
+                'segundo_nombre': '',
+                'apellido_paterno': 'Cuenta',
+                'apellido_materno': 'Cliente',
+                'telefono': '+56912345678',
+                'email': 'cliente@example.com',
+                'password': 'Cliente123!',
+                'password_confirm': 'Cliente123!',
+            },
+        )
+        self.assertEqual(registro.status_code, 200)
+        self.assertTrue(Usuario.objects.filter(
+            email='cliente@example.com',
+            is_active=True,
+            deleted_at__isnull=True,
+        ).exists())
+
+    def test_customer_payment_history_is_private_and_lists_transactions(self):
+        cliente = self.crear_cliente()
+        otro_cliente = Usuario.objects.create_user(
+            email='otra.pago@example.com',
+            password='Cliente123!',
+            nombre='Otra',
+            apellido_paterno='Cliente',
+            apellido_materno='Prueba',
+            telefono='+56900000000',
+            rol=self.client_role,
+        )
+        pedido = Pedido.objects.create(
+            cliente=cliente,
+            total=10000,
+            monto_pagado=5000,
+            estado='abono',
+        )
+        PagoSimulado.objects.create(
+            pedido=pedido,
+            monto=5000,
+            transaccion_id='transaction-visible',
+        )
+        DetallePedido.objects.create(
+            pedido=pedido,
+            tipo='producto',
+            nombre='Producto de pago',
+            cantidad=2,
+            precio_unitario=2500,
+            monto_pagado=5000,
+            modalidad_pago='no_aplica',
+        )
+        pedido_ajeno = Pedido.objects.create(
+            cliente=otro_cliente,
+            total=20000,
+            monto_pagado=20000,
+            estado='pagado',
+        )
+        PagoSimulado.objects.create(
+            pedido=pedido_ajeno,
+            monto=20000,
+            transaccion_id='transaction-private',
+        )
+        self.client.force_login(cliente)
+
+        response = self.client.get(reverse('cliente_historial_pagos'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'transaction-visible')
+        self.assertContains(response, 'Pago parcial')
+        self.assertContains(response, 'Producto de pago')
+        self.assertContains(response, '2 × $2500')
+        self.assertContains(response, '$5000')
+        self.assertNotContains(response, 'transaction-private')

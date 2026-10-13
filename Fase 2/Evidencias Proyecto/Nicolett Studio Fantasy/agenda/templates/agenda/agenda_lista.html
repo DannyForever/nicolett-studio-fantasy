@@ -54,7 +54,7 @@
                 {% endfor %}
             </div>
             <div class="small text-muted mt-3">
-                <span class="agenda-availability-dot"></span> Quedan horas disponibles
+                <span class="agenda-availability-dot"></span> Horas disponibles
                 <span class="agenda-legend is-closed ms-3"></span> Día bloqueado
             </div>
             {% if fecha_seleccionada >= hoy %}
@@ -245,13 +245,25 @@
                                             data-url="{% url 'reagendar_cita' reserva.pk %}"
                                             data-servicio="{{ reserva.servicio_id }}"
                                             data-profesional="{{ reserva.profesional_id|default:'' }}"
+                                            data-fecha="{{ reserva.fecha_hora|date:'Y-m-d' }}"
                                             data-reserva="{{ reserva.pk }}">
-                                            Re-agendar
+                                            Editar
                                         </button>
                                         <button class="btn btn-sm salon-btn-danger js-cancelar" type="button"
                                             data-url="{% url 'cancelar_cita' reserva.pk %}"
                                             data-cliente="{{ reserva.nombre_cliente }}">
                                             Cancelar
+                                        </button>
+                                    {% endif %}
+                                    {% if reserva.cliente_id %}
+                                        <a class="btn btn-sm salon-btn-outline" target="_blank" rel="noopener"
+                                            href="{% url 'ficha_tecnica_pdf' reserva.cliente_id %}">
+                                            Ver ficha técnica
+                                        </a>
+                                    {% else %}
+                                        <button class="btn btn-sm salon-btn-outline" type="button" disabled
+                                            title="Las citas presenciales no tienen ficha técnica de una cuenta de cliente.">
+                                            Ver ficha técnica
                                         </button>
                                     {% endif %}
                                 </td>
@@ -294,8 +306,19 @@
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
         <form method="post" id="formReagendar">
             {% csrf_token %}
-            <div class="modal-header"><h2 class="modal-title h5">Re-agendar cita</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+            <div class="modal-header"><h2 class="modal-title h5">Editar cita</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
             <div class="modal-body">
+                <label class="form-label" for="reagendarServicio">Servicio</label>
+                <select class="form-select mb-3" id="reagendarServicio" name="servicio" required>
+                    <option value="">Selecciona un servicio</option>
+                    {% for servicio in servicios %}
+                        <option value="{{ servicio.pk }}">{{ servicio.nombre }}</option>
+                    {% endfor %}
+                </select>
+                <label class="form-label" for="reagendarProfesional">Profesional</label>
+                <select class="form-select mb-3" id="reagendarProfesional" name="profesional" required>
+                    <option value="">Selecciona un servicio primero</option>
+                </select>
                 <label class="form-label" for="reagendarFecha">Nueva fecha</label>
                 <input class="form-control mb-3" id="reagendarFecha" type="date" name="fecha" min="{{ hoy|date:'Y-m-d' }}" required>
                 <label class="form-label" for="reagendarHora">Nueva hora</label>
@@ -332,6 +355,8 @@
     const hourSelect = bookingForm.querySelector('[name="hora"]');
     const rebookDate = document.getElementById('reagendarFecha');
     const rebookHour = document.getElementById('reagendarHora');
+    const rebookService = document.getElementById('reagendarServicio');
+    const rebookProfessional = document.getElementById('reagendarProfesional');
     let rebookContext = null;
 
     async function loadProfessionals(serviceSelect, professionalSelect, emptyLabel = 'Sin asignar') {
@@ -390,6 +415,17 @@
     }
 
     const refreshBookingHours = () => loadHours(hourSelect, dateInput.value, service.value, professional.value);
+    const refreshRebookHours = () => {
+        if (rebookContext) {
+            loadHours(
+                rebookHour,
+                rebookDate.value,
+                rebookService.value,
+                rebookProfessional.value,
+                rebookContext.reserva,
+            );
+        }
+    };
     const scheduleForm = document.getElementById('formDisponibilidadDia');
     const scheduleService = scheduleForm.querySelector('[data-schedule-service]');
     const scheduleProfessional = scheduleForm.querySelector('[data-schedule-professional]');
@@ -408,6 +444,16 @@
     service.addEventListener('change', refreshBookingHours);
     dateInput.addEventListener('change', refreshBookingHours);
     professional.addEventListener('change', refreshBookingHours);
+    rebookService.addEventListener('change', async () => {
+        await loadProfessionals(
+            rebookService,
+            rebookProfessional,
+            'Selecciona un profesional...',
+        );
+        refreshRebookHours();
+    });
+    rebookProfessional.addEventListener('change', refreshRebookHours);
+    rebookDate.addEventListener('change', refreshRebookHours);
 
     function selectedDuration() {
         return Number(scheduleService.selectedOptions[0]?.dataset.duracion || 0);
@@ -571,18 +617,25 @@
     });
 
     document.querySelectorAll('.js-reagendar').forEach((button) => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', async () => {
             rebookContext = button.dataset;
             document.getElementById('formReagendar').action = button.dataset.url;
-            rebookDate.value = '';
-            rebookHour.innerHTML = '<option value="">Selecciona primero la fecha</option>';
+            rebookService.value = button.dataset.servicio || '';
+            rebookDate.value = button.dataset.fecha;
+            rebookProfessional.innerHTML = '<option value="">Selecciona un servicio primero</option>';
+            rebookHour.innerHTML = '<option value="">Selecciona profesional y fecha</option>';
+            if (rebookService.value) {
+                rebookProfessional.value = button.dataset.profesional || '';
+                await loadProfessionals(
+                    rebookService,
+                    rebookProfessional,
+                    'Selecciona un profesional...',
+                );
+                rebookProfessional.value = button.dataset.profesional || '';
+                refreshRebookHours();
+            }
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReagendar')).show();
         });
-    });
-    rebookDate.addEventListener('change', () => {
-        if (rebookContext) {
-            loadHours(rebookHour, rebookDate.value, rebookContext.servicio, rebookContext.profesional, rebookContext.reserva);
-        }
     });
 
     document.querySelectorAll('.js-cancelar').forEach((button) => {

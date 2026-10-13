@@ -3,13 +3,9 @@
 {% block title %}Agendar cita | Nicolett Studio Fantasy{% endblock %}
 
 {% block content %}
-    <div class="mx-auto max-w-4xl">
+    <div class="mx-auto max-w-5xl">
         <section class="border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8">
-            <h1 class="mb-3 font-serif text-2xl">Agendar una cita</h1>
-            <p class="mb-6 text-sm leading-relaxed text-[#7a6e6a]">
-                Elige un servicio, una fecha disponible, un profesional y uno de los horarios habilitados por el salón.
-                Tu solicitud quedará pendiente hasta que el equipo la confirme.
-            </p>
+            <h1 class="mb-6 font-serif text-2xl">Agendar una cita</h1>
 
             {% if messages %}
                 <div class="mb-6 space-y-2" aria-live="polite">
@@ -19,128 +15,240 @@
                 </div>
             {% endif %}
 
-            <form method="post" action="{% url 'cliente_crear_reserva' %}" class="space-y-5">
+            <form method="post" action="{% url 'cliente_crear_reserva' %}" class="space-y-6">
                 {% csrf_token %}
-                <div>
-                    <label for="bookingService" class="mb-2 block text-sm font-medium">Servicio</label>
-                    <select id="bookingService" name="servicio" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
-                        <option value="">Selecciona un servicio...</option>
-                        {% for servicio in servicios %}
-                            <option value="{{ servicio.pk }}">{{ servicio.nombre }} · ${{ servicio.precio|floatformat:0 }} · {{ servicio.duracion_minutos }} min</option>
-                        {% endfor %}
-                    </select>
-                    {% if not servicios %}
-                        <p class="mt-2 text-sm text-[#7a6e6a]">No hay servicios activos disponibles para agendar.</p>
-                    {% endif %}
-                </div>
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]">
+                    <section class="border border-[#e8e0da] p-4 sm:p-5" aria-label="Calendario de disponibilidad">
+                        <div class="mb-4 flex items-center justify-between gap-3">
+                            <button id="bookingPreviousMonth" type="button" class="border border-[#e8e0da] px-3 py-2 text-sm hover:bg-[#f7f3f0]" aria-label="Mes anterior">&larr;</button>
+                            <h2 id="bookingMonthLabel" class="font-serif text-lg" aria-live="polite">Cargando calendario...</h2>
+                            <button id="bookingNextMonth" type="button" class="border border-[#e8e0da] px-3 py-2 text-sm hover:bg-[#f7f3f0]" aria-label="Mes siguiente">&rarr;</button>
+                        </div>
+                        <div class="grid grid-cols-7 text-center text-xs font-medium text-[#7a6e6a]" aria-hidden="true">
+                            <span class="py-2">Lun</span><span class="py-2">Mar</span><span class="py-2">Mié</span><span class="py-2">Jue</span><span class="py-2">Vie</span><span class="py-2">Sáb</span><span class="py-2">Dom</span>
+                        </div>
+                        <div id="bookingCalendar" class="grid grid-cols-7 gap-1" aria-label="Días del mes"></div>
+                        <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#7a6e6a]" aria-label="Leyenda">
+                            <span><i class="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-[#6b9b5b]"></i>Horas disponibles</span>
+                            <span><i class="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-[#d88478]"></i>Día bloqueado</span>
+                            <span class="line-through decoration-2">Día pasado</span>
+                            <span><i class="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-gray-300"></i>No disponible</span>
+                        </div>
+                        <p id="calendarStatus" class="mt-3 text-sm text-[#7a6e6a]" aria-live="polite">Consulta los días disponibles; usa los filtros para personalizar la búsqueda.</p>
+                    </section>
 
-                <div class="grid gap-5 sm:grid-cols-2">
-                    <div>
-                        <label for="bookingDate" class="mb-2 block text-sm font-medium">Fecha</label>
-                        <input id="bookingDate" name="fecha" type="date" min="{{ hoy }}" value="{{ hoy }}" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
-                    </div>
-                    <div>
-                        <label for="bookingProfessional" class="mb-2 block text-sm font-medium">Profesional</label>
-                        <select id="bookingProfessional" name="profesional" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
-                            <option value="">Selecciona primero un servicio y fecha...</option>
-                        </select>
-                    </div>
+                    <section class="space-y-5" aria-label="Filtros personalizados de cita">
+                        <div>
+                            <label for="bookingService" class="mb-2 block text-sm font-medium">Servicio</label>
+                            <select id="bookingService" name="servicio" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                <option value="">Selecciona un servicio...</option>
+                                {% for servicio in servicios %}
+                                    <option value="{{ servicio.pk }}">{{ servicio.nombre }} · ${{ servicio.precio|floatformat:0 }} · {{ servicio.duracion_minutos }} min</option>
+                                {% endfor %}
+                            </select>
+                            {% if not servicios %}<p class="mt-2 text-sm text-[#7a6e6a]">No hay servicios activos disponibles para agendar.</p>{% endif %}
+                        </div>
+                        <div>
+                            <label for="bookingDate" class="mb-2 block text-sm font-medium">Fecha (búsqueda personalizada)</label>
+                            <input id="bookingDate" name="fecha" type="date" value="{{ hoy }}" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                        </div>
+                        <div>
+                            <label for="bookingProfessional" class="mb-2 block text-sm font-medium">Profesional</label>
+                            <select id="bookingProfessional" name="profesional" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                                <option value="">Selecciona primero un servicio y fecha...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="bookingHour" class="mb-2 block text-sm font-medium">Hora disponible</label>
+                            <select id="bookingHour" name="hora" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                                <option value="">Selecciona servicio, fecha y profesional...</option>
+                            </select>
+                        </div>
+                        <p id="bookingStatus" class="text-sm text-[#7a6e6a]" aria-live="polite">Los horarios se sincronizan con la disponibilidad del salón.</p>
+                        <button type="submit" {% if not servicios %}disabled{% endif %} class="bg-[#765747] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#604536] disabled:cursor-not-allowed disabled:opacity-50">
+                            Solicitar cita
+                        </button>
+                    </section>
                 </div>
-
-                <div>
-                    <label for="bookingHour" class="mb-2 block text-sm font-medium">Hora disponible</label>
-                    <select id="bookingHour" name="hora" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
-                        <option value="">Selecciona servicio, fecha y profesional...</option>
-                    </select>
-                    <p id="bookingStatus" class="mt-2 text-sm text-[#7a6e6a]" aria-live="polite">Los horarios se mostrarán según la disponibilidad del salón.</p>
-                </div>
-
-                <button type="submit" {% if not servicios %}disabled{% endif %} class="bg-[#765747] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#604536] disabled:cursor-not-allowed disabled:opacity-50">
-                    Solicitar cita
-                </button>
             </form>
         </section>
     </div>
 
     {{ cliente_profesionales_url|json_script:"cliente-profesionales-url" }}
     {{ cliente_horas_url|json_script:"cliente-horas-url" }}
+    {{ cliente_calendario_url|json_script:"cliente-calendario-url" }}
     <script>
         (() => {
-            const servicio = document.getElementById('bookingService');
-            const fecha = document.getElementById('bookingDate');
-            const profesional = document.getElementById('bookingProfessional');
-            const hora = document.getElementById('bookingHour');
-            const estado = document.getElementById('bookingStatus');
-            const profesionalesUrl = JSON.parse(document.getElementById('cliente-profesionales-url').textContent);
-            const horasUrl = JSON.parse(document.getElementById('cliente-horas-url').textContent);
+            const service = document.getElementById('bookingService');
+            const dateInput = document.getElementById('bookingDate');
+            const professional = document.getElementById('bookingProfessional');
+            const hour = document.getElementById('bookingHour');
+            const status = document.getElementById('bookingStatus');
+            const calendarStatus = document.getElementById('calendarStatus');
+            const calendar = document.getElementById('bookingCalendar');
+            const monthLabel = document.getElementById('bookingMonthLabel');
+            const professionalsUrl = JSON.parse(document.getElementById('cliente-profesionales-url').textContent);
+            const hoursUrl = JSON.parse(document.getElementById('cliente-horas-url').textContent);
+            const calendarUrl = JSON.parse(document.getElementById('cliente-calendario-url').textContent);
+            const today = '{{ hoy }}';
+            let month = today.slice(0, 7);
+            let days = new Map();
+            let calendarWeeks = [];
 
             function resetSelect(select, label) {
                 select.replaceChildren(new Option(label, ''));
                 select.disabled = true;
             }
 
-            async function cargarProfesionales() {
-                resetSelect(profesional, 'Buscando profesionales disponibles...');
-                resetSelect(hora, 'Selecciona un profesional...');
-                estado.textContent = 'Consultando disponibilidad del salón...';
-                if (!servicio.value || !fecha.value) {
-                    estado.textContent = 'Selecciona un servicio y una fecha para consultar horarios.';
+            function addMonth(value, difference) {
+                const [year, monthNumber] = value.split('-').map(Number);
+                const date = new Date(year, monthNumber - 1 + difference, 1);
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            }
+
+            function renderCalendar(weeks) {
+                calendar.replaceChildren();
+                for (const week of weeks) {
+                    for (const day of week) {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.textContent = day.day;
+                        button.dataset.date = day.date;
+                        button.className = 'relative min-h-10 border text-sm transition';
+                        if (!day.in_month) {
+                            button.disabled = true;
+                            button.classList.add('invisible');
+                        } else if (day.past) {
+                            button.classList.add('border-transparent', 'text-[#cfc6c1]', 'line-through', 'decoration-2');
+                            button.setAttribute('aria-label', `${day.date}, fecha pasada`);
+                        } else if (day.closed) {
+                            button.classList.add('border-red-200', 'bg-[#fae9e6]', 'text-[#a84a3f]', 'line-through', 'decoration-2');
+                            button.setAttribute('aria-label', `${day.date}, día bloqueado`);
+                        } else if (day.available) {
+                            button.classList.add('border-[#d9e9d4]', 'bg-[#edf5e9]', 'font-medium', 'text-[#4e7d45]', 'hover:bg-[#e0edd9]');
+                            const dot = document.createElement('span');
+                            dot.className = 'absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#6b9b5b]';
+                            dot.setAttribute('aria-hidden', 'true');
+                            button.append(dot);
+                            button.setAttribute('aria-label', `${day.date}, horas disponibles`);
+                        } else {
+                            button.classList.add('border-[#e8e0da]', 'bg-gray-100', 'text-[#8c817b]');
+                            button.setAttribute('aria-label', `${day.date}, no disponible`);
+                        }
+                        if (day.date === dateInput.value && day.in_month) {
+                            button.classList.add('ring-2', 'ring-[#765747]', 'ring-offset-1');
+                        }
+                        if (day.in_month) {
+                            button.addEventListener('click', () => {
+                                dateInput.value = day.date;
+                                dateInput.dispatchEvent(new Event('change', {bubbles: true}));
+                            });
+                        }
+                        calendar.append(button);
+                    }
+                }
+            }
+
+            async function loadCalendar() {
+                monthLabel.textContent = 'Cargando calendario...';
+                try {
+                    const params = new URLSearchParams({mes: month});
+                    if (service.value) params.set('servicio', service.value);
+                    const response = await fetch(`${calendarUrl}?${params}`);
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'No se pudo consultar el calendario.');
+                    monthLabel.textContent = data.label;
+                    calendarWeeks = data.weeks;
+                    days = new Map(data.weeks.flat().map(day => [day.date, day]));
+                    renderCalendar(data.weeks);
+                    calendarStatus.textContent = service.value
+                        ? 'Elige un día para ver las horas del servicio seleccionado.'
+                        : 'El calendario reúne la disponibilidad de todos los servicios activos. Usa los filtros si quieres personalizar la búsqueda.';
+                    return true;
+                } catch (error) {
+                    monthLabel.textContent = 'Calendario no disponible';
+                    calendar.replaceChildren();
+                    calendarStatus.textContent = error.message || 'No se pudo consultar el calendario. Intenta nuevamente.';
+                    return false;
+                }
+            }
+
+            async function loadProfessionals() {
+                resetSelect(professional, 'Buscando profesionales disponibles...');
+                resetSelect(hour, 'Selecciona un profesional...');
+                if (!service.value || !dateInput.value) {
+                    status.textContent = 'Selecciona un servicio y una fecha para consultar horarios.';
                     return;
                 }
-                const params = new URLSearchParams({servicio: servicio.value, fecha: fecha.value});
-                const response = await fetch(`${profesionalesUrl}?${params}`);
+                const day = days.get(dateInput.value);
+                if (dateInput.value < today || (day && day.past)) {
+                    status.textContent = 'No es posible agendar: la fecha seleccionada ya pasó y no hay horas disponibles.';
+                    return;
+                }
+                if (day && day.closed) {
+                    status.textContent = 'No es posible agendar: ese día está bloqueado por el salón.';
+                    return;
+                }
+                status.textContent = 'Consultando disponibilidad del salón...';
+                const params = new URLSearchParams({servicio: service.value, fecha: dateInput.value});
+                const response = await fetch(`${professionalsUrl}?${params}`);
                 const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.error || 'No se pudo consultar a los profesionales.');
-                }
-                resetSelect(profesional, data.professionals.length ? 'Selecciona un profesional...' : 'No hay profesionales disponibles ese día.');
-                for (const item of data.professionals) {
-                    profesional.add(new Option(item.name, item.id));
-                }
-                profesional.disabled = !data.professionals.length;
-                estado.textContent = data.professionals.length
+                if (!response.ok) throw new Error(data.error || 'No se pudo consultar a los profesionales.');
+                resetSelect(professional, data.professionals.length ? 'Selecciona un profesional...' : 'No hay profesionales disponibles ese día.');
+                for (const item of data.professionals) professional.add(new Option(item.name, item.id));
+                professional.disabled = !data.professionals.length;
+                status.textContent = data.professionals.length
                     ? 'Elige un profesional para ver sus horas disponibles.'
-                    : 'No hay profesionales con horarios disponibles para esta fecha.';
+                    : 'Ese día no tiene horas disponibles para el servicio seleccionado.';
             }
 
-            async function cargarHoras() {
-                resetSelect(hora, 'Buscando horas disponibles...');
-                if (!servicio.value || !fecha.value || !profesional.value) {
-                    estado.textContent = 'Selecciona un servicio, fecha y profesional para consultar horarios.';
+            async function loadHours() {
+                resetSelect(hour, 'Buscando horas disponibles...');
+                if (!service.value || !dateInput.value || !professional.value) {
+                    status.textContent = 'Selecciona un servicio, fecha y profesional para consultar horarios.';
                     return;
                 }
-                const params = new URLSearchParams({
-                    servicio: servicio.value,
-                    fecha: fecha.value,
-                    profesional: profesional.value,
-                });
-                const response = await fetch(`${horasUrl}?${params}`);
+                const params = new URLSearchParams({servicio: service.value, fecha: dateInput.value, profesional: professional.value});
+                const response = await fetch(`${hoursUrl}?${params}`);
                 const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.error || 'No se pudo consultar los horarios.');
-                }
-                resetSelect(hora, data.hours.length ? 'Selecciona una hora...' : 'No hay horas disponibles.');
-                for (const item of data.hours) {
-                    hora.add(new Option(item, item));
-                }
-                hora.disabled = !data.hours.length;
-                estado.textContent = data.hours.length
-                    ? 'Selecciona una hora para enviar tu solicitud de cita.'
-                    : 'No quedan horas disponibles para esta combinación.';
+                if (!response.ok) throw new Error(data.error || 'No se pudieron consultar los horarios.');
+                resetSelect(hour, data.hours.length ? 'Selecciona una hora...' : 'No hay horas disponibles.');
+                for (const item of data.hours) hour.add(new Option(item, item));
+                hour.disabled = !data.hours.length;
+                status.textContent = data.hours.length ? 'Selecciona una hora para añadir la cita a tu carrito.' : 'No quedan horas disponibles para esta combinación.';
             }
 
-            servicio.addEventListener('change', () => cargarProfesionales().catch(() => {
-                estado.textContent = 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
-            }));
-            fecha.addEventListener('change', () => cargarProfesionales().catch(() => {
-                estado.textContent = 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
-            }));
-            profesional.addEventListener('change', () => cargarHoras().catch(() => {
-                estado.textContent = 'No se pudieron consultar las horas. Intenta nuevamente.';
-            }));
-            cargarProfesionales().catch(() => {
-                estado.textContent = 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
+            service.addEventListener('change', () => {
+                loadCalendar().then(() => loadProfessionals()).catch(error => {
+                    status.textContent = error.message || 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
+                });
             });
+            dateInput.addEventListener('change', () => {
+                const nextMonth = dateInput.value.slice(0, 7);
+                if (nextMonth && nextMonth !== month) {
+                    month = nextMonth;
+                    loadCalendar().then(() => loadProfessionals()).catch(error => {
+                        status.textContent = error.message || 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
+                    });
+                } else {
+                    renderCalendar(calendarWeeks);
+                    loadProfessionals().catch(error => {
+                        status.textContent = error.message || 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
+                    });
+                }
+            });
+            professional.addEventListener('change', () => loadHours().catch(error => {
+                status.textContent = error.message || 'No se pudieron consultar las horas. Intenta nuevamente.';
+            }));
+            document.getElementById('bookingPreviousMonth').addEventListener('click', () => {
+                month = addMonth(month, -1);
+                loadCalendar();
+            });
+            document.getElementById('bookingNextMonth').addEventListener('click', () => {
+                month = addMonth(month, 1);
+                loadCalendar();
+            });
+            loadCalendar();
         })();
     </script>
 {% endblock %}

@@ -12,17 +12,22 @@
     {% endif %}
     {% if titulo == 'Servicios' or titulo == 'Productos' %}
         <section class="mx-auto max-w-6xl overflow-hidden border border-[#e8e0da] bg-white shadow-sm" aria-label="{{ titulo }}">
-            <header class="border-b border-[#e8e0da] p-6 sm:p-8">
-                <h1 class="mb-3 font-serif text-2xl">{{ titulo }}</h1>
-                <p class="text-sm leading-relaxed text-[#7a6e6a]">{{ descripcion }}</p>
-            </header>
-            <div class="p-5 sm:p-7">
+            <div class="p-4 sm:p-5">
                 <label for="catalog-search" class="mb-2 block text-xs font-medium uppercase tracking-widest text-[#7a6e6a]">Buscar {{ titulo|lower }}</label>
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
                     <div class="relative w-full lg:max-w-sm">
                         <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8d7c73]" aria-hidden="true"></i>
-                        <input id="catalog-search" type="search" placeholder="Escribe un nombre o descripción..." autocomplete="off" class="w-full border border-[#ded5cf] bg-[#faf8f6] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[#765747] focus:ring-2 focus:ring-[#765747]/15">
+                        <input id="catalog-search" type="search" placeholder="Escribe un nombre o categoría..." autocomplete="off" class="w-full border border-[#ded5cf] bg-[#faf8f6] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[#765747] focus:ring-2 focus:ring-[#765747]/15">
                     </div>
+                    <form method="get" class="w-full lg:w-auto">
+                        <label for="catalog-sort" class="sr-only">Ordenar {{ titulo|lower }}</label>
+                        <select id="catalog-sort" name="orden" onchange="this.form.submit()" class="w-full border border-[#ded5cf] bg-white px-3 py-3 text-sm text-[#66564e] lg:min-w-56">
+                            <option value="nombre_asc" {% if orden_catalogo == 'nombre_asc' %}selected{% endif %}>Nombre: A-Z</option>
+                            <option value="nombre_desc" {% if orden_catalogo == 'nombre_desc' %}selected{% endif %}>Nombre: Z-A</option>
+                            <option value="precio_asc" {% if orden_catalogo == 'precio_asc' %}selected{% endif %}>Precio: menor a mayor</option>
+                            <option value="precio_desc" {% if orden_catalogo == 'precio_desc' %}selected{% endif %}>Precio: mayor a menor</option>
+                        </select>
+                    </form>
                     <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoría">
                         <button type="button" data-category-filter="" aria-pressed="true" class="catalog-filter rounded-full border border-[#765747] bg-[#765747] px-4 py-2 text-xs font-medium text-white transition">Todo</button>
                         {% for filtro in filtros_categoria %}
@@ -34,9 +39,9 @@
             </div>
 
     {% if titulo == 'Servicios' %}
-        <div id="catalog-grid" class="grid items-stretch gap-x-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Servicios disponibles">
+        <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Servicios disponibles">
             {% for servicio in servicios %}
-                <article data-catalog-item data-categories="{{ servicio.categoria.nombre }}|{{ servicio.categoria.tipo }}" data-search="{{ servicio.nombre }} {{ servicio.descripcion|default:'' }} {{ servicio.categoria.nombre }} {{ servicio.categoria.tipo }}" class="flex h-full flex-col overflow-hidden bg-white transition hover:bg-[#fcfaf8]">
+                <article data-catalog-item data-categories="{{ servicio.categoria.nombre }}" data-search="{{ servicio.nombre }} {{ servicio.categoria.nombre }}" class="flex h-full flex-col overflow-hidden border border-[#e8e0da] bg-white transition hover:border-[#c9a99b] hover:bg-[#fcfaf8]">
                     {% if servicio.imagen_url %}
                         <img src="{{ servicio.imagen_url.url }}" alt="{{ servicio.nombre }}" class="h-40 w-full bg-[#f1ece8] object-cover">
                     {% else %}
@@ -47,15 +52,14 @@
                     <div class="flex flex-1 flex-col p-5">
                         <p class="mb-2 text-xs uppercase tracking-widest text-[#7a6e6a]">{{ servicio.categoria.nombre }}</p>
                         <h2 class="mb-2 font-serif text-xl">{{ servicio.nombre }}</h2>
-                        <p class="mb-4 text-sm leading-relaxed text-[#7a6e6a]">{{ servicio.descripcion|default:'Consulta los detalles de este servicio en el salón.' }}</p>
-                        <div class="mt-auto flex items-center justify-between border-t border-[#e8e0da] pt-4 text-sm">
+                        <div class="mt-auto flex items-center justify-between text-sm">
                             <span class="font-medium">${{ servicio.precio|floatformat:0 }}</span>
                             <span class="text-[#7a6e6a]">{{ servicio.duracion_minutos }} min</span>
                         </div>
                         <form method="post" action="{% url 'cliente_carrito_agregar_servicio' servicio.pk %}" class="mt-4">
                             {% csrf_token %}
                             <button type="submit" class="w-full bg-[#765747] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#604536]">
-                                <i class="fa-solid fa-cart-plus mr-2"></i>Añadir servicio al carrito
+                                <i class="fa-solid fa-cart-plus mr-2"></i>Añadir al carrito
                             </button>
                         </form>
                     </div>
@@ -65,9 +69,9 @@
             {% endfor %}
         </div>
     {% elif titulo == 'Productos' %}
-        <div id="catalog-grid" class="grid items-stretch gap-x-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Productos disponibles">
+        <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Productos disponibles">
             {% for producto in productos %}
-                <article data-catalog-item data-categories="{{ producto.categoria.nombre }}|{{ producto.categoria.tipo }}" data-search="{{ producto.nombre }} {{ producto.descripcion|default:'' }} {{ producto.categoria.nombre }} {{ producto.categoria.tipo }}" class="flex h-full flex-col overflow-hidden bg-white transition hover:bg-[#fcfaf8]">
+                <article data-catalog-item data-categories="{{ producto.categoria.nombre }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }}" class="flex h-full flex-col overflow-hidden border border-[#e8e0da] bg-white transition hover:border-[#c9a99b] hover:bg-[#fcfaf8]">
                     {% if producto.imagen_url %}
                         <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" class="h-40 w-full bg-[#f1ece8] object-cover">
                     {% else %}
@@ -78,8 +82,7 @@
                     <div class="flex flex-1 flex-col p-5">
                         <p class="mb-2 text-xs uppercase tracking-widest text-[#7a6e6a]">{{ producto.categoria.nombre }}</p>
                         <h2 class="mb-2 font-serif text-xl">{{ producto.nombre }}</h2>
-                        <p class="mb-4 text-sm leading-relaxed text-[#7a6e6a]">{{ producto.descripcion|default:'Consulta la disponibilidad de este producto en el salón.' }}</p>
-                        <div class="mt-auto flex items-center justify-between border-t border-[#e8e0da] pt-4 text-sm">
+                        <div class="mt-auto flex items-center justify-between text-sm">
                             <span class="font-medium">${{ producto.precio|floatformat:0 }}</span>
                             <span class="text-[#7a6e6a]">{% if producto.stock > 0 %}{{ producto.stock }} disponibles{% else %}Agotado{% endif %}</span>
                         </div>

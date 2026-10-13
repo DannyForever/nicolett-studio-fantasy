@@ -21,7 +21,7 @@
         <a class="dashboard-stat-link" href="{% url 'admin_ventas' %}">
             <div class="card-stat h-100">
                 <div class="title">Ventas del mes</div>
-                <div class="value">${{ ventas_mes|floatformat:0 }}</div>
+                <div class="value">${{ ventas_mes_formateado }}</div>
             </div>
         </a>
     </div>
@@ -52,14 +52,14 @@
         <a class="btn salon-btn-outline btn-sm" href="{% url 'admin_agenda' %}">Ver agendamientos</a>
     </div>
     <div class="table-responsive">
-        <table class="table align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 dashboard-appointments-table">
             <thead>
                 <tr>
-                    <th>HORA</th>
-                    <th>CLIENTE</th>
-                    <th>SERVICIO</th>
-                    <th>PROFESIONAL</th>
-                    <th>ESTADO</th>
+                    <th>Hora</th>
+                    <th>Cliente</th>
+                    <th>Servicio</th>
+                    <th>Profesional</th>
+                    <th>Estado</th>
                 </tr>
             </thead>
             <tbody>

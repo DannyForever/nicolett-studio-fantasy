@@ -8,9 +8,14 @@
         <div>
             <h1 class="h3 mb-1 text-dark">Servicios</h1>
         </div>
-        <button type="button" class="btn salon-btn-primary" data-bs-toggle="modal" data-bs-target="#modalServicio">
-            + NUEVO SERVICIO
-        </button>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn salon-btn-outline" id="btnAdministrarCategoriasServicios">
+                Administrar categorías
+            </button>
+            <button type="button" class="btn salon-btn-primary" data-bs-toggle="modal" data-bs-target="#modalServicio">
+                + NUEVO SERVICIO
+            </button>
+        </div>
     </div>
 
     {% if messages %}
@@ -155,7 +160,7 @@
 </div>
 
 <div class="modal fade salon-modal" id="modalServicio" tabindex="-1" aria-labelledby="tituloModalServicio" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <form id="formServicio" method="post" action="{% url 'crear_servicio' %}" enctype="multipart/form-data">
                 {% csrf_token %}
@@ -182,49 +187,7 @@
                                         <option value="{{ categoria.id }}">{{ categoria.nombre }} ({{ categoria.tipo }})</option>
                                     {% endfor %}
                                 </select>
-                                <button type="button" class="btn salon-btn-outline" id="btnNuevaCategoria">+ Nueva</button>
                             </div>
-                        </div>
-                        <div class="col-12">
-                            <details class="category-manager">
-                                <summary>Administrar categorías</summary>
-                                <div class="table-responsive mt-3">
-                                    <table class="table table-sm align-middle mb-0">
-                                        <thead>
-                                            <tr><th>Nombre</th><th>Tipo</th><th>Acciones</th></tr>
-                                        </thead>
-                                        <tbody id="listaCategorias">
-                                            {% for categoria in categorias %}
-                                            <tr data-category-id="{{ categoria.id }}">
-                                                <td class="category-name">{{ categoria.nombre }}</td>
-                                                <td class="category-type">{{ categoria.tipo }}</td>
-                                                <td class="text-nowrap">
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-sm salon-btn-outline js-editar-categoria"
-                                                        data-url="{% url 'editar_categoria' categoria.id %}"
-                                                        data-id="{{ categoria.id }}"
-                                                        data-nombre="{{ categoria.nombre }}"
-                                                        data-tipo="{{ categoria.tipo }}">
-                                                        Editar
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-sm salon-btn-danger js-eliminar-categoria"
-                                                        data-url="{% url 'eliminar_categoria' categoria.id %}"
-                                                        data-id="{{ categoria.id }}"
-                                                        data-nombre="{{ categoria.nombre }}">
-                                                        Eliminar
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            {% empty %}
-                                            <tr class="empty-categories"><td colspan="3" class="text-muted">Aún no hay categorías.</td></tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </details>
                         </div>
                         <div class="col-12">
                             <label for="servicioDescripcion" class="form-label">Descripción</label>
@@ -273,33 +236,58 @@
 </div>
 
 <div class="modal fade salon-modal" id="modalCategoria" tabindex="-1" aria-labelledby="tituloModalCategoria" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <form id="formCategoria" method="post" action="{% url 'crear_categoria' %}">
                 {% csrf_token %}
                 <div class="modal-header">
                     <div>
-                        <span class="salon-modal-eyebrow">ORGANIZACIÓN DEL CATÁLOGO</span>
-                        <h5 class="modal-title" id="tituloModalCategoria">Nueva categoría</h5>
+                        <span class="salon-modal-eyebrow">CATÁLOGO DEL SALÓN</span>
+                        <h5 class="modal-title" id="tituloModalCategoria">Administrar categorías</h5>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
                     <div id="errorCategoria" class="alert alert-danger d-none" role="alert"></div>
+                    <div class="row g-3 align-items-end mb-3">
+                        <div class="col-md-5">
+                            <label for="categoriaNombre" class="form-label">Nombre</label>
+                            <input id="categoriaNombre" type="text" name="nombre" class="form-control" maxlength="100" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="categoriaTipo" class="form-label">Tipo o tratamiento</label>
+                            <input id="categoriaTipo" type="text" name="tipo" class="form-control" maxlength="100" required>
+                        </div>
+                        <div class="col-md-2 d-grid">
+                            <button id="guardarCategoria" type="submit" class="btn salon-btn-primary">Crear</button>
+                        </div>
+                    </div>
+                </form>
                     <div class="mb-3">
-                        <label for="categoriaNombre" class="form-label">Nombre de la categoría</label>
-                        <input id="categoriaNombre" type="text" name="nombre" class="form-control" maxlength="100" placeholder="Ej. Manicure" required>
+                        <label for="buscarCategoriaServicio" class="form-label">Buscar categorías</label>
+                        <input id="buscarCategoriaServicio" type="search" class="form-control" placeholder="Escribe el nombre o tipo de categoría">
                     </div>
-                    <div>
-                        <label for="categoriaTipo" class="form-label">Tipo</label>
-                        <input id="categoriaTipo" type="text" name="tipo" class="form-control" maxlength="100" placeholder="Ej. Uñas" required>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Nombre</th><th>Tipo</th><th>Acciones</th></tr></thead>
+                            <tbody id="listaCategorias">
+                                {% for categoria in categorias %}
+                                    <tr data-category-id="{{ categoria.pk }}">
+                                        <td class="category-name">{{ categoria.nombre }}</td>
+                                        <td class="category-type">{{ categoria.tipo }}</td>
+                                        <td class="text-nowrap">
+                                            <button type="button" class="btn btn-sm salon-btn-outline js-editar-categoria" data-url="{% url 'editar_categoria' categoria.pk %}" data-id="{{ categoria.pk }}" data-nombre="{{ categoria.nombre }}" data-tipo="{{ categoria.tipo }}">Editar</button>
+                                            <button type="button" class="btn btn-sm salon-btn-danger js-eliminar-categoria" data-url="{% url 'eliminar_categoria' categoria.pk %}" data-id="{{ categoria.pk }}" data-nombre="{{ categoria.nombre }}">Eliminar</button>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr class="empty-categories"><td colspan="3" class="text-muted">Aún no hay categorías.</td></tr>
+                                {% endfor %}
+                                <tr class="category-no-results d-none"><td colspan="3" class="text-muted">No hay categorías que coincidan con la búsqueda.</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn salon-btn-primary">Guardar categoría</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -336,7 +324,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const servicioForm = document.getElementById('formServicio');
     const categoriaForm = document.getElementById('formCategoria');
     const categoriaSelect = document.getElementById('servicioCategoria');
+    const categoriaFiltro = document.getElementById('filtrarCategoriaServicio');
     const categoriaList = document.getElementById('listaCategorias');
+    const categoriaSearch = document.getElementById('buscarCategoriaServicio');
     const categoriaCreateUrl = categoriaForm.action;
     const csrfToken = categoriaForm.querySelector('[name=csrfmiddlewaretoken]').value;
     const imagenInput = document.getElementById('servicioImagen');
@@ -346,11 +336,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const quitarImagen = document.getElementById('quitarImagen');
     const quitarImagenContainer = document.getElementById('quitarImagenContainer');
     const estadoImagen = document.getElementById('estadoImagen');
-    let volverAServicios = false;
-    let preservarServicioAlVolver = false;
     let imagenGuardadaUrl = '';
     let imagenGuardadaNombre = '';
     let citasPendientesEdicion = 0;
+
+    document.getElementById('btnAdministrarCategoriasServicios').addEventListener('click', () => {
+        categoriaModal.show();
+    });
 
     const servicioFields = {
         nombre: document.getElementById('servicioNombre'),
@@ -379,10 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     servicioModalElement.addEventListener('show.bs.modal', (event) => {
         const trigger = event.relatedTarget;
-        if (!trigger && preservarServicioAlVolver) {
-            preservarServicioAlVolver = false;
-            return;
-        }
         if (!trigger || trigger.dataset.mode !== 'edit') {
             limpiarServicio();
             return;
@@ -466,35 +454,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('btnNuevaCategoria').addEventListener('click', () => {
-        volverAServicios = true;
-        preservarServicioAlVolver = true;
-        servicioModal.hide();
-        document.getElementById('tituloModalCategoria').textContent = 'Nueva categoría';
-        categoriaForm.action = categoriaCreateUrl;
-        categoriaForm.reset();
-        document.getElementById('errorCategoria').classList.add('d-none');
-        servicioModalElement.addEventListener('hidden.bs.modal', () => categoriaModal.show(), {once: true});
-    });
-
     categoriaList.addEventListener('click', (event) => {
         const button = event.target.closest('.js-editar-categoria, .js-eliminar-categoria');
         if (!button) return;
 
         if (button.classList.contains('js-editar-categoria')) {
-            volverAServicios = true;
-            preservarServicioAlVolver = true;
-            servicioModal.hide();
             categoriaForm.action = button.dataset.url;
-            document.getElementById('tituloModalCategoria').textContent = 'Editar categoría';
             document.getElementById('categoriaNombre').value = button.dataset.nombre;
             document.getElementById('categoriaTipo').value = button.dataset.tipo;
             document.getElementById('errorCategoria').classList.add('d-none');
-            servicioModalElement.addEventListener('hidden.bs.modal', () => categoriaModal.show(), {once: true});
+            document.getElementById('guardarCategoria').textContent = 'Guardar';
             return;
         }
 
         if (!window.confirm(`¿Eliminar la categoría "${button.dataset.nombre}"?`)) return;
+        button.disabled = true;
         fetch(button.dataset.url, {
             method: 'POST',
             headers: {'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest'}
@@ -502,14 +476,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(async (response) => {
                 const data = await response.json();
                 if (!response.ok) throw new Error((data.errors || ['No se pudo eliminar la categoría.']).join(' '));
-                categoriaList.querySelector(`[data-category-id="${button.dataset.id}"]`).remove();
-                categoriaSelect.querySelector(`option[value="${button.dataset.id}"]`).remove();
-                if (!categoriaList.querySelector('tr[data-category-id]')) {
-                    categoriaList.innerHTML = '<tr class="empty-categories"><td colspan="3" class="text-muted">Aún no hay categorías.</td></tr>';
-                }
+                categoriaList.querySelector(`[data-category-id="${button.dataset.id}"]`)?.remove();
+                categoriaSelect.querySelector(`option[value="${button.dataset.id}"]`)?.remove();
+                categoriaFiltro.querySelector(`option[value="${button.dataset.id}"]`)?.remove();
+                if (categoriaSelect.value === button.dataset.id) categoriaSelect.value = '';
+                mostrarVacioCategorias();
+                filtrarCategorias();
                 mostrarMensaje(data.message, 'success');
             })
-            .catch((error) => mostrarMensaje(error.message, 'danger'));
+            .catch((error) => mostrarMensaje(error.message, 'danger'))
+            .finally(() => { button.disabled = false; });
     });
 
     categoriaForm.addEventListener('submit', (event) => {
@@ -527,8 +503,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) throw new Error((data.errors || ['No se pudo guardar la categoría.']).join(' '));
                 actualizarCategoria(data);
                 categoriaSelect.value = String(data.id);
+                resetearFormularioCategoria();
+                filtrarCategorias();
                 errorBox.classList.add('d-none');
-                categoriaModal.hide();
             })
             .catch((error) => {
                 errorBox.textContent = error.message;
@@ -537,11 +514,47 @@ document.addEventListener('DOMContentLoaded', () => {
             .finally(() => { submitButton.disabled = false; });
     });
 
-    categoriaModalElement.addEventListener('hidden.bs.modal', () => {
-        if (volverAServicios) {
-            volverAServicios = false;
-            servicioModal.show();
+    function resetearFormularioCategoria() {
+        categoriaForm.reset();
+        categoriaForm.action = categoriaCreateUrl;
+        document.getElementById('guardarCategoria').textContent = 'Crear';
+        document.getElementById('errorCategoria').classList.add('d-none');
+        document.getElementById('errorCategoria').textContent = '';
+    }
+
+    function mostrarVacioCategorias() {
+        if (!categoriaList.querySelector('tr[data-category-id]')) {
+            let emptyRow = categoriaList.querySelector('.empty-categories');
+            if (!emptyRow) {
+                emptyRow = document.createElement('tr');
+                emptyRow.className = 'empty-categories';
+                emptyRow.innerHTML = '<td colspan="3" class="text-muted">Aún no hay categorías.</td>';
+                categoriaList.prepend(emptyRow);
+            }
+        } else {
+            categoriaList.querySelector('.empty-categories')?.remove();
         }
+    }
+
+    function filtrarCategorias() {
+        const term = categoriaSearch.value.trim().toLocaleLowerCase();
+        let visibleCount = 0;
+        categoriaList.querySelectorAll('tr[data-category-id]').forEach((row) => {
+            const searchableText = `${row.querySelector('.category-name').textContent} ${row.querySelector('.category-type').textContent}`;
+            const matches = searchableText.toLocaleLowerCase().includes(term);
+            row.classList.toggle('d-none', !matches);
+            if (matches) visibleCount += 1;
+        });
+        categoriaList.querySelector('.category-no-results').classList.toggle('d-none', !term || visibleCount > 0);
+        const emptyRow = categoriaList.querySelector('.empty-categories');
+        if (emptyRow) emptyRow.classList.toggle('d-none', Boolean(term));
+    }
+
+    categoriaSearch.addEventListener('input', filtrarCategorias);
+    categoriaModalElement.addEventListener('show.bs.modal', () => {
+        resetearFormularioCategoria();
+        categoriaSearch.value = '';
+        filtrarCategorias();
     });
 
     eliminarModalElement.addEventListener('show.bs.modal', (event) => {
@@ -583,6 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         row.querySelector('.category-name').textContent = data.nombre;
         row.querySelector('.category-type').textContent = data.tipo;
+        mostrarVacioCategorias();
         let option = categoriaSelect.querySelector(`option[value="${data.id}"]`);
         if (!option) {
             option = document.createElement('option');
@@ -590,6 +604,13 @@ document.addEventListener('DOMContentLoaded', () => {
             categoriaSelect.append(option);
         }
         option.textContent = `${data.nombre} (${data.tipo})`;
+        let filterOption = categoriaFiltro.querySelector(`option[value="${data.id}"]`);
+        if (!filterOption) {
+            filterOption = document.createElement('option');
+            filterOption.value = data.id;
+            categoriaFiltro.append(filterOption);
+        }
+        filterOption.textContent = data.nombre;
         const editButton = row.querySelector('.js-editar-categoria');
         const deleteButton = row.querySelector('.js-eliminar-categoria');
         editButton.dataset.url = "{% url 'editar_categoria' 0 %}".replace('/0/', `/${data.id}/`);

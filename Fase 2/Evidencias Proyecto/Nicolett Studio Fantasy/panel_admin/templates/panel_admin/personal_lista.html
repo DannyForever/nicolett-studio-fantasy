@@ -120,7 +120,7 @@
                                     data-especializaciones="{{ colaborador.especializacion_ids|join:',' }}">
                                     Editar
                                 </button>
-                                <form method="post" action="{% url 'desactivar_personal' colaborador.pk %}" class="d-inline js-toggle-personal" data-estado="{{ colaborador.is_active|yesno:'activo,inactivo' }}">
+                                <form method="post" action="{% url 'desactivar_personal' colaborador.pk %}" class="d-inline js-toggle-personal" data-estado="{{ colaborador.is_active|yesno:'activo,inactivo' }}" data-citas-futuras="{{ colaborador.citas_futuras_count }}" data-nombre="{{ colaborador.nombre }} {{ colaborador.apellido_paterno }}">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm salon-btn-state">
                                         {% if colaborador.is_active %}Desactivar{% else %}Reactivar{% endif %}
@@ -132,7 +132,8 @@
                                     data-bs-toggle="modal"
                                     data-bs-target="#modalEliminarPersonal"
                                     data-url="{% url 'eliminar_personal' colaborador.pk %}"
-                                    data-nombre="{{ colaborador.nombre }} {{ colaborador.apellido_paterno }}">
+                                    data-nombre="{{ colaborador.nombre }} {{ colaborador.apellido_paterno }}"
+                                    data-citas-futuras="{{ colaborador.citas_futuras_count }}">
                                     Eliminar
                                 </button>
                             </td>
@@ -222,19 +223,33 @@
 <div class="modal fade salon-modal" id="modalEliminarPersonal" tabindex="-1" aria-labelledby="tituloEliminarPersonal" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
-            <form id="formEliminarPersonal" method="post">
+            <form id="formAccionPersonal" method="post">
                 {% csrf_token %}
+                <input type="hidden" name="confirmar_agenda" value="1">
                 <div class="modal-header">
-                    <h2 class="modal-title h5" id="tituloEliminarPersonal">Eliminar colaborador</h2>
+                    <h2 class="modal-title h5" id="tituloEliminarPersonal">Confirmar acción</h2>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
-                    ¿Confirmas que deseas eliminar a <strong id="nombreEliminarPersonal"></strong> del personal?
-                    Si tiene citas asociadas, se conservará como registro histórico y se desactivará.
+                    <p id="detalleAccionPersonal" class="mb-3"></p>
+                    <div id="opcionNotificarClientes" class="d-none">
+                        <div class="alert alert-warning py-2 small">
+                            Hay citas futuras agendadas con esta persona. Si continúas, esos horarios y servicios podrían dejar de estar disponibles.
+                        </div>
+                        <label class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="notificar_clientes" value="1" id="notificarClientesPersonal">
+                            <span class="form-check-label">Enviar un correo a los clientes con cuenta que tienen citas futuras</span>
+                        </label>
+                        <div id="mensajePersonalizadoWrap" class="d-none">
+                            <label class="form-label" for="mensajeClientesPersonal">Mensaje personalizado</label>
+                            <textarea class="form-control" id="mensajeClientesPersonal" name="mensaje_clientes" rows="4" maxlength="1000" placeholder="Por ejemplo: debido a vacaciones, necesitamos coordinar un cambio para tu cita." ></textarea>
+                            <div class="form-text">El correo no indicará que la persona dejó de trabajar en el salón.</div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn salon-btn-danger">Sí, eliminar</button>
+                    <button type="submit" class="btn salon-btn-danger" id="confirmarAccionPersonal">Confirmar</button>
                 </div>
             </form>
         </div>
@@ -283,16 +298,59 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const deleteModal = document.getElementById('modalEliminarPersonal');
+    const actionForm = document.getElementById('formAccionPersonal');
+    const actionModal = bootstrap.Modal.getOrCreateInstance(deleteModal);
+    const notifyOption = document.getElementById('opcionNotificarClientes');
+    const notifyCheckbox = document.getElementById('notificarClientesPersonal');
+    const customMessageWrap = document.getElementById('mensajePersonalizadoWrap');
+    const customMessage = document.getElementById('mensajeClientesPersonal');
+    const actionDetails = document.getElementById('detalleAccionPersonal');
+    const actionSubmit = document.getElementById('confirmarAccionPersonal');
+
+    function preparePersonalAction(url, action, name, appointments) {
+        actionForm.action = url;
+        document.getElementById('tituloEliminarPersonal').textContent =
+            action === 'eliminar' ? 'Eliminar colaborador' : 'Confirmar acción de personal';
+        actionDetails.textContent = appointments
+            ? `¿Confirmas que deseas ${action} a ${name}? Tiene ${appointments} cita(s) futura(s).`
+            : `¿Confirmas que deseas ${action} a ${name}?`;
+        actionSubmit.textContent = action === 'eliminar'
+            ? 'Sí, eliminar'
+            : action === 'desactivar' ? 'Sí, desactivar' : 'Sí, reactivar';
+        notifyOption.classList.toggle('d-none', !appointments || action === 'reactivar');
+        notifyCheckbox.checked = false;
+        customMessage.value = '';
+        customMessage.required = false;
+        customMessageWrap.classList.add('d-none');
+    }
+
+    notifyCheckbox.addEventListener('change', () => {
+        customMessageWrap.classList.toggle('d-none', !notifyCheckbox.checked);
+        customMessage.required = notifyCheckbox.checked;
+    });
+
     deleteModal.addEventListener('show.bs.modal', (event) => {
         const trigger = event.relatedTarget;
-        document.getElementById('formEliminarPersonal').action = trigger.dataset.url;
-        document.getElementById('nombreEliminarPersonal').textContent = trigger.dataset.nombre;
+        if (!trigger) return;
+        preparePersonalAction(
+            trigger.dataset.url,
+            'eliminar',
+            trigger.dataset.nombre,
+            Number(trigger.dataset.citasFuturas || 0),
+        );
     });
 
     document.querySelectorAll('.js-toggle-personal').forEach((toggleForm) => {
         toggleForm.addEventListener('submit', (event) => {
             const accion = toggleForm.dataset.estado === 'activo' ? 'desactivar' : 'reactivar';
-            if (!window.confirm(`¿Confirmas que deseas ${accion} a este colaborador?`)) event.preventDefault();
+            event.preventDefault();
+            preparePersonalAction(
+                toggleForm.action,
+                accion,
+                toggleForm.dataset.nombre,
+                Number(toggleForm.dataset.citasFuturas || 0),
+            );
+            actionModal.show();
         });
 
     });

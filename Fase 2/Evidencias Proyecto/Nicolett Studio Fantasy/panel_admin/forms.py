@@ -210,15 +210,16 @@ class ConfiguracionRecordatoriosForm(forms.Form):
         }),
         help_text='Escribe uno o más intervalos separados por coma. Ejemplo: 48, 24.',
     )
-    dias_seguimiento = forms.CharField(
-        label='Días después de la atención',
-        max_length=80,
+    horas_seguimiento = forms.IntegerField(
+        label='Horas después de finalizar la atención',
+        min_value=1,
+        max_value=720,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': '15, 30',
+            'placeholder': '24',
             'autocomplete': 'off',
         }),
-        help_text='Escribe uno o más intervalos separados por coma. Ejemplo: 15, 30.',
+        help_text='Se enviará un único correo por atención. El valor predeterminado es 24 horas.',
     )
 
     def _validar_intervalos(self, campo, minimo, maximo, unidad):
@@ -241,8 +242,6 @@ class ConfiguracionRecordatoriosForm(forms.Form):
     def clean_horas_cita(self):
         return self._validar_intervalos('horas_cita', 1, 720, 'horas')
 
-    def clean_dias_seguimiento(self):
-        return self._validar_intervalos('dias_seguimiento', 1, 365, 'días')
 
 
 class PersonalForm(forms.ModelForm):

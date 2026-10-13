@@ -3,13 +3,14 @@
 {% block title %}Gestionar citas | Nicolett Studio Fantasy{% endblock %}
 
 {% block content %}
-    <div class="mx-auto max-w-4xl border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8">
-        <section>
-            <h1 class="mb-3 font-serif text-2xl">Gestionar citas</h1>
-            <p class="text-sm leading-relaxed text-[#7a6e6a]">
-                Revisa tus próximas citas. Puedes cancelar o elegir otro servicio, profesional y horario disponible.
-            </p>
-        </section>
+    <div class="mx-auto max-w-5xl border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h1 class="font-serif text-2xl">Gestionar citas</h1>
+                <p class="mt-2 text-sm leading-relaxed text-[#7a6e6a]">Administra tus próximas citas o consulta todos sus registros e historial.</p>
+            </div>
+            <a href="{% url 'cliente_ficha_tecnica_pdf' %}" target="_blank" rel="noopener" class="border border-[#765747] px-4 py-2 text-sm font-medium text-[#765747] no-underline hover:bg-[#f7f3f0]">Descargar ficha técnica (PDF)</a>
+        </div>
 
         {% if messages %}
             <div class="mt-5 space-y-2" aria-live="polite">
@@ -19,92 +20,108 @@
             </div>
         {% endif %}
 
-        <section class="mt-6 space-y-5 border-t border-[#e8e0da] pt-6" aria-label="Próximas citas">
-            {% for reserva in reservas %}
-                <article class="border border-[#e8e0da] bg-white p-5 shadow-sm sm:p-6">
-                    <div class="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                            <p class="mb-1 text-xs uppercase tracking-widest text-[#7a6e6a]">
-                                {{ reserva.fecha_hora|date:"d/m/Y" }} · {{ reserva.fecha_hora|date:"H:i" }}
-                            </p>
-                            <h2 class="font-serif text-xl">{{ reserva.servicio_nombre|default:reserva.servicio.nombre|default:"Servicio no disponible" }}</h2>
-                            <p class="mt-1 text-sm text-[#7a6e6a]">
-                                Profesional:
-                                {% if reserva.profesional %}
-                                    {{ reserva.profesional.nombre }} {{ reserva.profesional.apellido_paterno }}
-                                {% else %}
-                                    Sin profesional asignado
-                                {% endif %}
-                            </p>
+        <div class="mt-6 flex flex-wrap gap-2 border-b border-[#e8e0da]" role="tablist" aria-label="Citas">
+            <button id="tab-manage" type="button" role="tab" aria-controls="panel-manage" aria-selected="{% if active_tab == 'gestionar' %}true{% else %}false{% endif %}" class="js-bookings-tab border-b-2 px-4 py-3 text-sm {% if active_tab == 'gestionar' %}border-[#765747] font-medium text-[#765747]{% else %}border-transparent text-[#7a6e6a]{% endif %}">Gestionar citas</button>
+            <button id="tab-history" type="button" role="tab" aria-controls="panel-history" aria-selected="{% if active_tab == 'historial' %}true{% else %}false{% endif %}" class="js-bookings-tab border-b-2 px-4 py-3 text-sm {% if active_tab == 'historial' %}border-[#765747] font-medium text-[#765747]{% else %}border-transparent text-[#7a6e6a]{% endif %}">Historial de citas</button>
+        </div>
+
+        <section id="panel-manage" role="tabpanel" aria-labelledby="tab-manage" {% if active_tab != 'gestionar' %}hidden{% endif %} class="pt-5">
+            <div class="space-y-4">
+                {% for reserva in reservas_gestionables %}
+                    <article class="border border-[#e8e0da] p-5 sm:p-6">
+                        <div class="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <p class="mb-1 text-xs uppercase tracking-widest text-[#7a6e6a]">{{ reserva.fecha_hora|date:"d/m/Y" }} · {{ reserva.fecha_hora|date:"H:i" }}</p>
+                                <h2 class="font-serif text-xl">{{ reserva.servicio_nombre|default:reserva.servicio.nombre|default:"Servicio no disponible" }}</h2>
+                                <p class="mt-1 text-sm text-[#7a6e6a]">Profesional: {% if reserva.profesional %}{{ reserva.profesional.nombre }} {{ reserva.profesional.apellido_paterno }}{% else %}Sin profesional asignado{% endif %} · {{ reserva.duracion_minutos }} min</p>
+                            </div>
+                            <span class="border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">{{ reserva.estado_cliente }}</span>
                         </div>
-                        <span class="border px-3 py-1 text-xs font-medium
-                            {% if reserva.estado == 'confirmada' %}border-green-200 bg-green-50 text-green-800
-                            {% elif reserva.estado == 'pendiente' %}border-amber-200 bg-amber-50 text-amber-800
-                            {% elif reserva.estado == 'suspendida' %}border-red-200 bg-red-50 text-red-800
-                            {% else %}border-[#e8e0da] bg-[#f7f3f0] text-[#7a6e6a]{% endif %}">
-                            {{ reserva.get_estado_display }}
-                        </span>
-                    </div>
-
-                    {% if reserva.estado == 'suspendida' and reserva.motivo_suspension %}
-                        <p class="mt-4 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                            {{ reserva.motivo_suspension }} Puedes elegir un nuevo servicio y horario o cancelar esta cita.
-                        </p>
-                    {% endif %}
-
-                    {% if servicios %}
-                        <details class="mt-5 border-t border-[#e8e0da] pt-4">
-                            <summary class="cursor-pointer text-sm font-medium text-[#765747]">Reagendar o cambiar servicio</summary>
-                            <form method="post" action="{% url 'cliente_reagendar_reserva' reserva.pk %}" class="js-manage-booking mt-4 space-y-4" data-reserva="{{ reserva.pk }}" data-profesional-original="{{ reserva.profesional_id|default:'' }}" data-hora-original="{{ reserva.fecha_hora|date:'H:i' }}">
+                        {% if reserva.estado == 'suspendida' and reserva.motivo_suspension %}
+                            <p class="mt-4 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{{ reserva.motivo_suspension }}</p>
+                        {% endif %}
+                        <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-[#e8e0da] pt-4">
+                            <form method="post" action="{% url 'cliente_cancelar_reserva' reserva.pk %}">
                                 {% csrf_token %}
-                                <div>
-                                    <label for="service-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Servicio</label>
-                                    <select id="service-{{ reserva.pk }}" name="servicio" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
-                                        <option value="">Selecciona un servicio...</option>
-                                        {% for servicio in servicios %}
-                                            <option value="{{ servicio.pk }}" {% if reserva.servicio_id == servicio.pk %}selected{% endif %}>{{ servicio.nombre }} · ${{ servicio.precio|floatformat:0 }} · {{ servicio.duracion_minutos }} min</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="grid gap-4 sm:grid-cols-3">
-                                    <div>
-                                        <label for="date-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Fecha</label>
-                                        <input id="date-{{ reserva.pk }}" name="fecha" type="date" min="{{ hoy }}" value="{{ reserva.fecha_hora|date:'Y-m-d' }}" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
-                                    </div>
-                                    <div>
-                                        <label for="professional-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Profesional</label>
-                                        <select id="professional-{{ reserva.pk }}" name="profesional" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
-                                            <option value="">Consulta los horarios...</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label for="hour-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Hora</label>
-                                        <select id="hour-{{ reserva.pk }}" name="hora" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
-                                            <option value="">Selecciona profesional...</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <p class="js-manage-status text-sm text-[#7a6e6a]" aria-live="polite">Consultando disponibilidad para la cita actual...</p>
-                                <button type="submit" class="bg-[#765747] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#604536] disabled:cursor-not-allowed disabled:opacity-50">Guardar cambio</button>
+                                <button type="submit" class="border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50">Cancelar</button>
                             </form>
-                        </details>
-                    {% else %}
-                        <p class="mt-4 text-sm text-[#7a6e6a]">No hay servicios activos para reagendar esta cita.</p>
-                    {% endif %}
+                            <button type="button" class="js-open-edit border border-[#765747] px-4 py-2 text-sm font-medium text-[#765747] transition hover:bg-[#f7f3f0]" aria-expanded="false" aria-controls="edit-reserva-{{ reserva.pk }}">Modificar</button>
+                        </div>
+                        <div id="edit-reserva-{{ reserva.pk }}" hidden class="mt-5 border border-[#e8e0da] bg-[#fcfaf8] p-5 sm:p-6">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-xs uppercase tracking-widest text-[#7a6e6a]">Modificar cita</p>
+                                        <h2 class="mt-1 font-serif text-xl">{{ reserva.servicio_nombre|default:reserva.servicio.nombre }}</h2>
+                                    </div>
+                                </div>
+                                <p class="mt-3 text-sm leading-relaxed text-[#7a6e6a]">Selecciona un servicio, fecha, profesional y hora disponibles. La cita original permanecerá en el historial como modificada.</p>
+                                <form method="post" action="{% url 'cliente_reagendar_reserva' reserva.pk %}" class="js-manage-booking mt-5 space-y-4" data-reserva="{{ reserva.pk }}" data-servicio-original="{{ reserva.servicio_id|default:'' }}" data-profesional-original="{{ reserva.profesional_id|default:'' }}" data-hora-original="{{ reserva.fecha_hora|date:'H:i' }}" data-fecha-original="{{ reserva.fecha_hora|date:'Y-m-d' }}">
+                                    {% csrf_token %}
+                                    <div>
+                                        <label for="service-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Servicio</label>
+                                        <select id="service-{{ reserva.pk }}" name="servicio" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                            <option value="">Selecciona un servicio...</option>
+                                            {% for servicio in servicios %}
+                                                <option value="{{ servicio.pk }}" {% if reserva.servicio_id == servicio.pk %}selected{% endif %}>{{ servicio.nombre }} · {{ servicio.duracion_minutos }} min</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="grid gap-4 sm:grid-cols-3">
+                                        <div>
+                                            <label for="date-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Fecha</label>
+                                            <input id="date-{{ reserva.pk }}" name="fecha" type="date" min="{{ hoy }}" value="{{ reserva.fecha_hora|date:'Y-m-d' }}" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                        </div>
+                                        <div>
+                                            <label for="professional-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Profesional</label>
+                                            <select id="professional-{{ reserva.pk }}" name="profesional" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]"><option value="">Consultando disponibilidad...</option></select>
+                                        </div>
+                                        <div>
+                                            <label for="hour-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Hora</label>
+                                            <select id="hour-{{ reserva.pk }}" name="hora" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]"><option value="">Selecciona profesional...</option></select>
+                                        </div>
+                                    </div>
+                                    <p class="js-manage-status text-sm text-[#7a6e6a]" aria-live="polite">Consultando disponibilidad...</p>
+                                    <div class="flex flex-wrap justify-end gap-3 border-t border-[#e8e0da] pt-4">
+                                        <button type="button" class="js-cancel-edit border border-[#e8e0da] px-4 py-2 text-sm">Cancelar modificación</button>
+                                        <button type="submit" class="bg-[#765747] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#604536]">Aceptar</button>
+                                    </div>
+                                </form>
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="border border-[#e8e0da] bg-[#fcfaf8] p-8 text-center">
+                        <p class="font-serif text-lg">No tienes citas que se puedan modificar o cancelar.</p>
+                        <p class="mt-2 text-sm text-[#7a6e6a]">Las citas dejan de ser gestionables 48 horas antes de su inicio.</p>
+                        <a href="{% url 'cliente_agendamiento' %}" class="mt-5 inline-block bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline">Agendar una cita</a>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
 
-                    <form method="post" action="{% url 'cliente_cancelar_reserva' reserva.pk %}" class="mt-4 border-t border-[#e8e0da] pt-4" onsubmit="return confirm('¿Confirmas que deseas cancelar esta cita?');">
-                        {% csrf_token %}
-                        <button type="submit" class="border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50">Cancelar cita</button>
-                    </form>
-                </article>
-            {% empty %}
-                <div class="py-2 text-center">
-                    <p class="font-serif text-lg">No tienes citas próximas para gestionar.</p>
-                    <a href="{% url 'cliente_agendamiento' %}" class="mt-5 inline-block bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline transition hover:bg-[#604536]">
-                        Agendar una cita
-                    </a>
-                </div>
-            {% endfor %}
+        <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" {% if active_tab != 'historial' %}hidden{% endif %} class="pt-5">
+            <div class="space-y-3">
+                {% for reserva in historial_completo %}
+                    <article class="border border-[#e8e0da] p-4 sm:p-5">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <p class="text-xs uppercase tracking-widest text-[#7a6e6a]">{{ reserva.fecha_hora|date:"d/m/Y" }} · {{ reserva.fecha_hora|date:"H:i" }}</p>
+                                <h3 class="mt-1 font-serif text-lg">{{ reserva.servicio_nombre }}</h3>
+                                <p class="mt-1 text-sm text-[#7a6e6a]">Profesional: {{ reserva.profesional_nombre }} · {{ reserva.duracion_minutos }} min</p>
+                            </div>
+                            <span class="border px-3 py-1 text-xs font-medium {{ reserva.estado_clase }}">{{ reserva.estado_cliente }}</span>
+                        </div>
+                        {% if reserva.motivo %}
+                            <p class="mt-3 border-t border-[#e8e0da] pt-3 text-sm text-[#7a6e6a]">Motivo: {{ reserva.motivo }}</p>
+                        {% endif %}
+                    </article>
+                {% empty %}
+                    <div class="border border-[#e8e0da] bg-[#fcfaf8] p-8 text-center">
+                        <p class="font-serif text-lg">Todavía no tienes citas registradas.</p>
+                        <p class="mt-2 text-sm text-[#7a6e6a]">Cuando solicites una cita, podrás consultar aquí su estado.</p>
+                        <a href="{% url 'cliente_agendamiento' %}" class="mt-5 inline-block bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline">Agendar una cita</a>
+                    </div>
+                {% endfor %}
+            </div>
         </section>
     </div>
 
@@ -112,23 +129,65 @@
     {{ cliente_horas_url|json_script:"cliente-horas-url" }}
     <script>
         (() => {
-            const profesionalesUrl = JSON.parse(document.getElementById('cliente-profesionales-url').textContent);
-            const horasUrl = JSON.parse(document.getElementById('cliente-horas-url').textContent);
+            const tabs = [...document.querySelectorAll('.js-bookings-tab')];
+            const panels = {
+                gestionar: document.getElementById('panel-manage'),
+                historial: document.getElementById('panel-history'),
+            };
+            function setTab(name, updateUrl = true) {
+                for (const tab of tabs) {
+                    const selected = tab.id === `tab-${name}`;
+                    tab.setAttribute('aria-selected', String(selected));
+                    tab.classList.toggle('border-[#765747]', selected);
+                    tab.classList.toggle('font-medium', selected);
+                    tab.classList.toggle('text-[#765747]', selected);
+                    tab.classList.toggle('border-transparent', !selected);
+                    tab.classList.toggle('text-[#7a6e6a]', !selected);
+                }
+                for (const [key, panel] of Object.entries(panels)) panel.hidden = key !== name;
+                if (updateUrl) {
+                    const url = new URL(window.location.href);
+                    if (name === 'historial') url.searchParams.set('tab', name);
+                    else url.searchParams.delete('tab');
+                    window.history.replaceState({}, '', url);
+                }
+            }
+            tabs.forEach(tab => tab.addEventListener('click', () => setTab(tab.id === 'tab-history' ? 'historial' : 'gestionar')));
 
-            function reset(select, placeholder) {
-                select.replaceChildren(new Option(placeholder, ''));
+            document.querySelectorAll('.js-open-edit').forEach(button => {
+                button.addEventListener('click', () => {
+                    const panel = document.getElementById(button.getAttribute('aria-controls'));
+                    panel.hidden = !panel.hidden;
+                    button.setAttribute('aria-expanded', String(!panel.hidden));
+                    if (!panel.hidden) panel.dispatchEvent(new Event('booking:open'));
+                });
+            });
+            document.querySelectorAll('.js-cancel-edit').forEach(button => {
+                button.addEventListener('click', () => {
+                    const panel = button.closest('[id^="edit-reserva-"]');
+                    panel.hidden = true;
+                    document.querySelector(`[aria-controls="${panel.id}"]`).setAttribute('aria-expanded', 'false');
+                });
+            });
+
+            const professionalsUrl = JSON.parse(document.getElementById('cliente-profesionales-url').textContent);
+            const hoursUrl = JSON.parse(document.getElementById('cliente-horas-url').textContent);
+            function reset(select, label) {
+                select.replaceChildren(new Option(label, ''));
                 select.disabled = true;
             }
-
             for (const form of document.querySelectorAll('.js-manage-booking')) {
+                const panel = form.closest('[id^="edit-reserva-"]');
                 const service = form.querySelector('[name="servicio"]');
                 const date = form.querySelector('[name="fecha"]');
                 const professional = form.querySelector('[name="profesional"]');
                 const hour = form.querySelector('[name="hora"]');
                 const status = form.querySelector('.js-manage-status');
                 const reservation = form.dataset.reserva;
+                let requestVersion = 0;
 
                 async function loadProfessionals() {
+                    const version = ++requestVersion;
                     reset(professional, 'Buscando profesionales...');
                     reset(hour, 'Selecciona profesional...');
                     if (!service.value || !date.value) {
@@ -137,73 +196,49 @@
                     }
                     status.textContent = 'Consultando disponibilidad...';
                     const params = new URLSearchParams({servicio: service.value, fecha: date.value, reserva: reservation});
-                    const response = await fetch(`${profesionalesUrl}?${params}`);
+                    const response = await fetch(`${professionalsUrl}?${params}`);
                     const data = await response.json();
-                    if (!response.ok) {
-                        throw new Error(data.error || 'No se pudo consultar a los profesionales.');
-                    }
-                    reset(professional, data.professionals.length ? 'Selecciona profesional...' : 'Sin profesionales disponibles.');
-                    for (const item of data.professionals) {
-                        professional.add(new Option(item.name, item.id));
-                    }
+                    if (version !== requestVersion) return;
+                    if (!response.ok) throw new Error(data.error || 'No se pudo consultar a los profesionales.');
+                    for (const item of data.professionals) professional.add(new Option(item.name, item.id));
                     professional.disabled = !data.professionals.length;
-                    const originalProfessional = form.dataset.profesionalOriginal;
-                    if (originalProfessional && service.value === form.dataset.servicioOriginal) {
-                        professional.value = originalProfessional;
-                    }
+                    if (service.value === form.dataset.servicioOriginal) professional.value = form.dataset.profesionalOriginal;
                     status.textContent = data.professionals.length
-                        ? 'Elige un profesional para consultar sus horas.'
-                        : 'No hay profesionales con horas disponibles para ese servicio y fecha.';
-                    if (professional.value) {
-                        await loadHours();
-                    }
+                        ? 'Selecciona un profesional para consultar sus horas.'
+                        : 'No hay profesionales con disponibilidad para ese servicio y fecha.';
+                    if (professional.value) await loadHours();
                 }
-
                 async function loadHours() {
+                    const version = ++requestVersion;
                     reset(hour, 'Buscando horas...');
                     if (!service.value || !date.value || !professional.value) {
                         status.textContent = 'Selecciona servicio, fecha y profesional.';
                         return;
                     }
-                    const params = new URLSearchParams({
-                        servicio: service.value,
-                        fecha: date.value,
-                        profesional: professional.value,
-                        reserva: reservation,
-                    });
-                    const response = await fetch(`${horasUrl}?${params}`);
+                    const params = new URLSearchParams({servicio: service.value, fecha: date.value, profesional: professional.value, reserva});
+                    const response = await fetch(`${hoursUrl}?${params}`);
                     const data = await response.json();
-                    if (!response.ok) {
-                        throw new Error(data.error || 'No se pudieron consultar las horas.');
-                    }
-                    reset(hour, data.hours.length ? 'Selecciona una hora...' : 'Sin horas disponibles.');
-                    for (const item of data.hours) {
-                        hour.add(new Option(item, item));
-                    }
+                    if (version !== requestVersion) return;
+                    if (!response.ok) throw new Error(data.error || 'No se pudieron consultar las horas.');
+                    for (const value of data.hours) hour.add(new Option(value, value));
                     hour.disabled = !data.hours.length;
                     if (
                         data.hours.includes(form.dataset.horaOriginal)
                         && service.value === form.dataset.servicioOriginal
                         && date.value === form.dataset.fechaOriginal
                         && professional.value === form.dataset.profesionalOriginal
-                    ) {
-                        hour.value = form.dataset.horaOriginal;
-                    }
+                    ) hour.value = form.dataset.horaOriginal;
                     status.textContent = data.hours.length
-                        ? 'Selecciona una hora disponible para guardar los cambios.'
-                        : 'No quedan horas disponibles para esta combinación.';
+                        ? 'Elige una hora disponible y guarda los cambios.'
+                        : 'No hay horas disponibles para esta combinación.';
                 }
-
-                function reportError(message) {
-                    status.textContent = message;
+                function reportError(error) {
+                    status.textContent = error.message || 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
                 }
-
-                form.dataset.servicioOriginal = service.value;
-                form.dataset.fechaOriginal = date.value;
-                service.addEventListener('change', () => loadProfessionals().catch(() => reportError('No se pudo consultar la disponibilidad. Intenta nuevamente.')));
-                date.addEventListener('change', () => loadProfessionals().catch(() => reportError('No se pudo consultar la disponibilidad. Intenta nuevamente.')));
-                professional.addEventListener('change', () => loadHours().catch(() => reportError('No se pudieron consultar las horas. Intenta nuevamente.')));
-                loadProfessionals().catch(() => reportError('No se pudo consultar la disponibilidad. Intenta nuevamente.'));
+                service.addEventListener('change', () => loadProfessionals().catch(reportError));
+                date.addEventListener('change', () => loadProfessionals().catch(reportError));
+                professional.addEventListener('change', () => loadHours().catch(reportError));
+                panel.addEventListener('booking:open', () => loadProfessionals().catch(reportError));
             }
         })();
     </script>

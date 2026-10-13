@@ -181,8 +181,32 @@ class CierreDiaForm(forms.Form):
 
 
 class ReagendarReservaForm(forms.Form):
-    fecha = forms.DateField(widget=forms.DateInput(attrs={**FORM_CONTROL, 'type': 'date'}))
-    hora = forms.TimeField(widget=forms.Select(attrs=FORM_SELECT), input_formats=['%H:%M'])
+    servicio = forms.ModelChoiceField(
+        queryset=ServicioAgenda.objects.none(),
+        widget=forms.Select(attrs=FORM_SELECT),
+    )
+    profesional = forms.ModelChoiceField(
+        queryset=Usuario.objects.none(),
+        widget=forms.Select(attrs=FORM_SELECT),
+    )
+    fecha = forms.DateField(
+        widget=forms.DateInput(attrs={**FORM_CONTROL, 'type': 'date'}),
+        input_formats=['%Y-%m-%d'],
+    )
+    hora = forms.TimeField(
+        widget=forms.Select(attrs=FORM_SELECT),
+        input_formats=['%H:%M'],
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['servicio'].queryset = ServicioAgenda.objects.filter(
+            activo=True,
+        ).order_by('nombre')
+        servicio_id = self.data.get('servicio') if self.is_bound else None
+        self.fields['profesional'].queryset = _profesionales_disponibles_para_servicio(
+            servicio_id,
+        )
 
 
 class CancelarReservaForm(forms.Form):

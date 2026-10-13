@@ -1,9 +1,13 @@
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+import logging
+import smtplib
 from uuid import uuid4
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.conf import settings
+from django.core.mail import send_mail
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -13,7 +17,9 @@ from django.views.decorators.http import require_POST
 
 from agenda.models import DiaCerrado, Disponibilidad, Reserva
 from agenda.views import horas_disponibles
+from pagos.models import Pago
 from panel_admin.models import Producto, Servicio
+from ventas.models import DetalleVenta, Venta
 from usuarios.permissions import es_cliente
 
 from .models import (
@@ -27,6 +33,7 @@ from .models import (
 CLAVE_CARRITO = 'carrito_compra'
 ABONO_SERVICIO = Decimal('5000.00')
 RESERVA_PRODUCTO_MINUTOS = 30
+logger = logging.getLogger(__name__)
 
 
 def cantidad_articulos(request):
@@ -78,12 +85,28 @@ def resumen_carrito(request):
         servicio.pk: servicio
         for servicio in Servicio.objects.filter(pk__in=servicios_ids, activo=True)
     }
+    from usuarios.models import Usuario
+
+    profesional_ids = {
+        int(item['profesional'])
+        for item in carrito['servicios']
+        if isinstance(item, dict) and str(item.get('profesional', '')).isdecimal()
+    }
+    profesionales = {
+        profesional.pk: profesional
+        for profesional in Usuario.objects.filter(pk__in=profesional_ids)
+    }
     for item in carrito['servicios']:
         if not isinstance(item, dict) or not str(item.get('id', '')).isdecimal():
             continue
         servicio = servicios.get(int(item['id']))
         if servicio is None:
             continue
+        profesional = (
+            profesionales.get(int(item['profesional']))
+            if str(item.get('profesional', '')).isdecimal()
+            else None
+        )
         resumen.append({
             'tipo': 'servicio',
             'id': servicio.pk,
@@ -94,6 +117,17 @@ def resumen_carrito(request):
             'subtotal': servicio.precio,
             'url': reverse('cliente_carrito_actualizar'),
             'agregar_url': reverse('cliente_carrito_agregar_servicio', args=[servicio.pk]),
+            'fecha': item.get('fecha', ''),
+            'hora': item.get('hora', ''),
+            'profesional': (
+                ' '.join(part for part in (
+                    profesional.nombre,
+                    profesional.segundo_nombre,
+                    profesional.apellido_paterno,
+                    profesional.apellido_materno,
+                ) if part) if profesional else ''
+            ),
+            'pago': item.get('pago', ''),
         })
         total += servicio.precio
     return resumen, total
@@ -281,6 +315,9 @@ def ver_carrito(request):
 
     servicios = []
     total_servicios = Decimal('0')
+    total_servicios_completo = Decimal('0')
+    total_servicios_abono = Decimal('0')
+    saldos_servicios = []
     total_pagar = total_productos
     for item in carrito['servicios']:
         if not isinstance(item, dict) or not str(item.get('id', '')).isdecimal():
@@ -320,8 +357,19 @@ def ver_carrito(request):
             'disponible': True,
         })
         total_servicios += precio
-        if cita_completa and modalidad in ('completo', 'abono'):
+        if modalidad == 'completo':
+            total_servicios_completo += monto_pagar
+        elif modalidad == 'abono':
+            total_servicios_abono += monto_pagar
+            if precio > monto_pagar:
+                saldos_servicios.append({
+                    'nombre': servicio.nombre,
+                    'saldo': precio - monto_pagar,
+                })
+        if modalidad in ('completo', 'abono'):
             total_pagar += monto_pagar
+            if not cita_completa:
+                puede_pagar = False
         else:
             puede_pagar = False
 
@@ -331,6 +379,13 @@ def ver_carrito(request):
         'servicios': servicios,
         'total_productos': total_productos,
         'total_servicios': total_servicios,
+        'total_servicios_completo': total_servicios_completo,
+        'total_servicios_abono': total_servicios_abono,
+        'saldos_servicios': saldos_servicios,
+        'saldo_servicios_pendiente': sum(
+            (item['saldo'] for item in saldos_servicios),
+            Decimal('0'),
+        ),
         'total_pedido': total_productos + total_servicios,
         'total_pagar': total_pagar,
         'saldo_pendiente': total_productos + total_servicios - total_pagar,
@@ -539,6 +594,45 @@ def _profesional_valido(profesional_id, categoria_id):
     ).exists()
 
 
+def _enviar_confirmacion_pedido(request, pedido):
+    lineas = [
+        f'Hola {pedido.cliente.nombre}, tu pago fue procesado correctamente.',
+        f'Número de compra: {pedido.pk}',
+        f'Monto pagado: ${pedido.monto_pagado:,.0f}',
+        '',
+        'Detalle:',
+    ]
+    for detalle in pedido.detalles.select_related('reserva__profesional').all():
+        if detalle.reserva_id:
+            reserva = detalle.reserva
+            fecha = timezone.localtime(reserva.fecha_hora)
+            profesional = reserva.profesional
+            nombre_profesional = ' '.join(part for part in (
+                profesional.nombre,
+                profesional.segundo_nombre,
+                profesional.apellido_paterno,
+                profesional.apellido_materno,
+            ) if part) if profesional else 'Sin asignar'
+            lineas.append(
+                f'- Cita: {detalle.nombre}; {fecha:%d/%m/%Y} a las {fecha:%H:%M}; '
+                f'profesional: {nombre_profesional}; pago: ${detalle.monto_pagado:,.0f}.'
+            )
+        else:
+            lineas.append(f'- Producto: {detalle.nombre} x{detalle.cantidad}.')
+    lineas.extend((
+        '',
+        'Puedes cancelar o re-agendar tus citas desde Gestionar citas:',
+        request.build_absolute_uri(reverse('cliente_gestionar_citas')),
+    ))
+    send_mail(
+        'Confirmación de tu compra y cita - Nicolett Studio',
+        '\n'.join(lineas),
+        getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER),
+        [pedido.cliente.email],
+        fail_silently=False,
+    )
+
+
 @_cliente_view
 @require_POST
 def pagar_carrito(request):
@@ -740,14 +834,56 @@ def pagar_carrito(request):
                 reserva=reserva,
             )
 
+        transaccion_id = str(uuid4())
         PagoSimulado.objects.create(
             pedido=pedido,
             monto=total_pagar,
-            transaccion_id=str(uuid4()),
+            transaccion_id=transaccion_id,
+        )
+        venta = Venta.objects.create(
+            cliente=cliente,
+            total=total_productos + total_servicios,
+            estado='Completada' if total_pagar >= total_productos + total_servicios else 'Pendiente',
+        )
+        for producto, cantidad in productos:
+            DetalleVenta.objects.create(
+                venta=venta,
+                producto=producto,
+                cantidad=cantidad,
+                subtotal=producto.precio * cantidad,
+            )
+        for _, servicio, _, _, _, _, _ in servicios:
+            DetalleVenta.objects.create(
+                venta=venta,
+                servicio=servicio,
+                cantidad=1,
+                subtotal=servicio.precio,
+            )
+        Pago.objects.create(
+            venta=venta,
+            monto=total_pagar,
+            metodo_pago='Carrito cliente',
+            estado_pago='Aprobado',
+            transaccion_id=transaccion_id,
         )
 
     request.session.pop(CLAVE_CARRITO, None)
     request.session.modified = True
+    try:
+        _enviar_confirmacion_pedido(request, pedido)
+    except (OSError, smtplib.SMTPException):
+        logger.exception('No se pudo enviar el correo de confirmación del pedido %s.', pedido.pk)
+        messages.warning(
+            request,
+            'El pago y la cita se registraron, pero no se pudo enviar el correo. '
+            'Puedes revisar los datos en Gestionar citas.',
+        )
+    else:
+        messages.success(
+            request,
+            'Pago y cita registrados correctamente. Enviamos la confirmación a tu correo; '
+            'también puedes gestionar la cita desde Gestionar citas.',
+        )
     return redirect('cliente_compra_resultado', pk=pedido.pk)
 
 
@@ -760,4 +896,11 @@ def resultado_compra(request, pk):
         ),
         pk=pk,
     )
-    return render(request, 'usuarios/cliente_compra_resultado.html', {'pedido': pedido})
+    return render(
+        request,
+        'usuarios/cliente_compra_resultado.html',
+        {
+            'pedido': pedido,
+            'tiene_citas': pedido.detalles.filter(tipo='servicio').exists(),
+        },
+    )

@@ -1,9 +1,13 @@
 import logging
 import smtplib
+import unicodedata
+from datetime import date
 from decimal import Decimal
 
+from django.conf import settings
+from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -25,7 +29,12 @@ from .forms import (
 from .models import Servicio, Categoria, Producto
 from usuarios.models import Rol, Usuario
 from usuarios.permissions import es_administrador
-from agenda.models import ProfesionalCategoria, Reserva
+from agenda.models import (
+    Disponibilidad,
+    ProfesionalCategoria,
+    Reserva,
+    ServicioDesactivadoPorPersonal,
+)
 from notificaciones.recordatorios import (
     enviar_recordatorio as enviar_recordatorio_email,
     listar_recordatorios_pendientes,
@@ -36,6 +45,10 @@ from pagos.models import Pago
 from ventas.models import Venta
 
 logger = logging.getLogger(__name__)
+
+
+def _formatear_miles_clp(valor):
+    return format(valor, ',.0f').replace(',', '.')
 
 
 def dashboard_home(request):
@@ -51,6 +64,7 @@ def dashboard_home(request):
         'citas_hoy': citas_hoy,
         'total_citas_hoy': citas_hoy.count(),
         'ventas_mes': ventas_mes,
+        'ventas_mes_formateado': _formatear_miles_clp(ventas_mes),
         'servicios_activos': Servicio.objects.filter(activo=True).count(),
         'productos_activos': Producto.objects.filter(activo=True).count(),
     })
@@ -123,6 +137,8 @@ def editar_servicio(request, servicio_id):
             )
             return redirect('listar_servicios')
     form.save()
+    if form.cleaned_data['activo'] != estaba_activo:
+        ServicioDesactivadoPorPersonal.objects.filter(servicio_id=servicio.pk).delete()
     if desactivar:
         from agenda.services import desactivar_servicio_y_cancelar_citas
         citas_canceladas, correos, sin_correo, fallidos = desactivar_servicio_y_cancelar_citas(
@@ -168,6 +184,7 @@ def eliminar_servicio(request, servicio_id):
     Reserva.objects.filter(servicio_id=servicio.pk).update(servicio=None)
     from agenda.models import ProfesionalServicio
     ProfesionalServicio.objects.filter(servicio_id=servicio.pk).delete()
+    ServicioDesactivadoPorPersonal.objects.filter(servicio_id=servicio.pk).delete()
     servicio.delete()
     if imagen:
         try:
@@ -252,6 +269,7 @@ def cambiar_estado_servicio(request, servicio_id):
             )
     servicio.activo = False if servicio.activo else True
     servicio.save(update_fields=['activo'])
+    ServicioDesactivadoPorPersonal.objects.filter(servicio_id=servicio.pk).delete()
     estado = 'activado' if servicio.activo else 'desactivado'
     messages.success(request, f'El servicio quedó {estado} correctamente.')
     return redirect('listar_servicios')
@@ -419,6 +437,15 @@ def lista_ventas(request):
         pagos = pagos.filter(criterio_pago)
 
     hoy = timezone.localdate()
+    ventas_mes = Venta.objects.filter(
+        fecha_venta__year=hoy.year,
+        fecha_venta__month=hoy.month,
+    ).aggregate(total=Sum('total'))['total'] or Decimal('0.00')
+    pagos_aprobados_mes = Pago.objects.filter(
+        fecha_pago__year=hoy.year,
+        fecha_pago__month=hoy.month,
+        estado_pago__iexact='Aprobado',
+    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     return render(request, 'panel_admin/ventas_lista.html', {
         'ventas': ventas,
         'pagos': pagos,
@@ -429,15 +456,10 @@ def lista_ventas(request):
         'estados_pago': Pago.objects.order_by().values_list('estado_pago', flat=True).distinct(),
         'total_ventas': Venta.objects.count(),
         'total_pagos': Pago.objects.count(),
-        'ventas_mes': Venta.objects.filter(
-            fecha_venta__year=hoy.year,
-            fecha_venta__month=hoy.month,
-        ).aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
-        'pagos_aprobados_mes': Pago.objects.filter(
-            fecha_pago__year=hoy.year,
-            fecha_pago__month=hoy.month,
-            estado_pago__iexact='Aprobado',
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00'),
+        'ventas_mes': ventas_mes,
+        'ventas_mes_formateado': _formatear_miles_clp(ventas_mes),
+        'pagos_aprobados_mes': pagos_aprobados_mes,
+        'pagos_aprobados_mes_formateado': _formatear_miles_clp(pagos_aprobados_mes),
     })
 
 
@@ -462,21 +484,25 @@ def detalle_venta(request, pk):
 
 
 def gestion_recordatorios(request):
-    horas_cita, dias_seguimiento = obtener_configuracion_recordatorios()
+    horas_cita, horas_seguimiento = obtener_configuracion_recordatorios()
     if request.method == 'POST':
         form = ConfiguracionRecordatoriosForm(request.POST)
         if form.is_valid():
             guardar_intervalos_recordatorios(
                 form.cleaned_data['horas_cita'],
-                form.cleaned_data['dias_seguimiento'],
+                form.cleaned_data['horas_seguimiento'],
             )
-            messages.success(request, 'La programación de recordatorios quedó actualizada.')
+            messages.success(request, 'La configuración de recordatorios quedó actualizada.')
             return redirect('admin_recordatorios')
     else:
         form = ConfiguracionRecordatoriosForm(initial={
             'horas_cita': ', '.join(map(str, horas_cita)),
-            'dias_seguimiento': ', '.join(map(str, dias_seguimiento)),
+            'horas_seguimiento': horas_seguimiento,
         })
+    horas_cita_texto = form['horas_cita'].value() or ', '.join(map(str, horas_cita))
+    horas_seguimiento_valor = (
+        form['horas_seguimiento'].value() or horas_seguimiento
+    )
 
     busqueda = request.GET.get('q', '').strip()
     tareas = listar_recordatorios_pendientes()
@@ -491,12 +517,44 @@ def gestion_recordatorios(request):
                 str(tarea['reserva'].servicio or ''),
             )).casefold()
         ]
+    fecha_cita = request.GET.get('fecha_cita', '').strip()
+    fecha_seguimiento = request.GET.get('fecha_seguimiento', '').strip()
+    try:
+        fecha_cita_filtro = date.fromisoformat(fecha_cita) if fecha_cita else None
+    except ValueError:
+        fecha_cita_filtro = None
+        messages.error(request, 'La fecha de búsqueda de citas no es válida.')
+    try:
+        fecha_seguimiento_filtro = (
+            date.fromisoformat(fecha_seguimiento) if fecha_seguimiento else None
+        )
+    except ValueError:
+        fecha_seguimiento_filtro = None
+        messages.error(request, 'La fecha de búsqueda de seguimiento no es válida.')
+
+    recordatorios_cita = [tarea for tarea in tareas if tarea['tipo'] == 'cita']
+    recordatorios_seguimiento = [tarea for tarea in tareas if tarea['tipo'] == 'seguimiento']
+    if fecha_cita_filtro:
+        recordatorios_cita = [
+            tarea for tarea in recordatorios_cita
+            if timezone.localtime(tarea['reserva'].fecha_hora).date() == fecha_cita_filtro
+        ]
+    if fecha_seguimiento_filtro:
+        recordatorios_seguimiento = [
+            tarea for tarea in recordatorios_seguimiento
+            if timezone.localtime(tarea['reserva'].fecha_hora).date()
+            == fecha_seguimiento_filtro
+        ]
 
     return render(request, 'panel_admin/recordatorios_lista.html', {
-        'recordatorios_cita': [tarea for tarea in tareas if tarea['tipo'] == 'cita'],
-        'recordatorios_seguimiento': [tarea for tarea in tareas if tarea['tipo'] == 'seguimiento'],
+        'recordatorios_cita': recordatorios_cita,
+        'recordatorios_seguimiento': recordatorios_seguimiento,
         'form_recordatorios': form,
         'busqueda': busqueda,
+        'horas_cita_texto': horas_cita_texto,
+        'horas_seguimiento_valor': horas_seguimiento_valor,
+        'fecha_cita': fecha_cita,
+        'fecha_seguimiento': fecha_seguimiento,
     })
 
 
@@ -563,6 +621,20 @@ def _contexto_personal(personal_form=None, form_action=None, form_is_edit=False)
             str(especialidad.categoria_id)
             for especialidad in colaborador.especialidades.all()
         ]
+    reservas_por_personal = dict(
+        Reserva.objects.filter(
+            profesional__in=personal,
+            fecha_hora__gte=timezone.now(),
+        ).exclude(
+            estado__in=['cancelada', 'completada'],
+        ).values(
+            'profesional_id',
+        ).annotate(
+            cantidad=Count('pk'),
+        ).values_list('profesional_id', 'cantidad')
+    )
+    for colaborador in personal:
+        colaborador.citas_futuras_count = reservas_por_personal.get(colaborador.pk, 0)
     personal_form = personal_form or PersonalForm()
     context = {
         'personal': personal,
@@ -597,6 +669,167 @@ def _guardar_especializaciones(colaborador, categorias):
     ])
 
 
+def _citas_futuras_personal(colaborador):
+    return Reserva.objects.filter(
+        profesional=colaborador,
+        fecha_hora__gte=timezone.now(),
+    ).exclude(estado__in=['cancelada', 'completada'])
+
+
+def _desactivar_recursos_personal(colaborador, categorias_ids):
+    Disponibilidad.objects.filter(
+        profesional=colaborador,
+        activo=True,
+        fecha_especifica__gte=timezone.localdate(),
+    ).update(activo=False, desactivado_por_personal=True)
+
+    for categoria_id in categorias_ids:
+        hay_otro_profesional = Usuario.objects.filter(
+            is_active=True,
+            deleted_at__isnull=True,
+            rol__nombre__iexact='Colaborador',
+            especialidades__categoria_id=categoria_id,
+        ).exclude(pk=colaborador.pk).exists()
+        if hay_otro_profesional:
+            continue
+
+        servicios_activos = Servicio.objects.filter(
+            categoria_id=categoria_id,
+            activo=True,
+        )
+        for servicio_id in servicios_activos.values_list('pk', flat=True):
+            ServicioDesactivadoPorPersonal.objects.get_or_create(
+                servicio_id=servicio_id,
+                defaults={'categoria_id': categoria_id},
+            )
+        servicios_activos.update(activo=False)
+
+
+def _reactivar_recursos_personal(colaborador, categorias_ids):
+    Disponibilidad.objects.filter(
+        profesional=colaborador,
+        desactivado_por_personal=True,
+        fecha_especifica__lt=timezone.localdate(),
+    ).update(desactivado_por_personal=False)
+    Disponibilidad.objects.filter(
+        profesional=colaborador,
+        desactivado_por_personal=True,
+        fecha_especifica__gte=timezone.localdate(),
+    ).update(activo=True, desactivado_por_personal=False)
+
+    servicios_pendientes = ServicioDesactivadoPorPersonal.objects.filter(
+        categoria_id__in=categorias_ids,
+    )
+    servicio_ids = list(servicios_pendientes.values_list('servicio_id', flat=True))
+    Servicio.objects.filter(pk__in=servicio_ids, activo=False).update(activo=True)
+    servicios_pendientes.delete()
+
+
+def _notificar_clientes_personal(colaborador, mensaje_personalizado):
+    citas = _citas_futuras_personal(colaborador).filter(
+        cliente__isnull=False,
+    ).select_related('cliente').order_by('cliente_id', 'fecha_hora')
+    citas_por_cliente = {}
+    for cita in citas:
+        citas_por_cliente.setdefault(cita.cliente, []).append(cita)
+
+    enviados = 0
+    sin_correo = 0
+    fallidos = 0
+    for cliente, citas_cliente in citas_por_cliente.items():
+        if not cliente.email:
+            sin_correo += 1
+            continue
+        detalles = '\n'.join(
+            f'- {cita.servicio_nombre or "Servicio"}: '
+            f'{timezone.localtime(cita.fecha_hora):%d-%m-%Y a las %H:%M}'
+            for cita in citas_cliente
+        )
+        try:
+            send_mail(
+                'Información sobre tu próxima cita - Nicolett Studio',
+                (
+                    f'Hola {cliente.nombre},\n\n{mensaje_personalizado.strip()}\n\n'
+                    f'Tus citas próximas:\n{detalles}\n\n'
+                    'Si necesitas ayuda, contáctanos para coordinar una alternativa.'
+                ),
+                getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER),
+                [cliente.email],
+                fail_silently=False,
+            )
+            enviados += 1
+        except (OSError, smtplib.SMTPException):
+            logger.exception(
+                'No se pudo notificar al cliente %s por la inactivación del colaborador %s.',
+                cliente.pk,
+                colaborador.pk,
+            )
+            fallidos += 1
+    return enviados, sin_correo, fallidos
+
+
+def _validar_confirmacion_personal(request, colaborador):
+    cantidad_citas = _citas_futuras_personal(colaborador).count()
+    if cantidad_citas and request.POST.get('confirmar_agenda') != '1':
+        messages.warning(
+            request,
+            f'Hay {cantidad_citas} cita(s) futura(s) con este colaborador. '
+            'Confirma nuevamente para continuar.',
+        )
+        return False
+    if request.POST.get('notificar_clientes') == '1':
+        mensaje = request.POST.get('mensaje_clientes', '').strip()
+        if not mensaje:
+            messages.error(request, 'Escribe el mensaje personalizado que recibirán los clientes.')
+            return False
+        if len(mensaje) > 1000:
+            messages.error(request, 'El mensaje personalizado no puede superar los 1000 caracteres.')
+            return False
+        texto_normalizado = ''.join(
+            caracter
+            for caracter in unicodedata.normalize('NFKD', mensaje.casefold())
+            if not unicodedata.combining(caracter)
+        )
+        frases_no_permitidas = (
+            'ya no esta trabajando',
+            'ya no trabaja',
+            'no trabaja en el salon',
+            'dejo de trabajar',
+            'ha dejado de trabajar',
+            'no trabaja mas',
+            'no trabajara mas',
+            'no volvera a trabajar',
+            'ya no forma parte',
+            'ya no pertenece al salon',
+            'dejo de pertenecer',
+            'se retiro del salon',
+            'dejo el salon',
+            'se fue del salon',
+        )
+        if any(frase in texto_normalizado for frase in frases_no_permitidas):
+            messages.error(
+                request,
+                'El mensaje no puede indicar que el colaborador dejó de trabajar en el salón.',
+            )
+            return False
+    return True
+
+
+def _mostrar_resultado_notificaciones(request, resultado):
+    enviados, sin_correo, fallidos = resultado
+    if not enviados and not sin_correo and not fallidos:
+        messages.info(
+            request,
+            'No había clientes con cuenta y citas futuras para notificar.',
+        )
+        return
+    messages.info(
+        request,
+        f'Avisos a clientes: {enviados} enviados, {sin_correo} sin email de cuenta, '
+        f'{fallidos} fallidos.',
+    )
+
+
 @require_POST
 def crear_personal(request):
     form = PersonalForm(request.POST)
@@ -621,6 +854,10 @@ def crear_personal(request):
         _guardar_especializaciones(
             colaborador,
             form.cleaned_data['especializaciones'],
+        )
+        _reactivar_recursos_personal(
+            colaborador,
+            [categoria.pk for categoria in form.cleaned_data['especializaciones']],
         )
     messages.success(
         request,
@@ -650,6 +887,11 @@ def editar_personal(request, pk):
             colaborador,
             form.cleaned_data['especializaciones'],
         )
+        if colaborador.is_active:
+            _reactivar_recursos_personal(
+                colaborador,
+                [categoria.pk for categoria in form.cleaned_data['especializaciones']],
+            )
     messages.success(request, 'Los datos del colaborador se actualizaron correctamente.')
     return redirect('admin_personal')
 
@@ -662,26 +904,74 @@ def eliminar_personal(request, pk):
         rol__nombre__iexact='Colaborador',
         deleted_at__isnull=True,
     )
-    if Reserva.objects.filter(profesional=colaborador).exists():
-        colaborador.is_active = False
-        colaborador.deleted_at = timezone.now()
-        colaborador.save(update_fields=['is_active', 'deleted_at'])
-        messages.warning(
+    if not _validar_confirmacion_personal(request, colaborador):
+        return redirect('admin_personal')
+
+    categorias_ids = list(
+        ProfesionalCategoria.objects.filter(
+            profesional=colaborador,
+        ).values_list('categoria_id', flat=True)
+    )
+    tiene_historial = Reserva.objects.filter(profesional=colaborador).exists()
+    with transaction.atomic():
+        if colaborador.is_active:
+            colaborador.is_active = False
+            colaborador.save(update_fields=['is_active'])
+            _desactivar_recursos_personal(colaborador, categorias_ids)
+        if tiene_historial:
+            colaborador.deleted_at = timezone.now()
+            colaborador.save(update_fields=['deleted_at'])
+        else:
+            colaborador.delete()
+    if request.POST.get('notificar_clientes') == '1':
+        _mostrar_resultado_notificaciones(
             request,
-            'El colaborador se retiró del personal y ya no estará disponible para nuevas citas. '
-            'Se conservó el registro para mantener el historial de agendamientos.',
+            _notificar_clientes_personal(
+                colaborador,
+                request.POST['mensaje_clientes'],
+            ),
         )
-    else:
-        colaborador.delete()
-        messages.success(request, 'El colaborador se eliminó correctamente.')
+    messages.success(request, 'El colaborador se eliminó correctamente.')
     return redirect('admin_personal')
 
 
 @require_POST
 def desactivar_personal(request, pk):
     colaborador = get_object_or_404(Usuario, pk=pk, rol__nombre__iexact='Colaborador')
-    colaborador.is_active = not colaborador.is_active
-    colaborador.save(update_fields=['is_active'])
-    estado = 'activado' if colaborador.is_active else 'desactivado'
-    messages.success(request, f'El colaborador quedó {estado}.')
+    if colaborador.is_active:
+        if not _validar_confirmacion_personal(request, colaborador):
+            return redirect('admin_personal')
+        categorias_ids = list(
+            ProfesionalCategoria.objects.filter(
+                profesional=colaborador,
+            ).values_list('categoria_id', flat=True)
+        )
+        with transaction.atomic():
+            colaborador.is_active = False
+            colaborador.save(update_fields=['is_active'])
+            _desactivar_recursos_personal(colaborador, categorias_ids)
+        if request.POST.get('notificar_clientes') == '1':
+            _mostrar_resultado_notificaciones(
+                request,
+                _notificar_clientes_personal(
+                    colaborador,
+                    request.POST['mensaje_clientes'],
+                ),
+            )
+        messages.success(request, 'El colaborador quedó desactivado.')
+    else:
+        categorias_ids = list(
+            ProfesionalCategoria.objects.filter(
+                profesional=colaborador,
+            ).values_list('categoria_id', flat=True)
+        )
+        with transaction.atomic():
+            colaborador.is_active = True
+            colaborador.save(update_fields=['is_active'])
+            _reactivar_recursos_personal(colaborador, categorias_ids)
+        messages.success(
+            request,
+            'El colaborador quedó activado; se recuperaron sus bloques futuros '
+            'que se habían desactivado automáticamente.',
+        )
     return redirect('admin_personal')

@@ -54,6 +54,14 @@
                                     <div class="min-w-0">
                                         <h3 class="truncate text-sm font-medium">{{ item.nombre }}</h3>
                                         <p class="mt-1 text-xs text-[#7a6e6a]">${{ item.precio|floatformat:0 }} c/u · Subtotal ${{ item.subtotal|floatformat:0 }}</p>
+                                        {% if item.tipo == 'servicio' %}
+                                            <p class="mt-1 text-xs text-[#7a6e6a]">
+                                                {% if item.fecha %}{{ item.fecha }}{% else %}Fecha pendiente{% endif %}
+                                                {% if item.hora %} · {{ item.hora }}{% endif %}
+                                                {% if item.profesional %} · {{ item.profesional }}{% endif %}
+                                                {% if item.pago %} · {% if item.pago == 'abono' %}Abono{% else %}Pago completo{% endif %}{% endif %}
+                                            </p>
+                                        {% endif %}
                                     </div>
                                     {% if item.tipo == 'producto' %}
                                         <form method="post" action="{{ item.url }}">
@@ -140,14 +148,17 @@
                 <a href="{% url 'cliente_productos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-box-open w-4 text-center text-[#c9a99b]"></i> Productos
                 </a>
-                <a href="{% url 'cliente_historial' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-clock-rotate-left w-4 text-center text-[#c9a99b]"></i> Historial de citas
-                </a>
                 <a href="{% url 'cliente_agendamiento' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
                     <i class="fa-regular fa-calendar-plus w-4 text-center text-[#c9a99b]"></i> Agendar citas
                 </a>
                 <a href="{% url 'cliente_gestionar_citas' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}aria-current="page"{% endif %}>
                     <i class="fa-regular fa-calendar-check w-4 text-center text-[#c9a99b]"></i> Gestionar citas
+                </a>
+                <a href="{% url 'cliente_historial_pagos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-receipt w-4 text-center text-[#c9a99b]"></i> Historial de pagos
+                </a>
+                <a href="{% url 'cliente_configuracion' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_configuracion' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_configuracion' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-gear w-4 text-center text-[#c9a99b]"></i> Configuración
                 </a>
             </nav>
         </aside>

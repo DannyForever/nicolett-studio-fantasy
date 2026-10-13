@@ -1,13 +1,16 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from django.test import TestCase
+from django.core import mail
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from agenda.models import Disponibilidad, ProfesionalCategoria, Reserva
 from panel_admin.models import Categoria, Producto, Servicio
 from usuarios.models import Rol, Usuario
+from pagos.models import Pago
+from ventas.models import DetalleVenta, Venta
 
 from .models import (
     DetallePedido,
@@ -93,6 +96,11 @@ class CarritoTests(TestCase):
         self.assertEqual(pedido.estado, 'pagado')
         self.assertEqual(DetallePedido.objects.get(pedido=pedido).cantidad, 3)
         self.assertEqual(PagoSimulado.objects.get(pedido=pedido).monto, Decimal('7500'))
+        venta = Venta.objects.get(cliente=self.cliente)
+        self.assertEqual(venta.total, Decimal('7500'))
+        self.assertEqual(venta.estado, 'Completada')
+        self.assertEqual(DetalleVenta.objects.get(venta=venta).producto_id, self.producto.pk)
+        self.assertEqual(Pago.objects.get(venta=venta).monto, Decimal('7500'))
         self.assertFalse(ReservaProductoCarrito.objects.exists())
 
     def test_removing_product_from_cart_restores_stock(self):
@@ -214,6 +222,18 @@ class CarritoTests(TestCase):
         )
         self.assertRedirects(response, reverse('cliente_carrito'))
 
+        cart = self.client.get(reverse('cliente_carrito'))
+        self.assertEqual(cart.context['total_servicios_completo'], Decimal('0'))
+        self.assertEqual(cart.context['total_servicios_abono'], Decimal('5000'))
+        self.assertEqual(cart.context['saldo_servicios_pendiente'], Decimal('7000'))
+        self.assertEqual(cart.context['saldos_servicios'][0]['nombre'], self.servicio.nombre)
+        self.assertContains(cart, 'Servicios (pago completo)')
+        self.assertContains(cart, 'Servicios (abono)')
+        self.assertContains(cart, 'Saldos pendientes')
+        self.assertContains(cart, 'Guardar cita')
+        self.assertNotContains(cart, 'ficticio')
+        self.assertNotContains(cart, 'saldo $7000 en el salón')
+
         response = self.client.post(reverse('cliente_carrito_pagar'))
 
         pedido = Pedido.objects.get(cliente=self.cliente)
@@ -230,8 +250,14 @@ class CarritoTests(TestCase):
         self.assertEqual(detalle.reserva.servicio_id, self.servicio.pk)
         self.assertEqual(detalle.reserva.estado, 'confirmada')
         self.assertEqual(PagoSimulado.objects.get(pedido=pedido).monto, Decimal('5000'))
+        venta = Venta.objects.get(cliente=self.cliente)
+        self.assertEqual(venta.total, Decimal('12000'))
+        self.assertEqual(venta.estado, 'Pendiente')
+        self.assertEqual(DetalleVenta.objects.get(venta=venta).servicio_id, self.servicio.pk)
+        self.assertEqual(Pago.objects.get(venta=venta).monto, Decimal('5000'))
 
-    def test_service_can_be_paid_in_full(self):
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_service_can_be_paid_in_full_and_emails_confirmation(self):
         self.client.post(
             reverse('cliente_carrito_agregar_servicio', args=[self.servicio.pk]),
         )
@@ -246,14 +272,72 @@ class CarritoTests(TestCase):
             },
         )
 
-        self.client.post(reverse('cliente_carrito_pagar'))
+        cart = self.client.get(reverse('cliente_carrito'))
+        self.assertEqual(cart.context['total_servicios_completo'], Decimal('12000'))
+        self.assertEqual(cart.context['total_servicios_abono'], Decimal('0'))
+        self.assertEqual(cart.context['saldo_servicios_pendiente'], Decimal('0'))
+
+        response = self.client.post(reverse('cliente_carrito_pagar'))
 
         pedido = Pedido.objects.get(cliente=self.cliente)
+        self.assertRedirects(
+            response,
+            reverse('cliente_compra_resultado', args=[pedido.pk]),
+        )
         self.assertEqual(pedido.total, Decimal('12000'))
         self.assertEqual(pedido.monto_pagado, Decimal('12000'))
         self.assertEqual(pedido.saldo_pendiente, Decimal('0'))
         self.assertEqual(pedido.estado, 'pagado')
         self.assertEqual(PagoSimulado.objects.get(pedido=pedido).monto, Decimal('12000'))
+        venta = Venta.objects.get(cliente=self.cliente)
+        self.assertEqual(venta.total, Decimal('12000'))
+        self.assertEqual(venta.estado, 'Completada')
+        self.assertEqual(Pago.objects.get(venta=venta).monto, Decimal('12000'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.cliente.email])
+        self.assertIn(self.servicio.nombre, mail.outbox[0].body)
+        self.assertIn(reverse('cliente_gestionar_citas'), mail.outbox[0].body)
+        resultado = self.client.get(reverse('cliente_compra_resultado', args=[pedido.pk]))
+        self.assertContains(resultado, 'citas incluidas en esta compra quedaron confirmadas')
+        self.assertContains(resultado, 'Gestionar citas')
+
+    def test_mixed_checkout_records_products_services_and_paid_amount_for_admin(self):
+        self.client.post(
+            reverse('cliente_carrito_agregar_producto', args=[self.producto.pk]),
+            {'cantidad': 2},
+        )
+        self.client.post(
+            reverse('cliente_carrito_agregar_servicio', args=[self.servicio.pk]),
+        )
+        key = self.client.session['carrito_compra']['servicios'][0]['key']
+        self.client.post(
+            reverse('cliente_carrito_guardar_cita', args=[key]),
+            {
+                'fecha': self.fecha.isoformat(),
+                'profesional': self.profesional.pk,
+                'hora': '10:00',
+                'pago': 'abono',
+            },
+        )
+
+        response = self.client.post(reverse('cliente_carrito_pagar'))
+
+        pedido = Pedido.objects.get(cliente=self.cliente)
+        self.assertRedirects(
+            response,
+            reverse('cliente_compra_resultado', args=[pedido.pk]),
+        )
+        self.assertEqual(pedido.total, Decimal('17000'))
+        self.assertEqual(pedido.monto_pagado, Decimal('10000'))
+        venta = Venta.objects.get(cliente=self.cliente)
+        self.assertEqual(venta.total, Decimal('17000'))
+        self.assertEqual(venta.estado, 'Pendiente')
+        detalles = list(DetalleVenta.objects.filter(venta=venta).order_by('pk'))
+        self.assertEqual(len(detalles), 2)
+        self.assertEqual(detalles[0].producto_id, self.producto.pk)
+        self.assertEqual(detalles[0].cantidad, 2)
+        self.assertEqual(detalles[1].servicio_id, self.servicio.pk)
+        self.assertEqual(Pago.objects.get(venta=venta).monto, Decimal('10000'))
 
     def test_checkout_rejects_overlapping_service_appointments_for_customer(self):
         segundo_profesional = Usuario.objects.create_user(

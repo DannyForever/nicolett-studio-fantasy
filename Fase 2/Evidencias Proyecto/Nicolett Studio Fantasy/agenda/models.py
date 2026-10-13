@@ -139,6 +139,31 @@ class Reserva(models.Model):
         return self.cliente_email or (self.cliente.email if self.cliente_id else '')
 
 
+class HistorialReserva(models.Model):
+    EVENTOS = [
+        ('modificada', 'Cita modificada'),
+        ('cancelada', 'Cita cancelada'),
+    ]
+
+    reserva = models.ForeignKey(
+        Reserva,
+        on_delete=models.CASCADE,
+        related_name='historial',
+    )
+    evento = models.CharField(max_length=20, choices=EVENTOS)
+    fecha_hora = models.DateTimeField()
+    servicio_nombre = models.CharField(max_length=150, blank=True)
+    profesional_nombre = models.CharField(max_length=250, blank=True)
+    estado = models.CharField(max_length=50, blank=True)
+    duracion_minutos = models.PositiveIntegerField(null=True, blank=True)
+    motivo = models.TextField(blank=True)
+    registrado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'agenda_historial_reserva'
+        ordering = ['-registrado_en', '-pk']
+
+
 class Disponibilidad(models.Model):
     DIAS_SEMANA = [
         ('0', 'Lunes'),
@@ -172,6 +197,7 @@ class Disponibilidad(models.Model):
     intervalo_minutos = models.PositiveIntegerField(null=True, blank=True)
     descanso_inicio = models.TimeField(null=True, blank=True)
     descanso_fin = models.TimeField(null=True, blank=True)
+    desactivado_por_personal = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'disponibilidad'
@@ -196,6 +222,14 @@ class ProfesionalServicio(models.Model):
     class Meta:
         db_table = 'profesional_servicio'
         unique_together = (('profesional', 'servicio'),)
+
+
+class ServicioDesactivadoPorPersonal(models.Model):
+    servicio_id = models.PositiveBigIntegerField(unique=True)
+    categoria_id = models.PositiveBigIntegerField()
+
+    class Meta:
+        db_table = 'agenda_servicio_desactivado_personal'
 
 
 class DiaCerrado(models.Model):
