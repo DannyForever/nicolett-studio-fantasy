@@ -1,10 +1,16 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, time
 
+from config.formatters import formatear_pesos
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from agenda.models import HistorialReserva, Reserva
+from agenda.models import (
+    Disponibilidad,
+    HistorialReserva,
+    ProfesionalCategoria,
+    Reserva,
+)
 from carrito.models import DetallePedido, PagoSimulado, Pedido
 from panel_admin.models import Categoria, Producto, Servicio
 
@@ -35,6 +41,15 @@ class RoleAccessTests(TestCase):
             apellido_materno='Prueba',
             telefono='+56987654321',
             rol=self.client_role,
+        )
+
+    def test_peso_formatter_uses_periods_as_thousands_separators(self):
+        self.assertEqual(
+            [
+                formatear_pesos(amount)
+                for amount in (1000, 10000, 100000, 1000000, 10000000)
+            ],
+            ['$1.000', '$10.000', '$100.000', '$1.000.000', '$10.000.000'],
         )
 
     def test_registration_always_creates_client_and_records_terms_acceptance(self):
@@ -69,7 +84,7 @@ class RoleAccessTests(TestCase):
             {'email': cliente.email, 'password': 'Cliente123!'},
         )
 
-        self.assertRedirects(response, reverse('cliente_home'))
+        self.assertRedirects(response, reverse('cliente_servicios'))
         denied = self.client.get(reverse('admin_dashboard'))
         self.assertEqual(denied.status_code, 403)
         self.assertContains(denied, 'Acceso restringido', status_code=403)
@@ -115,7 +130,7 @@ class RoleAccessTests(TestCase):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
         section_names = (
-            'cliente_home',
+            'cliente_sobre_nosotros',
             'cliente_servicios',
             'cliente_productos',
             'cliente_agendamiento',
@@ -132,10 +147,17 @@ class RoleAccessTests(TestCase):
                 self.assertContains(response, f'href="{reverse(name)}"')
                 self.assertContains(response, 'aria-current="page"')
                 self.assertIn('no-store', response['Cache-Control'])
+                self.assertContains(response, 'sticky top-14')
+                self.assertNotContains(response, 'fixed bottom-0 left-0 top-14')
                 self.assertContains(
                     response,
-                    f'<a href="{reverse("cliente_home")}" aria-label="Ir al inicio de cliente"',
+                    f'<a href="{reverse("cliente_servicios")}" aria-label="Ir a Servicios"',
                 )
+                self.assertContains(
+                    response,
+                    f'<a href="{reverse("cliente_sobre_nosotros")}"',
+                )
+                self.assertNotContains(response, '> Inicio</a>')
                 self.assertContains(response, '© 2026 Nicolett Studio Fantasy')
         self.assertNotContains(self.client.get(reverse('cliente_gestionar_citas')), 'fa-clock-rotate-left')
         legacy_history = self.client.get(reverse('cliente_historial'))
@@ -168,7 +190,46 @@ class RoleAccessTests(TestCase):
             precio=20000,
             duracion_minutos=60,
             activo=True,
+            imagen_url='servicios/masaje-prueba.jpg',
         )
+        servicio_sin_horarios = Servicio.objects.create(
+            nombre='Servicio sin horarios',
+            categoria=categoria,
+            precio=11000,
+            duracion_minutos=30,
+            activo=True,
+        )
+        rol_colaborador, _ = Rol.objects.get_or_create(nombre='Colaborador')
+        profesional = Usuario.objects.create_user(
+            email='profesional.catalogo@example.com',
+            password='Colaborador123!',
+            nombre='Profesional',
+            apellido_paterno='Prueba',
+            apellido_materno='Catálogo',
+            telefono='+56911112222',
+            rol=rol_colaborador,
+        )
+        ProfesionalCategoria.objects.create(
+            profesional=profesional,
+            categoria_id=categoria.pk,
+        )
+        fecha = timezone.localdate() + timedelta(days=7)
+        for servicio_con_horarios in (servicio, servicio_caro):
+            inicio = time(10, 0)
+            fin = (
+                datetime.combine(fecha, inicio)
+                + timedelta(minutes=servicio_con_horarios.duracion_minutos)
+            ).time()
+            Disponibilidad.objects.create(
+                dia_semana=str(fecha.weekday()),
+                hora_inicio=inicio,
+                hora_fin=fin,
+                activo=True,
+                profesional=profesional,
+                servicio_id=servicio_con_horarios.pk,
+                fecha_especifica=fecha,
+                intervalo_minutos=servicio_con_horarios.duracion_minutos,
+            )
         producto = Producto.objects.create(
             nombre='Shampoo de prueba',
             categoria=categoria,
@@ -176,6 +237,7 @@ class RoleAccessTests(TestCase):
             precio=9900,
             stock=5,
             activo=True,
+            imagen_url='productos/shampoo-prueba.jpg',
         )
         Producto.objects.create(
             nombre='Producto oculto',
@@ -185,18 +247,36 @@ class RoleAccessTests(TestCase):
             stock=1,
             activo=False,
         )
+        Producto.objects.create(
+            nombre='Producto sin stock',
+            categoria=categoria,
+            descripcion='No debe aparecer sin stock.',
+            precio=5000,
+            stock=0,
+            activo=True,
+        )
 
         servicios = self.client.get(reverse('cliente_servicios'))
         productos = self.client.get(reverse('cliente_productos'))
+        agendamiento = self.client.get(reverse('cliente_agendamiento'))
 
         self.assertContains(servicios, 'Corte de prueba')
+        self.assertContains(servicios, '$15.000')
         self.assertNotContains(servicios, 'Servicio oculto')
+        self.assertNotContains(servicios, 'Servicio sin horarios')
+        self.assertContains(agendamiento, 'Corte de prueba')
+        self.assertNotContains(agendamiento, 'Servicio sin horarios')
         self.assertContains(servicios, 'id="catalog-search"')
         self.assertContains(servicios, 'data-category-filter="Cabello"')
         self.assertNotContains(servicios, 'data-category-filter="Tratamientos"')
         self.assertContains(servicios, 'Añadir al carrito')
         self.assertContains(servicios, 'border-[#e8e0da]')
-        self.assertNotContains(servicios, 'Servicio de prueba para clientes.')
+        self.assertContains(servicios, 'Servicio de prueba para clientes.')
+        self.assertContains(servicios, 'Sin imagen disponible')
+        self.assertContains(servicios, 'data-image-zoom-action="out"')
+        self.assertContains(servicios, 'data-image-zoom-action="in"')
+        self.assertContains(servicios, 'data-image-zoom-action="reset"')
+        self.assertContains(servicios, 'data-zoomable-image')
         self.assertNotContains(
             servicios,
             'mt-auto flex items-center justify-between border-t border-[#e8e0da] pt-4 text-sm',
@@ -215,12 +295,16 @@ class RoleAccessTests(TestCase):
             f'action="{reverse("cliente_carrito_agregar_servicio", args=[servicio.pk])}"',
         )
         self.assertContains(productos, 'Shampoo de prueba')
+        self.assertContains(productos, '$9.900')
         self.assertNotContains(productos, 'Producto oculto')
+        self.assertNotContains(productos, 'Producto sin stock')
         self.assertContains(productos, 'id="catalog-search"')
         self.assertContains(productos, 'data-category-filter="Cabello"')
         self.assertNotContains(productos, 'data-category-filter="Tratamientos"')
         self.assertContains(productos, 'border-[#e8e0da]')
-        self.assertNotContains(productos, 'Producto de prueba para clientes.')
+        self.assertContains(productos, 'Producto de prueba para clientes.')
+        self.assertContains(productos, 'data-image-zoom-action="in"')
+        self.assertContains(productos, 'data-zoomable-image')
         self.assertNotContains(
             productos,
             'mt-auto flex items-center justify-between border-t border-[#e8e0da] pt-4 text-sm',
@@ -231,10 +315,50 @@ class RoleAccessTests(TestCase):
         self.assertContains(productos, 'Nombre: Z-A')
         self.assertNotContains(productos, 'Aquí podrás revisar los productos del estudio.')
         self.assertNotContains(productos, 'border-b border-[#e8e0da] p-6 sm:p-8')
+        self.assertNotContains(productos, 'overflow-auto bg-[#f7f3f0]')
         self.assertContains(
             productos,
             f'action="{reverse("cliente_carrito_agregar_producto", args=[producto.pk])}"',
         )
+
+    def test_client_about_page_shows_brand_story_and_verified_contact_options(self):
+        self.client.force_login(self.crear_cliente())
+
+        response = self.client.get(reverse('cliente_sobre_nosotros'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Nosotras')
+        self.assertContains(response, 'Nicolett Studio Fantasy')
+        self.assertContains(response, 'Nuestro origen')
+        self.assertContains(response, 'Nuestra misión')
+        self.assertContains(response, 'Nuestra visión')
+        self.assertContains(response, 'fa-seedling')
+        self.assertContains(response, 'https://www.instagram.com/nicolettstudiofantasy/')
+        self.assertContains(response, 'https://wa.me/56940322551')
+        self.assertContains(response, "Av. Bernardo O'Higgins 979")
+        self.assertContains(response, 'nicolettstudio@gmail.com')
+        self.assertContains(response, '+56 9 4032 2551')
+        self.assertNotContains(response, 'Formulario de contacto')
+        self.assertNotContains(response, 'Contactar por WhatsApp')
+
+    def test_customer_home_redirects_to_services(self):
+        self.client.force_login(self.crear_cliente())
+
+        response = self.client.get(reverse('cliente_home'))
+
+        self.assertRedirects(response, reverse('cliente_servicios'))
+
+    def test_client_profile_fields_are_disabled_with_locked_visual_state(self):
+        self.client.force_login(self.crear_cliente())
+
+        response = self.client.get(reverse('cliente_configuracion'))
+
+        self.assertContains(response, 'disabled:cursor-not-allowed')
+        self.assertContains(response, 'disabled:bg-gray-100')
+        self.assertContains(response, 'field.disabled = true')
+        self.assertContains(response, 'field.disabled = false')
+        self.assertContains(response, 'id="cancel-client-profile"')
+        self.assertContains(response, 'profileForm.reset();')
 
     def test_customer_history_lists_only_their_database_appointments(self):
         cliente = self.crear_cliente()
@@ -547,6 +671,6 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'transaction-visible')
         self.assertContains(response, 'Pago parcial')
         self.assertContains(response, 'Producto de pago')
-        self.assertContains(response, '2 × $2500')
-        self.assertContains(response, '$5000')
+        self.assertContains(response, '2 × $2.500')
+        self.assertContains(response, '$5.000')
         self.assertNotContains(response, 'transaction-private')

@@ -1,6 +1,6 @@
     <header class="sticky top-0 z-50 grid grid-cols-[1fr_auto_1fr] items-center border-b border-customBorder bg-customBg px-8 py-5 font-sans text-xs leading-normal text-customDark antialiased lg:px-16">
         {% if request.user.is_authenticated and request.user.rol.nombre == 'Cliente' %}
-        <a href="{% url 'cliente_home' %}" aria-label="Ir al inicio de cliente" class="block justify-self-start text-customDark no-underline">
+        <a href="{% url 'cliente_servicios' %}" aria-label="Ir a Servicios" class="block justify-self-start text-customDark no-underline">
         {% else %}
         <a href="{% url 'home' %}" aria-label="Ir al inicio" class="block justify-self-start text-customDark no-underline">
         {% endif %}

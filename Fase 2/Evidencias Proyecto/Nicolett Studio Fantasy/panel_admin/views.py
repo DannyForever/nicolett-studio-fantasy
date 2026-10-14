@@ -1,8 +1,9 @@
 import logging
 import smtplib
 import unicodedata
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal
+from uuid import uuid4
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -17,11 +18,12 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from config.formatters import formatear_miles_clp
+
 from .forms import (
     AdminPasswordChangeForm,
     AdminProfileForm,
     CategoriaForm,
-    ConfiguracionRecordatoriosForm,
     PersonalForm,
     ProductoForm,
     ServicioForm,
@@ -35,12 +37,8 @@ from agenda.models import (
     Reserva,
     ServicioDesactivadoPorPersonal,
 )
-from notificaciones.recordatorios import (
-    enviar_recordatorio as enviar_recordatorio_email,
-    listar_recordatorios_pendientes,
-    obtener_configuracion_recordatorios,
-    guardar_configuracion_recordatorios as guardar_intervalos_recordatorios,
-)
+from notificaciones.recordatorios import listar_recordatorios_pendientes
+from notificaciones.models import ProgramacionRecordatorio
 from pagos.models import Pago
 from ventas.models import Venta
 
@@ -48,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 def _formatear_miles_clp(valor):
-    return format(valor, ',.0f').replace(',', '.')
+    return formatear_miles_clp(valor)
 
 
 def dashboard_home(request):
@@ -419,6 +417,7 @@ def lista_ventas(request):
             Decimal('0.00'),
         )
         venta.saldo_pendiente = max(venta.total - venta.total_pagado, Decimal('0.00'))
+        venta.estado_mostrado = 'Completada' if venta.saldo_pendiente == 0 else venta.estado
 
     pagos = Pago.objects.select_related('venta', 'venta__cliente').order_by('-fecha_pago')
     if estado_pago:
@@ -463,6 +462,58 @@ def lista_ventas(request):
     })
 
 
+@login_required(login_url='login')
+@require_POST
+def registrar_pago_saldo_venta(request, pk):
+    if not es_administrador(request.user):
+        return HttpResponseForbidden()
+
+    metodos_pago = {
+        'efectivo': 'Efectivo presencial',
+        'transferencia': 'Transferencia',
+        'tarjeta': 'Tarjeta presencial',
+        'otro': 'Otro medio presencial',
+    }
+    metodo_seleccionado = request.POST.get('metodo_pago', '')
+    if metodo_seleccionado not in metodos_pago:
+        messages.error(request, 'Selecciona un método de pago válido.')
+        return redirect('admin_ventas')
+
+    with transaction.atomic():
+        venta = get_object_or_404(
+            Venta.objects.select_for_update().select_related('cliente').prefetch_related('pagos'),
+            pk=pk,
+        )
+        total_pagado = sum(
+            (
+                pago.monto for pago in venta.pagos.all()
+                if pago.estado_pago.casefold() == 'aprobado'
+            ),
+            Decimal('0.00'),
+        )
+        saldo_pendiente = max(venta.total - total_pagado, Decimal('0.00'))
+        if saldo_pendiente == 0:
+            messages.info(request, 'Esta venta ya está completamente pagada.')
+            return redirect('admin_ventas')
+
+        Pago.objects.create(
+            venta=venta,
+            monto=saldo_pendiente,
+            metodo_pago=metodos_pago[metodo_seleccionado],
+            estado_pago='Aprobado',
+            transaccion_id=f'PRESENCIAL-{uuid4()}',
+        )
+        venta.estado = 'Completada'
+        venta.save(update_fields=['estado'])
+
+    messages.success(
+        request,
+        f'Pago de {formatear_miles_clp(saldo_pendiente)} registrado. '
+        f'El folio #{venta.pk} quedó completado.',
+    )
+    return redirect('admin_ventas')
+
+
 def detalle_venta(request, pk):
     venta = get_object_or_404(
         Venta.objects.select_related('cliente').prefetch_related(
@@ -483,27 +534,12 @@ def detalle_venta(request, pk):
     return render(request, 'panel_admin/venta_detalle.html', {'venta': venta})
 
 
+@login_required(login_url='login')
 def gestion_recordatorios(request):
-    horas_cita, horas_seguimiento = obtener_configuracion_recordatorios()
-    if request.method == 'POST':
-        form = ConfiguracionRecordatoriosForm(request.POST)
-        if form.is_valid():
-            guardar_intervalos_recordatorios(
-                form.cleaned_data['horas_cita'],
-                form.cleaned_data['horas_seguimiento'],
-            )
-            messages.success(request, 'La configuración de recordatorios quedó actualizada.')
-            return redirect('admin_recordatorios')
-    else:
-        form = ConfiguracionRecordatoriosForm(initial={
-            'horas_cita': ', '.join(map(str, horas_cita)),
-            'horas_seguimiento': horas_seguimiento,
-        })
-    horas_cita_texto = form['horas_cita'].value() or ', '.join(map(str, horas_cita))
-    horas_seguimiento_valor = (
-        form['horas_seguimiento'].value() or horas_seguimiento
-    )
-
+    if not es_administrador(request.user):
+        return HttpResponseForbidden()
+    if request.method != 'GET':
+        return HttpResponseForbidden()
     busqueda = request.GET.get('q', '').strip()
     tareas = listar_recordatorios_pendientes()
     if busqueda:
@@ -513,8 +549,11 @@ def gestion_recordatorios(request):
             if busqueda_normalizada in ' '.join((
                 tarea['reserva'].nombre_cliente,
                 tarea['reserva'].correo_cliente,
+                tarea['reserva'].correo_cliente,
+                tarea['reserva'].cliente_telefono,
                 tarea['reserva'].servicio_nombre,
                 str(tarea['reserva'].servicio or ''),
+                str(tarea['reserva'].profesional or ''),
             )).casefold()
         ]
     fecha_cita = request.GET.get('fecha_cita', '').strip()
@@ -546,31 +585,41 @@ def gestion_recordatorios(request):
             == fecha_seguimiento_filtro
         ]
 
+    for tarea in recordatorios_cita + recordatorios_seguimiento:
+        tarea['programado_input'] = timezone.localtime(
+            tarea['programado'],
+        ).strftime('%Y-%m-%dT%H:%M')
+        tarea['limite_cita_input'] = timezone.localtime(
+            tarea['reserva'].fecha_hora,
+        ).strftime('%Y-%m-%dT%H:%M')
+        tarea['fin_atencion_input'] = timezone.localtime(
+            tarea['reserva'].fecha_hora
+            + timedelta(minutes=tarea['reserva'].duracion_minutos),
+        ).strftime('%Y-%m-%dT%H:%M')
+
     return render(request, 'panel_admin/recordatorios_lista.html', {
         'recordatorios_cita': recordatorios_cita,
         'recordatorios_seguimiento': recordatorios_seguimiento,
-        'form_recordatorios': form,
         'busqueda': busqueda,
-        'horas_cita_texto': horas_cita_texto,
-        'horas_seguimiento_valor': horas_seguimiento_valor,
         'fecha_cita': fecha_cita,
         'fecha_seguimiento': fecha_seguimiento,
     })
 
 
+@login_required(login_url='login')
 @require_POST
-def enviar_recordatorio(request, reserva_id):
+def programar_recordatorio(request, reserva_id):
+    if not es_administrador(request.user):
+        return HttpResponseForbidden()
     tipo = request.POST.get('tipo', '')
     if tipo not in {'cita', 'seguimiento'}:
         messages.error(request, 'El tipo de recordatorio indicado no es válido.')
         return redirect('admin_recordatorios')
-
     try:
         desfase = int(request.POST.get('desfase', ''))
     except ValueError:
         messages.error(request, 'El intervalo del recordatorio no es válido.')
         return redirect('admin_recordatorios')
-
     tarea = next((
         item for item in listar_recordatorios_pendientes()
         if item['reserva'].pk == reserva_id
@@ -578,34 +627,50 @@ def enviar_recordatorio(request, reserva_id):
         and item['desfase'] == desfase
     ), None)
     if tarea is None:
-        messages.error(request, 'Este recordatorio ya se envió o no está dentro de su período de envío.')
+        messages.error(request, 'Este aviso ya fue enviado o la cita ya no está vigente.')
         return redirect('admin_recordatorios')
-    if not tarea['vencido']:
-        messages.info(request, 'Este recordatorio todavía no vence; se enviará cuando llegue la fecha programada.')
+    if not tarea['reserva'].correo_cliente:
+        messages.error(request, 'La cita no tiene un correo electrónico registrado.')
         return redirect('admin_recordatorios')
-
     try:
-        enviado = enviar_recordatorio_email(tarea)
-    except ValueError as error:
-        messages.error(request, str(error))
-        return redirect('admin_recordatorios')
-    except (OSError, smtplib.SMTPException, RuntimeError):
-        logger.exception(
-            'No se pudo enviar el recordatorio %s de la reserva %s.',
-            tipo,
-            reserva_id,
+        programado_naive = datetime.fromisoformat(
+            request.POST.get('programado_para', '').strip(),
         )
-        messages.error(request, 'No se pudo enviar el correo. Revisa la configuración de correo e inténtalo otra vez.')
+    except ValueError:
+        messages.error(request, 'Indica una fecha y hora válida para el recordatorio.')
+        return redirect('admin_recordatorios')
+    programado = (
+        timezone.make_aware(programado_naive)
+        if timezone.is_naive(programado_naive)
+        else programado_naive
+    )
+    reserva = tarea['reserva']
+    if tipo == 'cita' and programado >= reserva.fecha_hora:
+        messages.error(request, 'El recordatorio de cita debe programarse antes de la hora de atención.')
+        return redirect('admin_recordatorios')
+    fin_atencion = reserva.fecha_hora + timedelta(minutes=reserva.duracion_minutos)
+    if tipo == 'seguimiento' and programado < fin_atencion:
+        messages.error(request, 'El seguimiento debe programarse después de finalizar la atención.')
         return redirect('admin_recordatorios')
 
-    if enviado:
-        messages.success(
-            request,
-            f'El recordatorio se envió a {tarea["reserva"].correo_cliente}.',
-        )
-    else:
-        messages.info(request, 'Este recordatorio ya se había enviado.')
+    programacion, _ = ProgramacionRecordatorio.objects.update_or_create(
+        reserva=reserva,
+        tipo=tipo,
+        desfase=desfase,
+        fecha_hora_cita=reserva.fecha_hora,
+        defaults={
+            'programado_para': programado,
+            'enviado_en': None,
+        },
+    )
+    messages.success(
+        request,
+        f'El {("recordatorio" if tipo == "cita" else "seguimiento")} para '
+        f'{reserva.nombre_cliente or "el cliente"} quedó programado para '
+        f'{timezone.localtime(programacion.programado_para):%d-%m-%Y %H:%M}.',
+    )
     return redirect('admin_recordatorios')
+
 
 def _contexto_personal(personal_form=None, form_action=None, form_is_edit=False):
     personal = Usuario.objects.filter(

@@ -8,6 +8,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from carrito.models import DetallePedido, Pedido
 from panel_admin.models import Categoria, Servicio
 from usuarios.models import Rol, Usuario
 from .models import (
@@ -17,6 +18,7 @@ from .models import (
     HistorialReserva,
     ProfesionalCategoria,
     Reserva,
+    ReservaCitaTemporal,
 )
 from .views import horas_disponibles
 
@@ -165,17 +167,29 @@ class AgendaTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse('cliente_carrito'))
+        self.assertRedirects(
+            response,
+            f"{reverse('cliente_agendamiento')}?abrir_carrito=1",
+        )
         self.assertFalse(Reserva.objects.filter(cliente=cliente).exists())
         cita_carrito = self.client.session['carrito_compra']['servicios'][0]
         self.assertEqual(cita_carrito['id'], self.servicio.pk)
         self.assertEqual(cita_carrito['fecha'], self.fecha.isoformat())
         self.assertEqual(cita_carrito['profesional'], str(self.profesional.pk))
         self.assertEqual(cita_carrito['hora'], '09:00')
-        carrito = self.client.get(reverse('cliente_carrito'))
-        self.assertContains(carrito, 'Manicure')
-        self.assertContains(carrito, self.fecha.isoformat())
-        self.assertContains(carrito, 'Juan Pérez')
+        self.assertTrue(
+            ReservaCitaTemporal.objects.filter(
+                session_key=self.client.session.session_key,
+                cart_item_key=cita_carrito['key'],
+                vence_en__gt=timezone.now(),
+            ).exists()
+        )
+        agendamiento = self.client.get(response['Location'])
+        self.assertContains(agendamiento, 'Resumen de compra')
+        self.assertContains(agendamiento, 'abrir_carrito')
+        self.assertContains(agendamiento, 'Manicure')
+        self.assertContains(agendamiento, self.fecha.isoformat())
+        self.assertContains(agendamiento, 'Juan Pérez')
         self.assertEqual(
             self.client.get(
                 reverse('cliente_horas_disponibles'),
@@ -185,7 +199,7 @@ class AgendaTests(TestCase):
                     'fecha': self.fecha.isoformat(),
                 },
             ).json()['hours'],
-            ['09:00'],
+            [],
         )
 
     def test_client_calendar_marks_available_closed_and_past_days(self):
@@ -411,7 +425,37 @@ class AgendaTests(TestCase):
 
         reserva.cliente = cliente
         reserva.save(update_fields=['cliente'])
-        self.client.post(reverse('cliente_cancelar_reserva', args=[reserva.pk]))
+        pedido = Pedido.objects.create(
+            cliente=cliente,
+            total='14500',
+            monto_pagado='7500',
+            estado='abono',
+        )
+        DetallePedido.objects.create(
+            pedido=pedido,
+            tipo='servicio',
+            nombre=self.servicio.nombre,
+            cantidad=1,
+            precio_unitario='12000',
+            monto_pagado='5000',
+            modalidad_pago='abono',
+            reserva=reserva,
+        )
+        DetallePedido.objects.create(
+            pedido=pedido,
+            tipo='producto',
+            nombre='Producto pagado',
+            cantidad=1,
+            precio_unitario='2500',
+            monto_pagado='2500',
+            modalidad_pago='no_aplica',
+        )
+        response = self.client.post(
+            reverse('cliente_cancelar_reserva', args=[reserva.pk]),
+            follow=True,
+        )
+        self.assertContains(response, 'devolución de $5.000')
+        self.assertContains(response, 'no incluye productos')
         reserva.refresh_from_db()
         self.assertEqual(reserva.estado, 'cancelada')
         self.assertIn('Cancelada por la clienta', reserva.motivo_cancelacion)
@@ -480,7 +524,9 @@ class AgendaTests(TestCase):
         page = self.client.get(reverse('cliente_gestionar_citas'))
         self.assertNotContains(page, f'value="{reserva.pk}" form="cancelSelectedBookings"')
         self.assertNotContains(page, 'Cancelar citas seleccionadas')
-        self.assertNotIn(reserva, page.context['reservas_gestionables'])
+        self.assertContains(page, 'dentro de las 48 horas previas')
+        self.assertContains(page, 'disabled')
+        self.assertIn(reserva, page.context['reservas_gestionables'])
 
         cancel_response = self.client.post(
             reverse('cliente_cancelar_reserva', args=[reserva.pk]),

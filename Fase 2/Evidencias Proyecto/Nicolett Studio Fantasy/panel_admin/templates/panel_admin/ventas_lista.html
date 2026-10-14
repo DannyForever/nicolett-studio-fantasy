@@ -1,4 +1,5 @@
 {% extends 'panel_admin/base_dashboard.html' %}
+{% load moneda %}
 
 {% block title %}Ventas y pagos | Nicolett Studio{% endblock %}
 
@@ -50,18 +51,34 @@
     </div>
     <div class="table-responsive services-table-card">
         <table id="ventasTabla" class="table align-middle mb-0">
-            <thead><tr><th>FOLIO</th><th>FECHA</th><th>CLIENTE</th><th>TOTAL</th><th>PAGADO</th><th>SALDO</th><th>ESTADO</th><th></th></tr></thead>
+            <thead><tr><th>FOLIO</th><th>FECHA</th><th>CLIENTE</th><th>TOTAL</th><th>PAGADO</th><th>SALDO PENDIENTE</th><th>ESTADO</th><th>ACCIONES</th></tr></thead>
             <tbody>
                 {% for venta in ventas %}
                     <tr data-filter-row data-status="{{ venta.estado|lower }}" data-search="{{ venta.pk }} {{ venta.cliente.nombre }} {{ venta.cliente.apellido_paterno }} {{ venta.cliente.apellido_materno }} {{ venta.cliente.email }} {{ venta.estado }}">
                         <td>#{{ venta.pk }}</td>
                         <td class="text-nowrap">{{ venta.fecha_venta|date:"d-m-Y H:i" }}</td>
                         <td>{{ venta.cliente.nombre }} {{ venta.cliente.apellido_paterno }}</td>
-                        <td>${{ venta.total|floatformat:0 }}</td>
-                        <td>${{ venta.total_pagado|floatformat:0 }}</td>
-                        <td>${{ venta.saldo_pendiente|floatformat:0 }}</td>
-                        <td><span class="badge text-bg-light border">{{ venta.estado }}</span></td>
-                        <td><a class="btn btn-sm salon-btn-outline" href="{% url 'admin_detalle_venta' venta.pk %}">Ver detalle</a></td>
+                        <td>{{ venta.total|pesos }}</td>
+                        <td>{{ venta.total_pagado|pesos }}</td>
+                        <td><span class="d-block small text-muted">Saldo pendiente</span><strong>{{ venta.saldo_pendiente|pesos }}</strong></td>
+                        <td><span class="badge text-bg-light border">{{ venta.estado_mostrado }}</span></td>
+                        <td>
+                            <a class="btn btn-sm salon-btn-outline mb-1" href="{% url 'admin_detalle_venta' venta.pk %}">Ver detalle</a>
+                            {% if venta.saldo_pendiente > 0 %}
+                                <form method="post" action="{% url 'admin_registrar_pago_saldo_venta' venta.pk %}" class="mt-1">
+                                    {% csrf_token %}
+                                    <label class="visually-hidden" for="metodo-pago-{{ venta.pk }}">Método de pago presencial del folio {{ venta.pk }}</label>
+                                    <select id="metodo-pago-{{ venta.pk }}" name="metodo_pago" class="form-select form-select-sm mb-1" required>
+                                        <option value="">Método de pago</option>
+                                        <option value="efectivo">Efectivo presencial</option>
+                                        <option value="transferencia">Transferencia</option>
+                                        <option value="tarjeta">Tarjeta presencial</option>
+                                        <option value="otro">Otro medio presencial</option>
+                                    </select>
+                                    <button class="btn btn-sm salon-btn-primary text-nowrap" type="submit">Registrar saldo y completar</button>
+                                </form>
+                            {% endif %}
+                        </td>
                     </tr>
                 {% empty %}
                     <tr><td colspan="8" class="text-center text-muted py-4">Aún no hay ventas registradas.</td></tr>
@@ -103,7 +120,7 @@
                         <td class="text-nowrap">{{ pago.fecha_pago|date:"d-m-Y H:i" }}</td>
                         <td><a href="{% url 'admin_detalle_venta' pago.venta_id %}">#{{ pago.venta_id }}</a></td>
                         <td>{{ pago.venta.cliente.nombre }} {{ pago.venta.cliente.apellido_paterno }}</td>
-                        <td>${{ pago.monto|floatformat:0 }}</td>
+                        <td>{{ pago.monto|pesos }}</td>
                         <td>{{ pago.metodo_pago }}</td>
                         <td>{{ pago.transaccion_id|default:"—" }}</td>
                         <td><span class="badge text-bg-light border">{{ pago.estado_pago }}</span></td>

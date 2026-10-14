@@ -1,4 +1,5 @@
 {% extends 'panel_admin/base_dashboard.html' %}
+{% load moneda %}
 
 {% block title %}Venta #{{ venta.pk }} | Nicolett Studio{% endblock %}
 
@@ -24,9 +25,9 @@
         <section class="card-stat h-100">
             <h2 class="h5 mb-3">Resumen de pago</h2>
             <div class="row g-3">
-                <div class="col-sm-4"><span class="small text-muted d-block">Total venta</span><strong>${{ venta.total|floatformat:0 }}</strong></div>
-                <div class="col-sm-4"><span class="small text-muted d-block">Pagado (aprobado)</span><strong>${{ venta.total_pagado|floatformat:0 }}</strong></div>
-                <div class="col-sm-4"><span class="small text-muted d-block">Saldo pendiente</span><strong>${{ venta.saldo_pendiente|floatformat:0 }}</strong></div>
+                <div class="col-sm-4"><span class="small text-muted d-block">Total venta</span><strong>{{ venta.total|pesos }}</strong></div>
+                <div class="col-sm-4"><span class="small text-muted d-block">Pagado (aprobado)</span><strong>{{ venta.total_pagado|pesos }}</strong></div>
+                <div class="col-sm-4"><span class="small text-muted d-block">Saldo pendiente</span><strong>{{ venta.saldo_pendiente|pesos }}</strong></div>
             </div>
         </section>
     </div>
@@ -42,7 +43,7 @@
                     <tr>
                         <td>{% if detalle.producto %}{{ detalle.producto.nombre }}{% elif detalle.servicio %}{{ detalle.servicio.nombre }}{% else %}Ítem eliminado{% endif %}</td>
                         <td>{{ detalle.cantidad }}</td>
-                        <td>${{ detalle.subtotal|floatformat:0 }}</td>
+                        <td>{{ detalle.subtotal|pesos }}</td>
                     </tr>
                 {% empty %}
                     <tr><td colspan="3" class="text-center text-muted py-4">Esta venta no tiene ítems asociados.</td></tr>
@@ -61,7 +62,7 @@
                 {% for pago in venta.pagos.all %}
                     <tr>
                         <td>{{ pago.fecha_pago|date:"d-m-Y H:i" }}</td>
-                        <td>${{ pago.monto|floatformat:0 }}</td>
+                        <td>{{ pago.monto|pesos }}</td>
                         <td>{{ pago.metodo_pago }}</td>
                         <td>{{ pago.transaccion_id|default:"—" }}</td>
                         <td><span class="badge text-bg-light border">{{ pago.estado_pago }}</span></td>

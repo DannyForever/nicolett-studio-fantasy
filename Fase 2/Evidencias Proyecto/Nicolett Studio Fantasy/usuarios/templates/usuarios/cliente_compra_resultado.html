@@ -1,4 +1,5 @@
 {% extends 'usuarios/cliente_base.html' %}
+{% load moneda %}
 
 {% block title %}Confirmación de compra | Nicolett Studio Fantasy{% endblock %}
 
@@ -28,7 +29,7 @@
             {% for detalle in pedido.detalles.all %}
                 <div class="flex flex-wrap justify-between gap-3 text-sm">
                     <span>{{ detalle.nombre }}{% if detalle.tipo == 'producto' %} × {{ detalle.cantidad }}{% endif %}</span>
-                    <span>Pagado ${{ detalle.monto_pagado|floatformat:0 }}{% if detalle.saldo_pendiente %} · saldo ${{ detalle.saldo_pendiente|floatformat:0 }}{% endif %}</span>
+                    <span>Pagado {{ detalle.monto_pagado|pesos }}{% if detalle.saldo_pendiente %} · saldo {{ detalle.saldo_pendiente|pesos }}{% endif %}</span>
                     {% if detalle.reserva %}
                         <span class="w-full text-[#7a6e6a]">
                             Cita confirmada: {{ detalle.reserva.fecha_hora|date:"d/m/Y H:i" }} ·
@@ -40,9 +41,9 @@
         </div>
 
         <dl class="mt-5 space-y-2 text-sm">
-            <div class="flex justify-between"><dt>Valor total</dt><dd>${{ pedido.total|floatformat:0 }}</dd></div>
-            <div class="flex justify-between font-semibold text-[#765747]"><dt>Pagado</dt><dd>${{ pedido.monto_pagado|floatformat:0 }}</dd></div>
-            <div class="flex justify-between text-[#7a6e6a]"><dt>Saldo pendiente de servicios</dt><dd>${{ pedido.saldo_pendiente|floatformat:0 }}</dd></div>
+            <div class="flex justify-between"><dt>Valor total</dt><dd>{{ pedido.total|pesos }}</dd></div>
+            <div class="flex justify-between font-semibold text-[#765747]"><dt>Pagado</dt><dd>{{ pedido.monto_pagado|pesos }}</dd></div>
+            <div class="flex justify-between text-[#7a6e6a]"><dt>Saldo pendiente de servicios</dt><dd>{{ pedido.saldo_pendiente|pesos }}</dd></div>
         </dl>
 
         <p class="mt-5 text-center text-xs text-[#7a6e6a]">

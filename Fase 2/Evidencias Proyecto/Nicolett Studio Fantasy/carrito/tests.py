@@ -6,7 +6,12 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from agenda.models import Disponibilidad, ProfesionalCategoria, Reserva
+from agenda.models import (
+    Disponibilidad,
+    ProfesionalCategoria,
+    Reserva,
+    ReservaCitaTemporal,
+)
 from panel_admin.models import Categoria, Producto, Servicio
 from usuarios.models import Rol, Usuario
 from pagos.models import Pago
@@ -82,7 +87,7 @@ class CarritoTests(TestCase):
         self.assertEqual(self.producto.stock, 7)
 
         cart = self.client.get(reverse('cliente_carrito'))
-        self.assertContains(cart, 'Subtotal $7500')
+        self.assertContains(cart, 'Subtotal $7.500')
         self.assertContains(cart, '>3</span>')
 
         response = self.client.post(reverse('cliente_carrito_pagar'))
@@ -129,7 +134,7 @@ class CarritoTests(TestCase):
         catalog = self.client.get(reverse('cliente_productos'))
         self.assertContains(catalog, 'Resumen de compra')
         self.assertContains(catalog, 'Esmalte carrito')
-        self.assertContains(catalog, 'Subtotal $5000')
+        self.assertContains(catalog, 'Subtotal $5.000')
         self.assertContains(catalog, 'Aumentar cantidad de Esmalte carrito')
         self.assertContains(catalog, 'Ir al carrito de compras')
 
@@ -151,15 +156,16 @@ class CarritoTests(TestCase):
             3,
         )
         cart_page = self.client.get(reverse('cliente_carrito'))
-        self.assertContains(cart_page, 'Subtotal $7500')
+        self.assertContains(cart_page, 'Subtotal $7.500')
         self.assertContains(cart_page, 'Disminuir cantidad de Esmalte carrito')
         self.assertContains(cart_page, 'Eliminar Esmalte carrito')
         self.assertNotContains(cart_page, 'Actualizar')
 
     def test_service_summary_can_add_and_remove_a_service_appointment(self):
-        self.client.post(
+        response = self.client.post(
             reverse('cliente_carrito_agregar_servicio', args=[self.servicio.pk]),
         )
+        self.assertRedirects(response, reverse('cliente_servicios'))
 
         catalog = self.client.get(reverse('cliente_servicios'))
         self.assertContains(catalog, 'Manicure carrito')
@@ -178,6 +184,62 @@ class CarritoTests(TestCase):
 
         self.assertRedirects(response, reverse('cliente_servicios'))
         self.assertEqual(self.client.session['carrito_compra']['servicios'], [])
+        self.assertFalse(ReservaCitaTemporal.objects.exists())
+
+    def test_service_without_future_availability_cannot_be_added_to_cart(self):
+        servicio = Servicio.objects.create(
+            nombre='Servicio sin agenda',
+            categoria=self.categoria,
+            duracion_minutos=30,
+            precio=Decimal('8000'),
+            activo=True,
+        )
+
+        response = self.client.post(
+            reverse('cliente_carrito_agregar_servicio', args=[servicio.pk]),
+            follow=True,
+        )
+
+        self.assertContains(response, 'no tiene horarios disponibles')
+        self.assertEqual(
+            self.client.session.get('carrito_compra', {}).get('servicios', []),
+            [],
+        )
+
+    def test_expired_appointment_reservation_releases_the_slot_and_removes_cart_item(self):
+        self.client.post(
+            reverse('cliente_carrito_agregar_servicio', args=[self.servicio.pk]),
+        )
+        key = self.client.session['carrito_compra']['servicios'][0]['key']
+        self.client.post(
+            reverse('cliente_carrito_guardar_cita', args=[key]),
+            {
+                'fecha': self.fecha.isoformat(),
+                'profesional': self.profesional.pk,
+                'hora': '10:00',
+                'pago': 'completo',
+            },
+        )
+        reserva_temporal = ReservaCitaTemporal.objects.get(cart_item_key=key)
+        self.assertEqual(reserva_temporal.duracion_minutos, self.servicio.duracion_minutos)
+        ReservaCitaTemporal.objects.filter(pk=reserva_temporal.pk).update(
+            vence_en=timezone.now() - timedelta(seconds=1),
+        )
+
+        response = self.client.get(reverse('cliente_servicios'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ReservaCitaTemporal.objects.exists())
+        self.assertEqual(self.client.session['carrito_compra']['servicios'], [])
+        hours = self.client.get(
+            reverse('cliente_horas_disponibles'),
+            {
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+            },
+        )
+        self.assertEqual(hours.json()['hours'], ['10:00'])
 
     def test_expired_product_reservation_returns_stock_and_removes_cart_item(self):
         self.client.post(
@@ -222,6 +284,26 @@ class CarritoTests(TestCase):
         )
         self.assertRedirects(response, reverse('cliente_carrito'))
 
+        horas_reservadas = self.client.get(
+            reverse('cliente_horas_disponibles'),
+            {
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+            },
+        )
+        horas_propias = self.client.get(
+            reverse('cliente_horas_disponibles'),
+            {
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+                'cart_item_key': key,
+            },
+        )
+        self.assertEqual(horas_reservadas.json()['hours'], [])
+        self.assertEqual(horas_propias.json()['hours'], ['10:00'])
+
         cart = self.client.get(reverse('cliente_carrito'))
         self.assertEqual(cart.context['total_servicios_completo'], Decimal('0'))
         self.assertEqual(cart.context['total_servicios_abono'], Decimal('5000'))
@@ -255,6 +337,7 @@ class CarritoTests(TestCase):
         self.assertEqual(venta.estado, 'Pendiente')
         self.assertEqual(DetalleVenta.objects.get(venta=venta).servicio_id, self.servicio.pk)
         self.assertEqual(Pago.objects.get(venta=venta).monto, Decimal('5000'))
+        self.assertFalse(ReservaCitaTemporal.objects.exists())
 
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
     def test_service_can_be_paid_in_full_and_emails_confirmation(self):

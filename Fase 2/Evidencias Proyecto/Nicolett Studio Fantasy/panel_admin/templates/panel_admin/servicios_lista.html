@@ -1,4 +1,5 @@
 {% extends 'panel_admin/base_dashboard.html' %}
+{% load moneda %}
 {% load static %}
 {% load l10n %}
 
@@ -98,7 +99,7 @@
                         <td class="fw-semibold text-dark">{{ servicio.nombre }}</td>
                         <td class="text-muted">{{ servicio.categoria.nombre }}</td>
                         <td class="text-muted service-description">{{ servicio.descripcion|default:'—' }}</td>
-                        <td class="text-dark fw-semibold">${{ servicio.precio|floatformat:0 }}</td>
+                        <td class="text-dark fw-semibold">{{ servicio.precio|pesos }}</td>
                         <td class="text-muted">{{ servicio.duracion_minutos }} min</td>
                         <td>
                             {% if servicio.activo %}

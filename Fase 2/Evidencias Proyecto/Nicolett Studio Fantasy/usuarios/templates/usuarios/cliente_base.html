@@ -1,4 +1,5 @@
 {% load static %}
+{% load moneda %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -30,8 +31,8 @@
     </script>
 </head>
 <body class="flex min-h-screen flex-col bg-[#faf7f4] font-sans text-[#2a2320] antialiased">
-    <header class="sticky top-0 z-30 flex items-center justify-between border-b border-[#38302d] bg-[#262120] px-5 py-3 text-[#f8f5f2] shadow-sm sm:px-8 lg:px-16">
-        <a href="{% url 'cliente_home' %}" aria-label="Ir al inicio de cliente" class="flex items-baseline gap-2 text-[#f8f5f2] no-underline">
+    <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-[#38302d] bg-[#262120] px-5 text-[#f8f5f2] shadow-sm sm:px-8 lg:px-16">
+        <a href="{% url 'cliente_servicios' %}" aria-label="Ir a Servicios" class="flex items-baseline gap-2 text-[#f8f5f2] no-underline">
             <span class="font-serif text-xl font-bold">Nicolett</span>
             <span class="text-[10px] uppercase tracking-[0.2em] text-[#c9bdb5]">Studio</span>
         </a>
@@ -53,7 +54,7 @@
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
                                         <h3 class="truncate text-sm font-medium">{{ item.nombre }}</h3>
-                                        <p class="mt-1 text-xs text-[#7a6e6a]">${{ item.precio|floatformat:0 }} c/u · Subtotal ${{ item.subtotal|floatformat:0 }}</p>
+                                        <p class="mt-1 text-xs text-[#7a6e6a]">{{ item.precio|pesos }} c/u · Subtotal {{ item.subtotal|pesos }}</p>
                                         {% if item.tipo == 'servicio' %}
                                             <p class="mt-1 text-xs text-[#7a6e6a]">
                                                 {% if item.fecha %}{{ item.fecha }}{% else %}Fecha pendiente{% endif %}
@@ -124,7 +125,7 @@
                         {% endfor %}
                     </div>
                     <footer class="border-t border-[#e8e0da] p-4">
-                        <p class="mb-3 flex justify-between text-sm font-medium"><span>Total</span><span>${{ total_resumen_carrito|floatformat:0 }}</span></p>
+                        <p class="mb-3 flex justify-between text-sm font-medium"><span>Total</span><span>{{ total_resumen_carrito|pesos }}</span></p>
                         <a href="{% url 'cliente_carrito' %}" class="block bg-[#765747] px-4 py-3 text-center text-sm font-medium text-white no-underline transition hover:bg-[#604536]">Ir al carrito de compras</a>
                     </footer>
                 </section>
@@ -137,10 +138,10 @@
     </header>
 
     <div class="flex flex-1">
-        <aside class="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[240px] shrink-0 border-r border-[#e8e0da] bg-[#f7f3f0] py-7 md:block">
+        <aside class="sticky top-14 hidden max-h-[calc(100vh-3.5rem)] w-[240px] shrink-0 self-start overflow-y-auto border-r border-[#e8e0da] bg-[#f7f3f0] py-7 md:block">
             <nav class="flex flex-col gap-1" aria-label="Menú de cliente">
-                <a href="{% url 'cliente_home' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-house w-4 text-center text-[#c9a99b]"></i> Inicio
+                <a href="{% url 'cliente_sobre_nosotros' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-heart w-4 text-center text-[#c9a99b]"></i> Nosotras
                 </a>
                 <a href="{% url 'cliente_servicios' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_servicios' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-spa w-4 text-center text-[#c9a99b]"></i> Servicios
@@ -163,7 +164,7 @@
             </nav>
         </aside>
 
-        <main class="w-full min-w-0 px-5 py-8 md:px-10">
+        <main class="w-full min-w-0 px-5 py-8 md:flex-1 md:px-10">
             {% block content %}{% endblock %}
         </main>
     </div>
@@ -187,6 +188,17 @@
 
             toggle.addEventListener('click', () => setOpen(panel.hidden));
             close.addEventListener('click', () => setOpen(false));
+            const query = new URLSearchParams(window.location.search);
+            if (query.get('abrir_carrito') === '1') {
+                setOpen(true);
+                query.delete('abrir_carrito');
+                const search = query.toString();
+                window.history.replaceState(
+                    window.history.state,
+                    '',
+                    `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`,
+                );
+            }
             document.addEventListener('click', event => {
                 if (!panel.hidden && !panel.parentElement.contains(event.target)) {
                     setOpen(false);

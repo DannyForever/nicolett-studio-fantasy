@@ -12,13 +12,15 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.mail import send_mail
 from django.core import signing
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, F
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
+
+from config.formatters import formatear_pesos
 
 from .forms import (
     CancelarReservaForm,
@@ -34,6 +36,7 @@ from .models import (
     HistorialReserva,
     ProfesionalCategoria,
     Reserva,
+    ReservaCitaTemporal,
     ServicioAgenda,
 )
 from usuarios.permissions import es_cliente
@@ -41,6 +44,7 @@ from usuarios.permissions import es_cliente
 logger = logging.getLogger(__name__)
 Usuario = get_user_model()
 ANTICIPACION_MINIMA_GESTION_CLIENTE = timedelta(hours=48)
+RESERVA_CITA_CARRITO_MINUTOS = 30
 
 
 def _reserva_cliente_gestionable(reserva):
@@ -84,7 +88,11 @@ def _reglas_para_fecha(fecha, servicio_id):
 
 
 def _ocupa_mismo_horario(reserva, hora_inicio, hora_fin, servicio_id, profesional_id):
-    existente_inicio = timezone.localtime(reserva.fecha_hora).time()
+    existente_inicio = (
+        reserva.hora
+        if isinstance(reserva, ReservaCitaTemporal)
+        else timezone.localtime(reserva.fecha_hora).time()
+    )
     existente_fin = (
         datetime.combine(date.min, existente_inicio)
         + timedelta(minutes=reserva.duracion_minutos)
@@ -104,7 +112,14 @@ def _ocupa_mismo_horario(reserva, hora_inicio, hora_fin, servicio_id, profesiona
     return se_superponen and mismo_recurso
 
 
-def horas_disponibles(fecha, servicio, profesional_id=None, ignorar_reserva_id=None):
+def horas_disponibles(
+    fecha,
+    servicio,
+    profesional_id=None,
+    ignorar_reserva_id=None,
+    ignorar_carrito_item_key=None,
+    session_key=None,
+):
     if fecha < timezone.localdate():
         return []
     if not servicio.activo or DiaCerrado.objects.filter(fecha=fecha).exists():
@@ -125,6 +140,21 @@ def horas_disponibles(fecha, servicio, profesional_id=None, ignorar_reserva_id=N
     )
     if ignorar_reserva_id:
         reservas = [reserva for reserva in reservas if reserva.pk != ignorar_reserva_id]
+    reservas_temporales = list(
+        ReservaCitaTemporal.objects.filter(
+            fecha=fecha,
+            profesional_id=profesional_id,
+            vence_en__gt=timezone.now(),
+        )
+    )
+    if ignorar_carrito_item_key and session_key:
+        reservas_temporales = [
+            reserva for reserva in reservas_temporales
+            if not (
+                reserva.session_key == session_key
+                and reserva.cart_item_key == ignorar_carrito_item_key
+            )
+        ]
 
     slots = []
     for regla in reglas:
@@ -138,10 +168,86 @@ def horas_disponibles(fecha, servicio, profesional_id=None, ignorar_reserva_id=N
                 servicio.pk,
                 profesional_id,
             )
-            for reserva in reservas
+            for reserva in (*reservas, *reservas_temporales)
         ) and (fecha > timezone.localdate() or comienzo > timezone.localtime().time()):
             slots.append(comienzo.strftime('%H:%M'))
     return sorted(set(slots))
+
+
+def servicios_con_horarios_disponibles():
+    reglas = Disponibilidad.objects.filter(
+        activo=True,
+        fecha_especifica__gte=timezone.localdate(),
+        servicio__activo=True,
+        profesional__is_active=True,
+        profesional__deleted_at__isnull=True,
+        profesional__rol__nombre__iexact='Colaborador',
+        profesional__especialidades__categoria_id=F('servicio__categoria_id'),
+    ).values_list(
+        'servicio_id',
+        'profesional_id',
+        'fecha_especifica',
+    ).distinct()
+    servicio_ids = {servicio_id for servicio_id, _, _ in reglas}
+    servicios = {
+        servicio.pk: servicio
+        for servicio in ServicioAgenda.objects.filter(
+            pk__in=servicio_ids,
+            activo=True,
+        )
+    }
+    return {
+        servicio_id
+        for servicio_id, profesional_id, fecha in reglas
+        if servicio_id in servicios
+        and horas_disponibles(
+            fecha,
+            servicios[servicio_id],
+            profesional_id=profesional_id,
+        )
+    }
+
+
+def reservar_horario_carrito(session_key, cart_item_key, servicio, fecha, hora, profesional_id):
+    with transaction.atomic():
+        profesional = Usuario.objects.select_for_update().filter(
+            pk=profesional_id,
+            is_active=True,
+            deleted_at__isnull=True,
+            rol__nombre__iexact='Colaborador',
+            especialidades__categoria_id=servicio.categoria_id,
+        ).first()
+        if profesional is None:
+            return False
+        list(Disponibilidad.objects.select_for_update().filter(
+            activo=True,
+            fecha_especifica=fecha,
+            servicio_id=servicio.pk,
+            profesional_id=profesional.pk,
+        ))
+        if hora.strftime('%H:%M') not in horas_disponibles(
+            fecha,
+            servicio,
+            profesional_id=profesional.pk,
+            ignorar_carrito_item_key=cart_item_key,
+            session_key=session_key,
+        ):
+            return False
+        ReservaCitaTemporal.objects.update_or_create(
+            session_key=session_key,
+            cart_item_key=cart_item_key,
+            defaults={
+                'servicio_id': servicio.pk,
+                'profesional': profesional,
+                'fecha': fecha,
+                'hora': hora,
+                'duracion_minutos': servicio.duracion_minutos,
+                'vence_en': timezone.now() + timedelta(
+                    minutes=RESERVA_CITA_CARRITO_MINUTOS,
+                ),
+            },
+        )
+    return True
 
 
 def _notificar(reserva, asunto, mensaje):
@@ -212,6 +318,12 @@ def _construir_calendario(hoy, mes_seleccionado, fecha_seleccionada):
             fecha_hora__date__range=(primero, ultimo),
         ).exclude(estado__in=['cancelada', 'completada'])
     )
+    reservas_temporales_mes = list(
+        ReservaCitaTemporal.objects.filter(
+            fecha__range=(primero, ultimo),
+            vence_en__gt=timezone.now(),
+        )
+    )
     nombres_meses = [
         'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
         'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
@@ -227,6 +339,10 @@ def _construir_calendario(hoy, mes_seleccionado, fecha_seleccionada):
                     reserva for reserva in reservas_del_mes
                     if timezone.localtime(reserva.fecha_hora).date() == dia
                 ]
+                day_reservas.extend(
+                    reserva for reserva in reservas_temporales_mes
+                    if reserva.fecha == dia
+                )
                 for regla in day_rules:
                     inicio = regla.hora_inicio
                     fin = regla.hora_fin
@@ -482,6 +598,8 @@ def cliente_profesionales_json(request):
             servicio,
             profesional.pk,
             ignorar_reserva_id=reserva_ignorada.pk if reserva_ignorada else None,
+            ignorar_carrito_item_key=request.GET.get('cart_item_key'),
+            session_key=request.session.session_key,
         )
     ]
     return JsonResponse({
@@ -548,6 +666,8 @@ def cliente_horas_disponibles_json(request):
             servicio,
             profesional_id=int(profesional_id),
             ignorar_reserva_id=reserva_ignorada.pk if reserva_ignorada else None,
+            ignorar_carrito_item_key=request.GET.get('cart_item_key'),
+            session_key=request.session.session_key,
         ),
     })
 
@@ -706,19 +826,22 @@ def crear_reserva_cliente(request):
             servicio_id=servicio.pk,
             profesional=profesional,
         ))
-        if hora.strftime('%H:%M') not in horas_disponibles(
-            fecha,
+        from carrito.views import _carrito_sesion, _guardar_carrito, _session_key
+
+        carrito = _carrito_sesion(request)
+        cart_item_key = str(uuid4())
+        if not reservar_horario_carrito(
+            _session_key(request),
+            cart_item_key,
             servicio,
-            profesional_id=profesional.pk,
+            fecha,
+            hora,
+            profesional.pk,
         ):
             messages.error(request, 'Ese horario acaba de ser ocupado. Selecciona otro.')
             return redirect('cliente_agendamiento')
-
-        from carrito.views import _carrito_sesion, _guardar_carrito
-
-        carrito = _carrito_sesion(request)
         carrito['servicios'].append({
-            'key': str(uuid4()),
+            'key': cart_item_key,
             'id': servicio.pk,
             'fecha': fecha.isoformat(),
             'profesional': str(profesional.pk),
@@ -730,7 +853,7 @@ def crear_reserva_cliente(request):
         request,
         'La cita quedó preparada en tu carrito. Revisa los datos y selecciona el pago para confirmar.',
     )
-    return redirect('cliente_carrito')
+    return redirect(f"{reverse('cliente_agendamiento')}?abrir_carrito=1")
 
 
 @login_required(login_url='login')
@@ -766,9 +889,22 @@ def cancelar_reserva_cliente(request, pk):
             'respuesta_suspension',
             'updated_at',
         ])
+        from carrito.models import DetallePedido
+
+        monto_servicio = DetallePedido.objects.filter(
+            reserva=reserva,
+            tipo='servicio',
+        ).values_list('monto_pagado', flat=True).first()
         _limpiar_cambio_si_resuelto(cambio_pendiente)
 
-    messages.success(request, 'La cita fue cancelada y quedó registrada en tu historial.')
+    if monto_servicio is None:
+        monto_servicio = 0
+    messages.success(
+        request,
+        'La cita fue cancelada y quedó registrada en tu historial. '
+        f'Se solicitará la devolución de {formatear_pesos(monto_servicio)} correspondiente al servicio '
+        '(no incluye productos); el reembolso será gestionado a la brevedad.',
+    )
     return redirect('cliente_gestionar_citas')
 
 

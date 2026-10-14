@@ -38,14 +38,19 @@ urlpatterns = [
 
     # 4. Gestión de Ventas (Productos, Servicios y Pagos)
     path('ventas/', views.lista_ventas, name='admin_ventas'),
+    path(
+        'ventas/<int:pk>/registrar-saldo/',
+        views.registrar_pago_saldo_venta,
+        name='admin_registrar_pago_saldo_venta',
+    ),
     path('ventas/detalle/<int:pk>/', views.detalle_venta, name='admin_detalle_venta'),
 
     # 5. Sistema de Recordatorios Automáticos
     path('recordatorios/', views.gestion_recordatorios, name='admin_recordatorios'),
     path(
-        'recordatorios/enviar/<int:reserva_id>/',
-        views.enviar_recordatorio,
-        name='enviar_recordatorio',
+        'recordatorios/programar/<int:reserva_id>/',
+        views.programar_recordatorio,
+        name='programar_recordatorio',
     ),
 
     # 6. Gestión de cuentas para los trabajadores (Personal)

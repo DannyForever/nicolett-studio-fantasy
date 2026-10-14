@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from agenda.models import HistorialReserva, Reserva
+from agenda.views import servicios_con_horarios_disponibles
 from carrito.models import PagoSimulado, Pedido, ReservaProductoCarrito
 from panel_admin.models import Producto, Servicio
 
@@ -37,7 +38,7 @@ def login_view(request):
         if es_administrador(usuario):
             return redirect('admin_dashboard')
         if es_cliente(usuario):
-            return redirect('cliente_home')
+            return redirect('cliente_servicios')
         return render(
             request,
             'usuarios/acceso_denegado.html',
@@ -129,10 +130,22 @@ def _vista_cliente(request, template, context=None):
 
 @never_cache
 def cliente_home_view(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    if not request.user.is_active or not es_cliente(request.user):
+        return render(
+            request,
+            'usuarios/acceso_denegado.html',
+            status=403,
+        )
+    return redirect('cliente_servicios')
+
+
+@never_cache
+def cliente_sobre_nosotros_view(request):
     return _vista_cliente(
         request,
-        'usuarios/cliente_home.html',
-        {'usuario': request.user},
+        'usuarios/cliente_sobre_nosotros.html',
     )
 
 
@@ -147,7 +160,10 @@ def cliente_servicios_view(request):
     }
     if orden not in ordenes:
         orden = 'nombre_asc'
-    servicios = Servicio.objects.filter(activo=True).select_related('categoria').order_by(*ordenes[orden])
+    servicios = Servicio.objects.filter(
+        activo=True,
+        pk__in=servicios_con_horarios_disponibles(),
+    ).select_related('categoria').order_by(*ordenes[orden])
     return _vista_cliente(
         request,
         'usuarios/cliente_seccion.html',
@@ -172,7 +188,10 @@ def cliente_productos_view(request):
     }
     if orden not in ordenes:
         orden = 'nombre_asc'
-    productos = Producto.objects.filter(activo=True).select_related('categoria').order_by(*ordenes[orden])
+    productos = Producto.objects.filter(
+        activo=True,
+        stock__gt=0,
+    ).select_related('categoria').order_by(*ordenes[orden])
     return _vista_cliente(
         request,
         'usuarios/cliente_seccion.html',
@@ -201,7 +220,10 @@ def cliente_agendamiento_view(request):
         request,
         'usuarios/cliente_agendamiento.html',
         {
-            'servicios': Servicio.objects.filter(activo=True).select_related('categoria').order_by('nombre'),
+            'servicios': Servicio.objects.filter(
+                activo=True,
+                pk__in=servicios_con_horarios_disponibles(),
+            ).select_related('categoria').order_by('nombre'),
             'hoy': timezone.localdate().isoformat(),
             'cliente_profesionales_url': reverse('cliente_profesionales_disponibles'),
             'cliente_horas_url': reverse('cliente_horas_disponibles'),
@@ -285,11 +307,18 @@ def cliente_gestionar_citas_view(request):
         request,
         'usuarios/cliente_gestionar_citas.html',
         {
-            'reservas_gestionables': [reserva for reserva in reservas if reserva.puede_gestionar],
+            'reservas_gestionables': [
+                reserva for reserva in reservas
+                if reserva.fecha_hora > ahora
+                and reserva.estado in ['pendiente', 'confirmada', 'suspendida']
+            ],
             'reservas_historial': reservas,
             'historial_completo': historial_completo,
             'active_tab': 'historial' if request.GET.get('tab') == 'historial' else 'gestionar',
-            'servicios': Servicio.objects.filter(activo=True).order_by('nombre'),
+            'servicios': Servicio.objects.filter(
+                activo=True,
+                pk__in=servicios_con_horarios_disponibles(),
+            ).order_by('nombre'),
             'hoy': timezone.localdate().isoformat(),
             'cliente_profesionales_url': reverse('cliente_profesionales_disponibles'),
             'cliente_horas_url': reverse('cliente_horas_disponibles'),

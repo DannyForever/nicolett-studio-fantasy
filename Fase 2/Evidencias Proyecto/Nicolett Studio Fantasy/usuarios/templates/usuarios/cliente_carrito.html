@@ -1,4 +1,5 @@
 {% extends 'usuarios/cliente_base.html' %}
+{% load moneda %}
 
 {% block title %}Carrito de compra | Nicolett Studio Fantasy{% endblock %}
 
@@ -35,7 +36,7 @@
                             <div class="min-w-0">
                                 <h3 class="font-medium">{{ item.nombre }}</h3>
                                 {% if item.disponible %}
-                                    <p class="mt-1 text-sm text-[#7a6e6a]">$<span data-unit-price>{{ item.precio|floatformat:0 }}</span> c/u · Subtotal $<span data-line-total>{{ item.subtotal|floatformat:0 }}</span></p>
+                                    <p class="mt-1 text-sm text-[#7a6e6a]">$<span data-unit-price>{{ item.precio|miles_clp }}</span> c/u · Subtotal $<span data-line-total data-value="{{ item.subtotal }}">{{ item.subtotal|miles_clp }}</span></p>
                                 {% else %}
                                     <p class="mt-1 text-sm text-red-700">No disponible o stock insuficiente. Ajusta la cantidad o elimínalo.</p>
                                 {% endif %}
@@ -67,7 +68,10 @@
                                 <div>
                                     <h3 class="font-serif text-lg">{{ item.nombre }}</h3>
                                     {% if item.disponible %}
-                                        <p class="mt-1 text-sm text-[#7a6e6a]">${{ item.precio|floatformat:0 }} · {{ item.duracion }} min</p>
+                                        <p class="mt-1 text-sm text-[#7a6e6a]">{{ item.precio|pesos }} · {{ item.duracion }} min</p>
+                                        {% if item.cita_completa and not item.reserva_vigente %}
+                                            <p class="mt-2 text-sm text-red-700">La reserva temporal de este horario venció o ya no es válida. Selecciona y guarda nuevamente un horario disponible.</p>
+                                        {% endif %}
                                     {% else %}
                                         <p class="mt-1 text-sm text-red-700">Este servicio ya no está activo. Elimínalo para continuar.</p>
                                     {% endif %}
@@ -85,7 +89,7 @@
 
                             {% if item.disponible %}
                                 <form method="post" action="{% url 'cliente_carrito_guardar_cita' item.key %}" class="js-cart-service mt-5 space-y-4 border-t border-[#e8e0da] pt-5"
-                                      data-service="{{ item.id }}" data-profesional-original="{{ item.profesional_id }}"
+                                      data-service="{{ item.id }}" data-cart-item="{{ item.key }}" data-profesional-original="{{ item.profesional_id }}"
                                       data-fecha-original="{{ item.fecha }}" data-hora-original="{{ item.hora }}">
                                     {% csrf_token %}
                                     <div class="grid gap-4 sm:grid-cols-3">
@@ -110,13 +114,13 @@
                                         <label for="payment-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Pago del servicio</label>
                                         <select id="payment-{{ forloop.counter }}" name="pago" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
                                             <option value="">Selecciona pago completo o abono...</option>
-                                            <option value="completo" {% if item.pago == 'completo' %}selected{% endif %}>Pagar completo · ${{ item.precio|floatformat:0 }}</option>
+                                            <option value="completo" {% if item.pago == 'completo' %}selected{% endif %}>Pagar completo · {{ item.precio|pesos }}</option>
                                             <option value="abono" {% if item.pago == 'abono' %}selected{% endif %}>Abono $5.000{% if item.precio <= 5000 %} · pago completo por ser menor o igual al abono{% endif %}</option>
                                         </select>
                                     </div>
                                     <p class="js-cart-status text-sm text-[#7a6e6a]" aria-live="polite">
                                         {% if item.cita_completa %}
-                                            Cita guardada · pagar ahora ${{ item.monto_pagar|floatformat:0 }}{% if item.saldo %} · saldo pendiente ${{ item.saldo|floatformat:0 }}{% endif %}
+                                            {% if item.reserva_vigente %}Cita reservada por 30 minutos{% else %}Horario sin reserva activa{% endif %} · pagar ahora {{ item.monto_pagar|pesos }}{% if item.saldo %} · saldo pendiente {{ item.saldo|pesos }}{% endif %}
                                         {% else %}
                                             Selecciona día, profesional, hora y modalidad de pago; luego guarda la cita.
                                         {% endif %}
@@ -132,17 +136,17 @@
             <section class="border-t border-[#e8e0da] pt-6" aria-label="Resumen de compra">
                 <h2 class="font-serif text-xl">Resumen de pago</h2>
                 <dl class="mt-4 space-y-3 text-sm">
-                    <div class="flex justify-between gap-4"><dt>Productos</dt><dd>$<span id="cart-products-total">{{ total_productos|floatformat:0 }}</span></dd></div>
-                    <div class="flex justify-between gap-4"><dt>Servicios (pago completo)</dt><dd>${{ total_servicios_completo|floatformat:0 }}</dd></div>
-                    <div class="flex justify-between gap-4"><dt>Servicios (abono)</dt><dd>${{ total_servicios_abono|floatformat:0 }}</dd></div>
-                    <div class="flex justify-between gap-4 border-t border-[#e8e0da] pt-3 font-medium"><dt>Sub-total</dt><dd>$<span id="cart-order-total">{{ total_pedido|floatformat:0 }}</span></dd></div>
-                    <div class="flex justify-between gap-4 text-[#7a6e6a]"><dt>Saldos pendientes</dt><dd>${{ saldo_servicios_pendiente|floatformat:0 }}</dd></div>
-                    <div class="flex justify-between gap-4 border-t border-[#e8e0da] pt-3 text-base font-semibold text-[#765747]"><dt>Pagar ahora</dt><dd>$<span id="cart-pay-total">{{ total_pagar|floatformat:0 }}</span></dd></div>
+                    <div class="flex justify-between gap-4"><dt>Productos</dt><dd>$<span id="cart-products-total">{{ total_productos|miles_clp }}</span></dd></div>
+                    <div class="flex justify-between gap-4"><dt>Servicios (pago completo)</dt><dd>{{ total_servicios_completo|pesos }}</dd></div>
+                    <div class="flex justify-between gap-4"><dt>Servicios (abono)</dt><dd>{{ total_servicios_abono|pesos }}</dd></div>
+                    <div class="flex justify-between gap-4 border-t border-[#e8e0da] pt-3 font-medium"><dt>Sub-total</dt><dd>$<span id="cart-order-total">{{ total_pedido|miles_clp }}</span></dd></div>
+                    <div class="flex justify-between gap-4 text-[#7a6e6a]"><dt>Saldos pendientes</dt><dd>{{ saldo_servicios_pendiente|pesos }}</dd></div>
+                    <div class="flex justify-between gap-4 border-t border-[#e8e0da] pt-3 text-base font-semibold text-[#765747]"><dt>Pagar ahora</dt><dd>$<span id="cart-pay-total">{{ total_pagar|miles_clp }}</span></dd></div>
                 </dl>
                 {% if saldos_servicios %}
                     <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-[#7a6e6a]">
                         {% for item in saldos_servicios %}
-                            <li>{{ item.nombre }}: ${{ item.saldo|floatformat:0 }}</li>
+                            <li>{{ item.nombre }}: {{ item.saldo|pesos }}</li>
                         {% endfor %}
                     </ul>
                 {% endif %}
@@ -171,6 +175,9 @@
                 const minusButton = product.querySelector('[data-quantity-delta="-1"]');
                 const unitPrice = Number(product.dataset.price);
                 const page = document.getElementById('cart-page');
+                const formatMoney = value => new Intl.NumberFormat('es-CL', {
+                    maximumFractionDigits: 0,
+                }).format(value);
                 if (!quantity || !lineTotal || !quantityInput || !minusButton) continue;
                 for (const button of product.querySelectorAll('[data-quantity-delta]')) {
                     button.addEventListener('click', () => {
@@ -178,17 +185,18 @@
                         if (nextQuantity < 1) return;
                         quantityInput.value = String(nextQuantity);
                         quantity.textContent = String(nextQuantity);
-                        lineTotal.textContent = String(unitPrice * nextQuantity);
+                        lineTotal.dataset.value = String(unitPrice * nextQuantity);
+                        lineTotal.textContent = formatMoney(unitPrice * nextQuantity);
                         minusButton.disabled = nextQuantity <= 1;
 
                         const productsTotal = Array.from(document.querySelectorAll('[data-line-total]'))
-                            .reduce((sum, value) => sum + Number(value.textContent), 0);
+                            .reduce((sum, value) => sum + Number(value.dataset.value), 0);
                         const difference = productsTotal - Number(page.dataset.initialProducts);
-                        document.getElementById('cart-products-total').textContent = String(productsTotal);
+                        document.getElementById('cart-products-total').textContent = formatMoney(productsTotal);
                         document.getElementById('cart-order-total').textContent =
-                            String(Number(page.dataset.initialTotal) + difference);
+                            formatMoney(Number(page.dataset.initialTotal) + difference);
                         document.getElementById('cart-pay-total').textContent =
-                            String(Number(page.dataset.initialPay) + difference);
+                            formatMoney(Number(page.dataset.initialPay) + difference);
                         window.setTimeout(() => product.querySelector('form').requestSubmit(), 120);
                     });
                 }
@@ -228,6 +236,7 @@
                         servicio: serviceId,
                         fecha: date.value,
                         profesional: professional.value,
+                        cart_item_key: form.dataset.cartItem,
                     });
                     const response = await fetch(`${hoursUrl}?${params}`);
                     const data = await response.json();
@@ -255,7 +264,11 @@
                         status.textContent = 'Selecciona un día para consultar los profesionales y horarios.';
                         return;
                     }
-                    const params = new URLSearchParams({servicio: serviceId, fecha: date.value});
+                    const params = new URLSearchParams({
+                        servicio: serviceId,
+                        fecha: date.value,
+                        cart_item_key: form.dataset.cartItem,
+                    });
                     const response = await fetch(`${professionalsUrl}?${params}`);
                     const data = await response.json();
                     if (!response.ok) {

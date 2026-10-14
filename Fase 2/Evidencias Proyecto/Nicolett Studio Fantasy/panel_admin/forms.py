@@ -199,51 +199,6 @@ class CategoriaForm(forms.ModelForm):
         return categoria
 
 
-class ConfiguracionRecordatoriosForm(forms.Form):
-    horas_cita = forms.CharField(
-        label='Horas antes de la cita',
-        max_length=80,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': '48, 24',
-            'autocomplete': 'off',
-        }),
-        help_text='Escribe uno o más intervalos separados por coma. Ejemplo: 48, 24.',
-    )
-    horas_seguimiento = forms.IntegerField(
-        label='Horas después de finalizar la atención',
-        min_value=1,
-        max_value=720,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': '24',
-            'autocomplete': 'off',
-        }),
-        help_text='Se enviará un único correo por atención. El valor predeterminado es 24 horas.',
-    )
-
-    def _validar_intervalos(self, campo, minimo, maximo, unidad):
-        valor = self.cleaned_data[campo]
-        try:
-            intervalos = [int(item.strip()) for item in valor.split(',') if item.strip()]
-        except ValueError:
-            raise forms.ValidationError('Ingresa solo números enteros separados por coma.')
-
-        if not intervalos:
-            raise forms.ValidationError('Ingresa al menos un intervalo.')
-        if any(not minimo <= intervalo <= maximo for intervalo in intervalos):
-            raise forms.ValidationError(
-                f'Cada intervalo debe ser entre {minimo} y {maximo} {unidad}.',
-            )
-        if len(intervalos) != len(set(intervalos)):
-            raise forms.ValidationError('No repitas intervalos.')
-        return sorted(intervalos, reverse=True)
-
-    def clean_horas_cita(self):
-        return self._validar_intervalos('horas_cita', 1, 720, 'horas')
-
-
-
 class PersonalForm(forms.ModelForm):
     especializaciones = forms.ModelMultipleChoiceField(
         queryset=Categoria.objects.none(),

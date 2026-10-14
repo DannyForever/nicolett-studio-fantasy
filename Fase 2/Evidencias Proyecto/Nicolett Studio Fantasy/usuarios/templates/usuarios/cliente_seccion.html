@@ -1,8 +1,19 @@
 {% extends 'usuarios/cliente_base.html' %}
+{% load moneda %}
 
 {% block title %}{{ titulo }} | Nicolett Studio Fantasy{% endblock %}
 
 {% block content %}
+    <style>
+        @keyframes catalog-appear {
+            from { opacity: 0; transform: translateY(0.4rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #catalog-grid { animation: catalog-appear 220ms ease-out both; }
+        @media (prefers-reduced-motion: reduce) {
+            #catalog-grid { animation: none; }
+        }
+    </style>
     {% if messages %}
         <div class="mx-auto mb-5 max-w-4xl space-y-2" aria-live="polite">
             {% for message in messages %}
@@ -41,7 +52,7 @@
     {% if titulo == 'Servicios' %}
         <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Servicios disponibles">
             {% for servicio in servicios %}
-                <article data-catalog-item data-categories="{{ servicio.categoria.nombre }}" data-search="{{ servicio.nombre }} {{ servicio.categoria.nombre }}" class="flex h-full flex-col overflow-hidden border border-[#e8e0da] bg-white transition hover:border-[#c9a99b] hover:bg-[#fcfaf8]">
+                <article data-catalog-item data-categories="{{ servicio.categoria.nombre }}" data-search="{{ servicio.nombre }} {{ servicio.categoria.nombre }} {{ servicio.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#e8e0da] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#c9a99b] hover:bg-[#fcfaf8] focus-within:z-10 focus-within:border-[#c9a99b]">
                     {% if servicio.imagen_url %}
                         <img src="{{ servicio.imagen_url.url }}" alt="{{ servicio.nombre }}" class="h-40 w-full bg-[#f1ece8] object-cover">
                     {% else %}
@@ -49,11 +60,35 @@
                             <i class="fa-solid fa-spa"></i>
                         </div>
                     {% endif %}
+                    <div class="invisible absolute inset-x-3 top-3 z-20 translate-y-1 border border-[#e8e0da] bg-white p-3 opacity-0 shadow-xl transition-all duration-200 delay-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                        {% if servicio.imagen_url %}
+                            <div data-image-preview>
+                                <div class="mb-2 flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" data-image-zoom-action="out" aria-label="Alejar imagen de {{ servicio.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ded5cf] text-sm text-[#66564e] transition hover:bg-[#f5efeb] disabled:cursor-not-allowed disabled:opacity-40">
+                                            <i class="fa-solid fa-minus" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" data-image-zoom-action="in" aria-label="Acercar imagen de {{ servicio.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ded5cf] text-sm text-[#66564e] transition hover:bg-[#f5efeb] disabled:cursor-not-allowed disabled:opacity-40">
+                                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" data-image-zoom-action="reset" class="border border-[#ded5cf] px-2 py-1.5 text-xs text-[#66564e] transition hover:bg-[#f5efeb]">Restablecer</button>
+                                    </div>
+                                    <span data-image-zoom-level class="text-xs text-[#7a6e6a]" aria-live="polite">100%</span>
+                                </div>
+                                <div class="flex h-48 items-center justify-center overflow-hidden bg-[#f7f3f0] p-1">
+                                    <img src="{{ servicio.imagen_url.url }}" alt="Imagen completa de {{ servicio.nombre }}" data-zoomable-image class="h-full w-full max-w-full object-contain transition-transform duration-200">
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="flex h-24 items-center justify-center bg-[#f1ece8] text-sm text-[#7a6e6a]">Sin imagen disponible</div>
+                        {% endif %}
+                        <p class="mt-3 text-sm leading-relaxed text-[#66564e]">{{ servicio.descripcion|default:"Descripción no disponible." }}</p>
+                    </div>
                     <div class="flex flex-1 flex-col p-5">
                         <p class="mb-2 text-xs uppercase tracking-widest text-[#7a6e6a]">{{ servicio.categoria.nombre }}</p>
                         <h2 class="mb-2 font-serif text-xl">{{ servicio.nombre }}</h2>
                         <div class="mt-auto flex items-center justify-between text-sm">
-                            <span class="font-medium">${{ servicio.precio|floatformat:0 }}</span>
+                            <span class="font-medium">{{ servicio.precio|pesos }}</span>
                             <span class="text-[#7a6e6a]">{{ servicio.duracion_minutos }} min</span>
                         </div>
                         <form method="post" action="{% url 'cliente_carrito_agregar_servicio' servicio.pk %}" class="mt-4">
@@ -71,7 +106,7 @@
     {% elif titulo == 'Productos' %}
         <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Productos disponibles">
             {% for producto in productos %}
-                <article data-catalog-item data-categories="{{ producto.categoria.nombre }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }}" class="flex h-full flex-col overflow-hidden border border-[#e8e0da] bg-white transition hover:border-[#c9a99b] hover:bg-[#fcfaf8]">
+                <article data-catalog-item data-categories="{{ producto.categoria.nombre }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#e8e0da] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#c9a99b] hover:bg-[#fcfaf8] focus-within:z-10 focus-within:border-[#c9a99b]">
                     {% if producto.imagen_url %}
                         <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" class="h-40 w-full bg-[#f1ece8] object-cover">
                     {% else %}
@@ -79,11 +114,35 @@
                             <i class="fa-solid fa-bottle-droplet"></i>
                         </div>
                     {% endif %}
+                    <div class="invisible absolute inset-x-3 top-3 z-20 translate-y-1 border border-[#e8e0da] bg-white p-3 opacity-0 shadow-xl transition-all duration-200 delay-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                        {% if producto.imagen_url %}
+                            <div data-image-preview>
+                                <div class="mb-2 flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" data-image-zoom-action="out" aria-label="Alejar imagen de {{ producto.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ded5cf] text-sm text-[#66564e] transition hover:bg-[#f5efeb] disabled:cursor-not-allowed disabled:opacity-40">
+                                            <i class="fa-solid fa-minus" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" data-image-zoom-action="in" aria-label="Acercar imagen de {{ producto.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ded5cf] text-sm text-[#66564e] transition hover:bg-[#f5efeb] disabled:cursor-not-allowed disabled:opacity-40">
+                                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" data-image-zoom-action="reset" class="border border-[#ded5cf] px-2 py-1.5 text-xs text-[#66564e] transition hover:bg-[#f5efeb]">Restablecer</button>
+                                    </div>
+                                    <span data-image-zoom-level class="text-xs text-[#7a6e6a]" aria-live="polite">100%</span>
+                                </div>
+                                <div class="flex h-48 items-center justify-center overflow-hidden bg-[#f7f3f0] p-1">
+                                    <img src="{{ producto.imagen_url.url }}" alt="Imagen completa de {{ producto.nombre }}" data-zoomable-image class="h-full w-full max-w-full object-contain transition-transform duration-200">
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="flex h-24 items-center justify-center bg-[#f1ece8] text-sm text-[#7a6e6a]">Sin imagen disponible</div>
+                        {% endif %}
+                        <p class="mt-3 text-sm leading-relaxed text-[#66564e]">{{ producto.descripcion|default:"Descripción no disponible." }}</p>
+                    </div>
                     <div class="flex flex-1 flex-col p-5">
                         <p class="mb-2 text-xs uppercase tracking-widest text-[#7a6e6a]">{{ producto.categoria.nombre }}</p>
                         <h2 class="mb-2 font-serif text-xl">{{ producto.nombre }}</h2>
                         <div class="mt-auto flex items-center justify-between text-sm">
-                            <span class="font-medium">${{ producto.precio|floatformat:0 }}</span>
+                            <span class="font-medium">{{ producto.precio|pesos }}</span>
                             <span class="text-[#7a6e6a]">{% if producto.stock > 0 %}{{ producto.stock }} disponibles{% else %}Agotado{% endif %}</span>
                         </div>
                         <form method="post" action="{% url 'cliente_carrito_agregar_producto' producto.pk %}" class="mt-4 flex items-center gap-3">
@@ -117,9 +176,31 @@
                 const cards = Array.from(document.querySelectorAll('[data-catalog-item]'));
                 const noResults = document.getElementById('catalog-no-results');
                 const results = document.getElementById('catalog-results');
+                const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
                 let selectedCategory = '';
+                let hasUpdatedCatalog = false;
                 const itemLabel = noResults.dataset.itemLabel;
                 const itemSingular = itemLabel === 'servicios' ? 'servicio' : 'producto';
+
+                document.addEventListener('click', event => {
+                    const button = event.target.closest('[data-image-zoom-action]');
+                    if (!button) return;
+
+                    const preview = button.closest('[data-image-preview]');
+                    const image = preview.querySelector('[data-zoomable-image]');
+                    const output = preview.querySelector('[data-image-zoom-level]');
+                    const currentScale = Number(image.dataset.zoomScale || 1);
+                    const action = button.dataset.imageZoomAction;
+                    const nextScale = action === 'reset'
+                        ? 1
+                        : Math.min(3, Math.max(0.5, currentScale + (action === 'in' ? 0.25 : -0.25)));
+
+                    image.dataset.zoomScale = String(nextScale);
+                    image.style.transform = `scale(${nextScale})`;
+                    output.textContent = `${Math.round(nextScale * 100)}%`;
+                    preview.querySelector('[data-image-zoom-action="out"]').disabled = nextScale <= 0.5;
+                    preview.querySelector('[data-image-zoom-action="in"]').disabled = nextScale >= 3;
+                });
 
                 const normalize = value => value
                     .normalize('NFD')
@@ -139,7 +220,18 @@
                             );
                         const visible = matchesText && matchesCategory;
                         card.style.display = visible ? '' : 'none';
-                        if (visible) visibleCount += 1;
+                        if (visible) {
+                            visibleCount += 1;
+                            if (hasUpdatedCatalog && !reduceMotion) {
+                                card.animate(
+                                    [
+                                        {opacity: 0.65, transform: 'translateY(5px)'},
+                                        {opacity: 1, transform: 'translateY(0)'},
+                                    ],
+                                    {duration: 180, easing: 'ease-out'},
+                                );
+                            }
+                        }
                     }
                     const showNoResults = visibleCount === 0 && cards.length > 0;
                     noResults.style.display = showNoResults ? '' : 'none';
@@ -149,6 +241,13 @@
                             : `No hay ${itemLabel} que coincidan con la categoría seleccionada.`;
                     }
                     results.textContent = `${visibleCount} resultado${visibleCount === 1 ? '' : 's'}`;
+                    if (hasUpdatedCatalog && !reduceMotion) {
+                        results.animate(
+                            [{opacity: 0.55}, {opacity: 1}],
+                            {duration: 160, easing: 'ease-out'},
+                        );
+                    }
+                    hasUpdatedCatalog = true;
                 }
 
                 search.addEventListener('input', updateCatalog);

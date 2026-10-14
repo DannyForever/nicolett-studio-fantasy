@@ -1,0 +1,84 @@
+{% extends 'usuarios/cliente_base.html' %}
+
+{% block title %}Nosotras | Nicolett Studio Fantasy{% endblock %}
+
+{% block content %}
+    <section class="mx-auto max-w-5xl space-y-8" aria-labelledby="about-title">
+        <header class="border border-[#e8e0da] bg-white px-6 py-10 text-center shadow-sm sm:px-10">
+            <p class="text-xs font-medium uppercase tracking-[0.25em] text-[#8d7568]">Belleza, cuidado y creatividad</p>
+            <h1 id="about-title" class="mt-3 font-serif text-3xl text-[#2a2320] sm:text-4xl">Nicolett Studio Fantasy</h1>
+            <p class="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#7a6e6a]">
+                Un espacio para dedicarte tiempo, descubrir servicios de belleza y sentirte bien contigo misma.
+            </p>
+        </header>
+
+        <section class="grid gap-5 md:grid-cols-3" aria-label="Nuestra historia y propósito">
+            <article class="border border-[#e8e0da] bg-white p-6 shadow-sm">
+                <span class="flex h-11 w-11 items-center justify-center bg-[#f7f3f0] text-[#8d7568]" aria-hidden="true">
+                    <i class="fa-solid fa-seedling"></i>
+                </span>
+                <h2 class="mt-4 font-serif text-xl">Nuestro origen</h2>
+                <p class="mt-3 text-sm leading-6 text-[#7a6e6a]">
+                    Nicolett Studio Fantasy nace de la idea de reunir belleza, cuidado personal y creatividad en un mismo lugar.
+                    Cada servicio busca ofrecer una experiencia cercana y un momento especial para ti.
+                </p>
+            </article>
+            <article class="border border-[#e8e0da] bg-white p-6 shadow-sm">
+                <span class="flex h-11 w-11 items-center justify-center bg-[#f7f3f0] text-[#8d7568]" aria-hidden="true">
+                    <i class="fa-solid fa-heart"></i>
+                </span>
+                <h2 class="mt-4 font-serif text-xl">Nuestra misión</h2>
+                <p class="mt-3 text-sm leading-6 text-[#7a6e6a]">
+                    Brindar servicios de belleza y bienestar con atención amable, dedicación y cuidado por los detalles,
+                    para que cada persona se sienta bienvenida y pueda expresar su estilo.
+                </p>
+            </article>
+            <article class="border border-[#e8e0da] bg-white p-6 shadow-sm">
+                <span class="flex h-11 w-11 items-center justify-center bg-[#f7f3f0] text-[#8d7568]" aria-hidden="true">
+                    <i class="fa-solid fa-star"></i>
+                </span>
+                <h2 class="mt-4 font-serif text-xl">Nuestra visión</h2>
+                <p class="mt-3 text-sm leading-6 text-[#7a6e6a]">
+                    Ser un estudio de confianza, reconocido por crear experiencias personalizadas y por acompañar a cada
+                    cliente en sus momentos de autocuidado.
+                </p>
+            </article>
+        </section>
+
+        <section class="grid gap-6 border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8 md:grid-cols-2" aria-label="Contacto y redes sociales">
+            <div>
+                <p class="text-xs font-medium uppercase tracking-[0.2em] text-[#8d7568]">Conversemos</p>
+                <h2 class="mt-2 font-serif text-2xl">Estamos para ayudarte</h2>
+                <p class="mt-3 text-sm leading-6 text-[#7a6e6a]">
+                    Escríbenos si tienes consultas sobre servicios, disponibilidad o productos.
+                </p>
+                <div class="mt-5 space-y-3 text-sm text-[#66564e]">
+                    <a href="https://wa.me/56940322551" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 hover:text-[#765747]">
+                        <i class="fa-brands fa-whatsapp w-4 text-center text-[#a88d7f]" aria-hidden="true"></i>
+                        +56 9 4032 2551
+                    </a>
+                    <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 hover:text-[#765747]">
+                        <i class="fa-brands fa-instagram w-4 text-center text-[#a88d7f]" aria-hidden="true"></i>
+                        @nicolettstudiofantasy
+                    </a>
+                    <a href="mailto:nicolettstudio@gmail.com" class="flex items-center gap-3 hover:text-[#765747]">
+                        <i class="fa-regular fa-envelope w-4 text-center text-[#a88d7f]" aria-hidden="true"></i>
+                        nicolettstudio@gmail.com
+                    </a>
+                </div>
+            </div>
+            <div class="border-t border-[#e8e0da] pt-5 md:border-l md:border-t-0 md:pl-6 md:pt-0">
+                <p class="text-xs font-medium uppercase tracking-[0.2em] text-[#8d7568]">Visítanos</p>
+                <h2 class="mt-2 font-serif text-2xl">Buin, Santiago</h2>
+                <p class="mt-3 text-sm leading-6 text-[#7a6e6a]">Av. Bernardo O'Higgins 979<br>Buin, Santiago</p>
+                <p class="mt-4 text-sm text-[#66564e]">
+                    <i class="fa-regular fa-clock mr-2 text-[#a88d7f]" aria-hidden="true"></i>
+                    Lun-Vie 9:00–20:00 · Sáb 9:00–18:00
+                </p>
+                <a href="https://maps.google.com/?q=Av.+Bernardo+O%27Higgins+979,+Buin,+Santiago" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex items-center gap-2 border border-[#765747] px-4 py-3 text-sm font-medium text-[#765747] transition hover:bg-[#f7f3f0]">
+                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i> Ver ubicación
+                </a>
+            </div>
+        </section>
+    </section>
+{% endblock %}

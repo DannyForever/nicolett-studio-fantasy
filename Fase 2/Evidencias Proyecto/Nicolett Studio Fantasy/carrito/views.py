@@ -15,8 +15,19 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from agenda.models import DiaCerrado, Disponibilidad, Reserva
-from agenda.views import horas_disponibles
+from config.formatters import formatear_pesos
+from agenda.models import (
+    DiaCerrado,
+    Disponibilidad,
+    Reserva,
+    ReservaCitaTemporal,
+)
+from agenda.views import (
+    RESERVA_CITA_CARRITO_MINUTOS,
+    horas_disponibles,
+    reservar_horario_carrito,
+    servicios_con_horarios_disponibles,
+)
 from pagos.models import Pago
 from panel_admin.models import Producto, Servicio
 from ventas.models import DetalleVenta, Venta
@@ -200,6 +211,26 @@ def _liberar_reservas_vencidas(request=None):
                 'La reserva temporal de un producto venció y volvió a estar disponible.',
             )
 
+    holds_expirados = ReservaCitaTemporal.objects.filter(vence_en__lte=ahora)
+    expirados_actual = list(
+        holds_expirados.filter(
+            session_key=request.session.session_key,
+        ).values_list('cart_item_key', flat=True)
+    ) if request is not None and request.session.session_key else []
+    holds_expirados.delete()
+    if expirados_actual and request is not None:
+        carrito = _carrito_sesion(request)
+        keys = set(expirados_actual)
+        carrito['servicios'] = [
+            item for item in carrito['servicios']
+            if not isinstance(item, dict) or item.get('key') not in keys
+        ]
+        _guardar_carrito(request, carrito)
+        messages.info(
+            request,
+            'La reserva temporal de una cita venció y el horario volvió a estar disponible.',
+        )
+
 
 def _session_key(request):
     if request.session.session_key is None:
@@ -247,11 +278,18 @@ def ahora_reserva_productos():
 def ver_carrito(request):
     _liberar_reservas_vencidas(request)
     carrito = _carrito_sesion(request)
-    session_key = request.session.session_key
+    session_key = _session_key(request)
     ahora = timezone.now()
     reservas = {
         reserva.producto_id: reserva
         for reserva in ReservaProductoCarrito.objects.filter(
+            session_key=session_key,
+            vence_en__gt=ahora,
+        )
+    } if session_key else {}
+    holds_cita = {
+        hold.cart_item_key: hold
+        for hold in ReservaCitaTemporal.objects.filter(
             session_key=session_key,
             vence_en__gt=ahora,
         )
@@ -261,6 +299,13 @@ def ver_carrito(request):
             session_key=session_key,
             vence_en__gt=ahora,
         ).update(vence_en=ahora_reserva_productos())
+    if session_key:
+        ReservaCitaTemporal.objects.filter(
+            session_key=session_key,
+            vence_en__gt=ahora,
+        ).update(
+            vence_en=ahora + timedelta(minutes=RESERVA_CITA_CARRITO_MINUTOS),
+        )
     ids_producto = []
     for product_id, quantity in carrito['productos'].items():
         if str(product_id).isdecimal() and isinstance(quantity, int) and quantity > 0:
@@ -341,6 +386,14 @@ def ver_carrito(request):
         modalidad = item.get('pago', '')
         monto_pagar = min(precio, ABONO_SERVICIO) if modalidad == 'abono' else precio
         cita_completa = all(item.get(campo) for campo in ('fecha', 'profesional', 'hora'))
+        hold = holds_cita.get(item.get('key'))
+        reserva_vigente = bool(
+            hold
+            and hold.servicio_id == servicio.pk
+            and hold.fecha.isoformat() == item.get('fecha')
+            and hold.hora.strftime('%H:%M') == item.get('hora')
+            and str(hold.profesional_id) == str(item.get('profesional'))
+        )
         servicios.append({
             'key': item.get('key', ''),
             'id': servicio.pk,
@@ -355,6 +408,7 @@ def ver_carrito(request):
             'saldo': precio - monto_pagar,
             'cita_completa': cita_completa,
             'disponible': True,
+            'reserva_vigente': reserva_vigente,
         })
         total_servicios += precio
         if modalidad == 'completo':
@@ -368,7 +422,7 @@ def ver_carrito(request):
                 })
         if modalidad in ('completo', 'abono'):
             total_pagar += monto_pagar
-            if not cita_completa:
+            if not cita_completa or not reserva_vigente:
                 puede_pagar = False
         else:
             puede_pagar = False
@@ -446,6 +500,9 @@ def agregar_producto(request, pk):
 @require_POST
 def agregar_servicio(request, pk):
     servicio = get_object_or_404(Servicio, pk=pk, activo=True)
+    if servicio.pk not in servicios_con_horarios_disponibles():
+        messages.error(request, 'Este servicio no tiene horarios disponibles para agendar.')
+        return redirect('cliente_servicios')
     carrito = _carrito_sesion(request)
     carrito['servicios'].append({
         'key': str(uuid4()),
@@ -453,7 +510,10 @@ def agregar_servicio(request, pk):
         'pago': '',
     })
     _guardar_carrito(request, carrito)
-    messages.success(request, f'{servicio.nombre} se añadió. Completa su cita desde el carrito antes de pagar.')
+    messages.success(
+        request,
+        f'{servicio.nombre} se añadió al resumen de compra. Puedes seguir viendo los servicios.',
+    )
     destino = request.POST.get('return_to', '')
     if destino and url_has_allowed_host_and_scheme(
         destino,
@@ -461,7 +521,7 @@ def agregar_servicio(request, pk):
         require_https=request.is_secure(),
     ):
         return redirect(destino)
-    return redirect('cliente_carrito')
+    return redirect('cliente_servicios')
 
 
 @_cliente_view
@@ -507,9 +567,13 @@ def actualizar_carrito(request):
             carrito['productos'][clave] = cantidad
             messages.success(request, 'Cantidad actualizada y stock reservado.')
     elif tipo == 'servicio':
+        ReservaCitaTemporal.objects.filter(
+            session_key=request.session.session_key or '',
+            cart_item_key=clave,
+        ).delete()
         carrito['servicios'] = [
             item for item in carrito['servicios']
-            if item.get('key') != clave
+            if not isinstance(item, dict) or item.get('key') != clave
         ]
         messages.success(request, 'Servicio eliminado del carrito.')
     else:
@@ -563,14 +627,17 @@ def guardar_cita_carrito(request, key):
     if not profesional_valido:
         messages.error(request, 'El profesional seleccionado no está habilitado para este servicio.')
         return redirect('cliente_carrito')
-    if hora.strftime('%H:%M') not in horas_disponibles(
-        fecha,
+    session_key = _session_key(request)
+    if not reservar_horario_carrito(
+        session_key,
+        key,
         servicio,
-        profesional_id=int(profesional_id),
+        fecha,
+        hora,
+        int(profesional_id),
     ):
         messages.error(request, 'Ese horario ya no está disponible.')
         return redirect('cliente_carrito')
-
     item.update({
         'fecha': fecha.isoformat(),
         'profesional': str(profesional_id),
@@ -598,7 +665,7 @@ def _enviar_confirmacion_pedido(request, pedido):
     lineas = [
         f'Hola {pedido.cliente.nombre}, tu pago fue procesado correctamente.',
         f'Número de compra: {pedido.pk}',
-        f'Monto pagado: ${pedido.monto_pagado:,.0f}',
+        f'Monto pagado: {formatear_pesos(pedido.monto_pagado)}',
         '',
         'Detalle:',
     ]
@@ -615,7 +682,7 @@ def _enviar_confirmacion_pedido(request, pedido):
             ) if part) if profesional else 'Sin asignar'
             lineas.append(
                 f'- Cita: {detalle.nombre}; {fecha:%d/%m/%Y} a las {fecha:%H:%M}; '
-                f'profesional: {nombre_profesional}; pago: ${detalle.monto_pagado:,.0f}.'
+                f'profesional: {nombre_profesional}; pago: {formatear_pesos(detalle.monto_pagado)}.'
             )
         else:
             lineas.append(f'- Producto: {detalle.nombre} x{detalle.cantidad}.')
@@ -641,7 +708,7 @@ def pagar_carrito(request):
     if not carrito['productos'] and not carrito['servicios']:
         messages.error(request, 'Tu carrito está vacío.')
         return redirect('cliente_carrito')
-    session_key = request.session.session_key
+    session_key = _session_key(request)
 
     with transaction.atomic():
         from usuarios.models import Usuario
@@ -700,6 +767,24 @@ def pagar_carrito(request):
             if not _profesional_valido(profesional_id, servicio.categoria_id):
                 messages.error(request, 'Un profesional no está habilitado para el servicio seleccionado.')
                 return redirect('cliente_carrito')
+            hold = ReservaCitaTemporal.objects.select_for_update().filter(
+                session_key=session_key,
+                cart_item_key=item.get('key', ''),
+                vence_en__gt=timezone.now(),
+            ).first()
+            if (
+                hold is None
+                or hold.servicio_id != servicio.pk
+                or hold.fecha != fecha
+                or hold.hora.strftime('%H:%M') != hora.strftime('%H:%M')
+                or hold.profesional_id != int(profesional_id)
+            ):
+                messages.error(
+                    request,
+                    'La reserva temporal de una cita venció o cambió. '
+                    'Guarda nuevamente el horario antes de pagar.',
+                )
+                return redirect('cliente_carrito')
             list(Disponibilidad.objects.select_for_update().filter(
                 activo=True,
                 fecha_especifica=fecha,
@@ -710,6 +795,8 @@ def pagar_carrito(request):
                 fecha,
                 servicio,
                 profesional_id=int(profesional_id),
+                ignorar_carrito_item_key=item.get('key', ''),
+                session_key=session_key,
             ):
                 messages.error(request, 'Uno de los horarios seleccionados ya no está disponible.')
                 return redirect('cliente_carrito')
@@ -796,6 +883,8 @@ def pagar_carrito(request):
                 fecha,
                 servicio,
                 profesional_id=profesional_id,
+                ignorar_carrito_item_key=item.get('key', ''),
+                session_key=session_key,
             ):
                 messages.error(request, 'El horario de una cita acaba de ser ocupado. Revisa el carrito e intenta otra vez.')
                 transaction.set_rollback(True)
@@ -833,6 +922,10 @@ def pagar_carrito(request):
                 modalidad_pago=item['pago'],
                 reserva=reserva,
             )
+            ReservaCitaTemporal.objects.filter(
+                session_key=session_key,
+                cart_item_key=item.get('key', ''),
+            ).delete()
 
         transaccion_id = str(uuid4())
         PagoSimulado.objects.create(
@@ -896,11 +989,15 @@ def resultado_compra(request, pk):
         ),
         pk=pk,
     )
+    resumen, total_resumen = resumen_carrito(request)
     return render(
         request,
         'usuarios/cliente_compra_resultado.html',
         {
             'pedido': pedido,
             'tiene_citas': pedido.detalles.filter(tipo='servicio').exists(),
+            'resumen_carrito': resumen,
+            'total_resumen_carrito': total_resumen,
+            'cantidad_articulos_carrito': sum(item['cantidad'] for item in resumen),
         },
     )

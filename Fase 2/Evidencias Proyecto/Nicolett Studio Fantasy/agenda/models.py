@@ -139,6 +139,34 @@ class Reserva(models.Model):
         return self.cliente_email or (self.cliente.email if self.cliente_id else '')
 
 
+class ReservaCitaTemporal(models.Model):
+    session_key = models.CharField(max_length=40)
+    cart_item_key = models.CharField(max_length=36)
+    servicio_id = models.PositiveBigIntegerField()
+    profesional = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reservas_temporales_citas',
+    )
+    fecha = models.DateField()
+    hora = models.TimeField()
+    duracion_minutos = models.PositiveIntegerField()
+    vence_en = models.DateTimeField()
+
+    class Meta:
+        db_table = 'agenda_reserva_cita_temporal'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['session_key', 'cart_item_key'],
+                name='uniq_reserva_cita_carrito',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['fecha', 'profesional'], name='agenda_hold_fecha_prof_idx'),
+            models.Index(fields=['vence_en'], name='agenda_hold_vence_idx'),
+        ]
+
+
 class HistorialReserva(models.Model):
     EVENTOS = [
         ('modificada', 'Cita modificada'),

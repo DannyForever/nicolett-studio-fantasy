@@ -7,66 +7,30 @@ from django.core.mail import send_mail
 from django.utils import timezone
 
 from agenda.models import Reserva
-from .models import Configuracion, RecordatorioEnviado
+from .models import ProgramacionRecordatorio, RecordatorioEnviado
 
 logger = logging.getLogger(__name__)
 
-HORAS_CITA_KEY = 'recordatorios_horas_antes'
-HORAS_SEGUIMIENTO_KEY = 'recordatorios_horas_despues'
 HORAS_CITA_DEFAULT = [48, 24]
 HORAS_SEGUIMIENTO_DEFAULT = 24
-VENTANA_ENVIO = timedelta(hours=24)
-
-
-def _obtener_intervalos(clave, predeterminados):
-    configuracion = Configuracion.objects.filter(clave=clave).first()
-    if configuracion is None:
-        return predeterminados
-    try:
-        valores = [int(item) for item in configuracion.valor.split(',')]
-    except ValueError:
-        logger.error('La configuración de recordatorios %s no contiene intervalos válidos.', clave)
-        raise ValueError(f'La configuración de recordatorios {clave} no es válida.')
-    if not valores or any(valor < 1 for valor in valores):
-        logger.error('La configuración de recordatorios %s no contiene intervalos positivos.', clave)
-        raise ValueError(f'La configuración de recordatorios {clave} no es válida.')
-    return sorted(set(valores), reverse=True)
 
 
 def obtener_configuracion_recordatorios():
-    horas_cita = _obtener_intervalos(HORAS_CITA_KEY, HORAS_CITA_DEFAULT)
-    horas_seguimiento = _obtener_intervalos(
-        HORAS_SEGUIMIENTO_KEY,
-        [HORAS_SEGUIMIENTO_DEFAULT],
-    )
-    if len(horas_seguimiento) != 1:
-        logger.error('La configuración de horas de seguimiento debe contener un único intervalo.')
-        raise ValueError('La configuración de horas de seguimiento no es válida.')
-    return horas_cita, horas_seguimiento[0]
+    return HORAS_CITA_DEFAULT.copy(), HORAS_SEGUIMIENTO_DEFAULT
 
 
-def guardar_configuracion_recordatorios(horas_cita, horas_seguimiento):
-    valores = (
-        (
-            HORAS_CITA_KEY,
-            horas_cita,
-            'Horas antes de una cita para enviar recordatorios.',
-        ),
-        (
-            HORAS_SEGUIMIENTO_KEY,
-            [horas_seguimiento],
-            'Horas después de la atención para enviar un único correo de seguimiento.',
-        ),
-    )
-    for clave, intervalos, descripcion in valores:
-        Configuracion.objects.update_or_create(
-            clave=clave,
-            defaults={
-                'valor': ','.join(str(intervalo) for intervalo in intervalos),
-                'descripcion': descripcion,
-            },
-        )
-    Configuracion.objects.filter(clave='recordatorios_dias_despues').delete()
+def _crear_tarea(reserva, tipo, desfase, programado, programacion=None, ahora=None):
+    ahora = ahora or timezone.now()
+    fecha_programada = programacion.programado_para if programacion else programado
+    return {
+        'reserva': reserva,
+        'tipo': tipo,
+        'desfase': desfase,
+        'programado': fecha_programada,
+        'programacion': programacion,
+        'personalizado': programacion is not None,
+        'vencido': fecha_programada <= ahora,
+    }
 
 
 def listar_recordatorios_pendientes(ahora=None):
@@ -78,13 +42,18 @@ def listar_recordatorios_pendientes(ahora=None):
         'cliente', 'servicio', 'profesional',
     ).filter(
         fecha_hora__gt=ahora,
-        fecha_hora__lte=ahora + timedelta(hours=max(horas_cita)) + VENTANA_ENVIO,
         estado__in=['pendiente', 'confirmada'],
     )
     for reserva in reservas_proximas:
         for desfase in horas_cita:
             programado = reserva.fecha_hora - timedelta(hours=desfase)
-            if programado < ahora - VENTANA_ENVIO:
+            programacion = ProgramacionRecordatorio.objects.filter(
+                reserva=reserva,
+                tipo='cita',
+                desfase=desfase,
+                fecha_hora_cita=reserva.fecha_hora,
+            ).first()
+            if programacion and programacion.enviado_en:
                 continue
             if RecordatorioEnviado.objects.filter(
                 reserva=reserva,
@@ -93,14 +62,7 @@ def listar_recordatorios_pendientes(ahora=None):
                 fecha_hora_cita=reserva.fecha_hora,
             ).exists():
                 continue
-            tareas.append({
-                'reserva': reserva,
-                'tipo': 'cita',
-                'desfase': desfase,
-                'programado': programado,
-                'vencido': programado <= ahora,
-                'unidad': 'horas',
-            })
+            tareas.append(_crear_tarea(reserva, 'cita', desfase, programado, programacion, ahora))
 
     visitas_completadas = Reserva.objects.select_related('cliente', 'servicio').filter(
         estado='completada',
@@ -112,21 +74,29 @@ def listar_recordatorios_pendientes(ahora=None):
             tipo='seguimiento',
         ).exists():
             continue
+        programacion = ProgramacionRecordatorio.objects.filter(
+            reserva=reserva,
+            tipo='seguimiento',
+            desfase=horas_seguimiento,
+            fecha_hora_cita=reserva.fecha_hora,
+        ).first()
+        if programacion and programacion.enviado_en:
+            continue
         programado = (
             reserva.fecha_hora
             + timedelta(minutes=reserva.duracion_minutos)
             + timedelta(hours=horas_seguimiento)
         )
-        if programado > ahora + VENTANA_ENVIO or programado < ahora - VENTANA_ENVIO:
-            continue
-        tareas.append({
-            'reserva': reserva,
-            'tipo': 'seguimiento',
-            'desfase': horas_seguimiento,
-            'programado': programado,
-            'vencido': programado <= ahora,
-            'unidad': 'horas',
-        })
+        tareas.append(
+            _crear_tarea(
+                reserva,
+                'seguimiento',
+                horas_seguimiento,
+                programado,
+                programacion,
+                ahora,
+            ),
+        )
 
     return sorted(tareas, key=lambda tarea: tarea['programado'])
 
@@ -140,7 +110,7 @@ def enviar_recordatorio(tarea, ahora=None):
 
     if tipo not in {'cita', 'seguimiento'}:
         raise ValueError('El tipo de recordatorio no es válido.')
-    if programado > ahora or programado < ahora - VENTANA_ENVIO:
+    if programado > ahora:
         raise ValueError('El recordatorio aún no está dentro de su ventana de envío.')
     if not reserva.correo_cliente:
         raise ValueError('La cita no tiene correo electrónico registrado.')
@@ -204,6 +174,10 @@ def enviar_recordatorios_vencidos():
             continue
         try:
             if enviar_recordatorio(tarea):
+                programacion = tarea.get('programacion')
+                if programacion:
+                    programacion.enviado_en = timezone.now()
+                    programacion.save(update_fields=['enviado_en'])
                 enviados += 1
         except (OSError, smtplib.SMTPException, RuntimeError, ValueError):
             fallidos += 1

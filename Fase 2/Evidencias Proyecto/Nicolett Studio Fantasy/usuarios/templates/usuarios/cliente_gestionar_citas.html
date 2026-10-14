@@ -40,12 +40,17 @@
                         {% if reserva.estado == 'suspendida' and reserva.motivo_suspension %}
                             <p class="mt-4 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{{ reserva.motivo_suspension }}</p>
                         {% endif %}
+                        {% if not reserva.puede_gestionar %}
+                            <p class="mt-4 border border-[#e8e0da] bg-[#fcfaf8] p-3 text-sm text-[#7a6e6a]">
+                                Esta cita está dentro de las 48 horas previas. Puedes verla aquí, pero ya no es posible cancelarla ni modificarla en línea.
+                            </p>
+                        {% endif %}
                         <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-[#e8e0da] pt-4">
                             <form method="post" action="{% url 'cliente_cancelar_reserva' reserva.pk %}">
                                 {% csrf_token %}
-                                <button type="submit" class="border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50">Cancelar</button>
+                                <button type="submit" {% if not reserva.puede_gestionar %}disabled title="La gestión se cierra 48 horas antes."{% endif %} class="border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50">Cancelar</button>
                             </form>
-                            <button type="button" class="js-open-edit border border-[#765747] px-4 py-2 text-sm font-medium text-[#765747] transition hover:bg-[#f7f3f0]" aria-expanded="false" aria-controls="edit-reserva-{{ reserva.pk }}">Modificar</button>
+                            <button type="button" {% if not reserva.puede_gestionar %}disabled title="La gestión se cierra 48 horas antes."{% endif %} class="js-open-edit border border-[#765747] px-4 py-2 text-sm font-medium text-[#765747] transition hover:bg-[#f7f3f0] disabled:cursor-not-allowed disabled:opacity-50" aria-expanded="false" aria-controls="edit-reserva-{{ reserva.pk }}">Modificar</button>
                         </div>
                         <div id="edit-reserva-{{ reserva.pk }}" hidden class="mt-5 border border-[#e8e0da] bg-[#fcfaf8] p-5 sm:p-6">
                                 <div class="flex items-start justify-between gap-4">
@@ -90,8 +95,8 @@
                     </article>
                 {% empty %}
                     <div class="border border-[#e8e0da] bg-[#fcfaf8] p-8 text-center">
-                        <p class="font-serif text-lg">No tienes citas que se puedan modificar o cancelar.</p>
-                        <p class="mt-2 text-sm text-[#7a6e6a]">Las citas dejan de ser gestionables 48 horas antes de su inicio.</p>
+                        <p class="font-serif text-lg">No tienes próximas citas agendadas.</p>
+                        <p class="mt-2 text-sm text-[#7a6e6a]">Las citas confirmadas aparecerán aquí. Su gestión en línea se cierra 48 horas antes de la atención.</p>
                         <a href="{% url 'cliente_agendamiento' %}" class="mt-5 inline-block bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline">Agendar una cita</a>
                     </div>
                 {% endfor %}

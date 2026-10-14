@@ -1,6 +1,6 @@
 import json
 import tempfile
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 
@@ -1312,6 +1312,9 @@ class SalesAndReminderPageTests(TestCase):
         self.assertContains(response, f'#{venta.pk}')
         self.assertContains(response, 'TX-TEST-1')
         self.assertContains(response, 'Ventas registradas')
+        self.assertContains(response, 'SALDO PENDIENTE')
+        self.assertContains(response, 'Saldo pendiente')
+        self.assertContains(response, reverse('admin_registrar_pago_saldo_venta', args=[venta.pk]))
         self.assertEqual(response.context['ventas'][0].total_pagado, Decimal('5000.00'))
         self.assertEqual(response.context['ventas'][0].saldo_pendiente, Decimal('10000.00'))
         self.assertEqual(response.context['ventas_mes_formateado'], '15.000')
@@ -1326,30 +1329,111 @@ class SalesAndReminderPageTests(TestCase):
         self.assertEqual(detalle.status_code, 200)
         self.assertContains(detalle, 'Pagos recibidos')
 
+    def test_admin_registers_remaining_sale_balance_as_a_linked_payment(self):
+        from pagos.models import Pago
+        from ventas.models import Venta
+
+        venta = Venta.objects.create(
+            cliente=self.admin,
+            total=Decimal('35000.00'),
+            estado='Pendiente',
+        )
+        Pago.objects.create(
+            venta=venta,
+            monto=Decimal('20000.00'),
+            metodo_pago='Pago ficticio',
+            estado_pago='Aprobado',
+            transaccion_id='TX-ABONO-2',
+        )
+
+        response = self.client.post(
+            reverse('admin_registrar_pago_saldo_venta', args=[venta.pk]),
+            {'metodo_pago': 'transferencia'},
+        )
+
+        self.assertRedirects(response, reverse('admin_ventas'))
+        venta.refresh_from_db()
+        pago_saldo = Pago.objects.get(venta=venta, metodo_pago='Transferencia')
+        self.assertEqual(pago_saldo.monto, Decimal('15000.00'))
+        self.assertEqual(venta.estado, 'Completada')
+
+        page = self.client.get(reverse('admin_ventas'))
+        self.assertEqual(page.context['ventas'][0].saldo_pendiente, Decimal('0.00'))
+        self.assertContains(page, '$0')
+        self.assertContains(page, 'TX-ABONO-2')
+        self.assertContains(page, pago_saldo.transaccion_id)
+        self.assertContains(page, '#{}'.format(venta.pk))
+        self.assertNotContains(page, reverse('admin_registrar_pago_saldo_venta', args=[venta.pk]))
+
+    def test_non_admin_cannot_register_remaining_sale_balance(self):
+        from ventas.models import Venta
+
+        venta = Venta.objects.create(
+            cliente=self.admin,
+            total=Decimal('10000.00'),
+            estado='Pendiente',
+        )
+        cliente_role, _ = Rol.objects.get_or_create(nombre='Cliente')
+        cliente = Usuario.objects.create_user(
+            email='customer.sales@example.com',
+            password='Cliente123!Test',
+            nombre='Cliente',
+            apellido_paterno='Prueba',
+            apellido_materno='',
+            telefono='+56987654321',
+            rol=cliente_role,
+        )
+        self.client.force_login(cliente)
+
+        response = self.client.post(
+            reverse('admin_registrar_pago_saldo_venta', args=[venta.pk]),
+            {'metodo_pago': 'efectivo'},
+        )
+
+        self.assertEqual(response.status_code, 403)
+
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
-    def test_upcoming_appointment_reminder_is_sent_once_and_tracked(self):
-        from django.core import mail
-
+    def test_reminder_can_be_rescheduled_and_automatically_sent_at_selected_time(self):
         from agenda.models import Reserva
-        from notificaciones.models import RecordatorioEnviado
+        from notificaciones.models import ProgramacionRecordatorio, RecordatorioEnviado
+        from notificaciones.recordatorios import enviar_recordatorios_vencidos
 
+        ahora = timezone.now()
         reserva = Reserva.objects.create(
-            fecha_hora=timezone.now() + timedelta(hours=36),
+            fecha_hora=ahora + timedelta(hours=36),
             estado='confirmada',
             cliente_nombre='Camila Pérez',
             cliente_email='camila@example.com',
+            cliente_telefono='+56912345678',
             servicio_nombre='Manicure',
         )
 
         response = self.client.get(reverse('admin_recordatorios'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Camila Pérez')
-
-        url = reverse('enviar_recordatorio', args=[reserva.pk])
-        self.client.post(url, {'tipo': 'cita', 'desfase': '48'})
-        self.client.post(url, {'tipo': 'cita', 'desfase': '48'})
-
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertContains(response, '+56912345678')
+        self.assertContains(response, 'PROFESIONAL')
+        self.assertContains(response, 'Programar recordatorio')
+        self.assertNotContains(response, 'Enviar ahora')
+        self.assertNotContains(response, 'Guardar recordatorios de citas')
+        programado = timezone.localtime(ahora - timedelta(minutes=5)).strftime('%Y-%m-%dT%H:%M')
+        response = self.client.post(
+            reverse('programar_recordatorio', args=[reserva.pk]),
+            {'tipo': 'cita', 'desfase': '48', 'programado_para': programado},
+        )
+        self.assertRedirects(response, reverse('admin_recordatorios'))
+        tarea = next(
+            tarea for tarea in response.client.get(reverse('admin_recordatorios')).context['recordatorios_cita']
+            if tarea['reserva'].pk == reserva.pk and tarea['desfase'] == 48
+        )
+        self.assertTrue(tarea['personalizado'])
+        self.assertTrue(tarea['vencido'])
+        self.assertEqual(
+            ProgramacionRecordatorio.objects.get(reserva=reserva, tipo='cita', desfase=48).programado_para,
+            timezone.make_aware(datetime.strptime(programado, '%Y-%m-%dT%H:%M')),
+        )
+        self.assertEqual(enviar_recordatorios_vencidos(), (1, 0))
+        self.assertEqual(enviar_recordatorios_vencidos(), (0, 0))
         self.assertEqual(
             RecordatorioEnviado.objects.filter(
                 reserva=reserva,
@@ -1360,29 +1444,35 @@ class SalesAndReminderPageTests(TestCase):
         )
 
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
-    def test_completed_appointment_receives_only_one_followup_after_24_hours(self):
+    def test_followup_can_be_individually_scheduled_after_service_completion(self):
         from django.core import mail
 
         from agenda.models import Reserva
-        from notificaciones.models import RecordatorioEnviado
-        from notificaciones.recordatorios import enviar_recordatorio
+        from notificaciones.models import ProgramacionRecordatorio, RecordatorioEnviado
+        from notificaciones.recordatorios import enviar_recordatorios_vencidos
 
+        ahora = timezone.now()
         reserva = Reserva.objects.create(
-            fecha_hora=timezone.now() - timedelta(hours=25),
+            fecha_hora=ahora - timedelta(hours=25),
             estado='completada',
             cliente_nombre='Sofía López',
             cliente_email='sofia@example.com',
+            cliente_telefono='+56944445555',
             servicio_nombre='Tratamiento capilar',
         )
 
         response = self.client.get(reverse('admin_recordatorios'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Sofía López')
-
+        self.assertContains(response, 'Programar seguimiento')
+        self.assertContains(response, '+56944445555')
+        programado = timezone.localtime(ahora - timedelta(minutes=5)).strftime('%Y-%m-%dT%H:%M')
         self.client.post(
-            reverse('enviar_recordatorio', args=[reserva.pk]),
-            {'tipo': 'seguimiento', 'desfase': '24'},
+            reverse('programar_recordatorio', args=[reserva.pk]),
+            {'tipo': 'seguimiento', 'desfase': '24', 'programado_para': programado},
         )
+        self.assertEqual(enviar_recordatorios_vencidos(), (1, 0))
+        self.assertEqual(enviar_recordatorios_vencidos(), (0, 0))
 
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn('qué tal estuvo tu atención', mail.outbox[0].subject.casefold())
@@ -1393,50 +1483,33 @@ class SalesAndReminderPageTests(TestCase):
                 desfase=24,
             ).exists(),
         )
+        self.assertIsNotNone(
+            ProgramacionRecordatorio.objects.get(
+                reserva=reserva,
+                tipo='seguimiento',
+                desfase=24,
+            ).enviado_en,
+        )
         response = self.client.get(reverse('admin_recordatorios'))
         self.assertFalse(response.context['recordatorios_seguimiento'])
-        self.assertEqual(
-            enviar_recordatorio({
-                'reserva': reserva,
-                'tipo': 'seguimiento',
-                'desfase': 24,
-                'programado': reserva.fecha_hora + timedelta(minutes=reserva.duracion_minutos, hours=24),
-            }),
-            False,
-        )
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_reminder_intervals_and_single_followup_hour_can_be_saved(self):
-        from notificaciones.models import Configuracion
-
-        response = self.client.post(
-            reverse('admin_recordatorios'),
-            {'horas_cita': '72, 12', 'horas_seguimiento': '36'},
-        )
-
-        self.assertRedirects(response, reverse('admin_recordatorios'))
-        self.assertEqual(
-            Configuracion.objects.get(clave='recordatorios_horas_antes').valor,
-            '72,12',
-        )
-        self.assertEqual(
-            Configuracion.objects.get(clave='recordatorios_horas_despues').valor,
-            '36',
-        )
+    def test_reminder_page_uses_fixed_defaults_and_no_global_configuration_form(self):
         response = self.client.get(reverse('admin_recordatorios'))
-        self.assertContains(response, '72, 12')
-        self.assertContains(response, 'value="36"')
-        self.assertNotContains(response, 'Programación de avisos')
+        self.assertContains(response, '48 y otro 24 horas antes')
+        self.assertContains(response, '24 horas después de finalizar')
+        self.assertNotContains(response, 'Horas antes de la cita para enviar cada correo')
+        self.assertNotContains(response, 'Guardar seguimiento')
+        self.assertNotContains(response, 'Enviar ahora')
         self.assertNotContains(response, 'dias_seguimiento')
 
-    def test_reminder_interval_form_rejects_duplicate_or_out_of_range_values(self):
+    def test_reminder_settings_cannot_be_changed_through_global_post(self):
         response = self.client.post(
             reverse('admin_recordatorios'),
             {'horas_cita': '24, 24', 'horas_seguimiento': '721'},
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context['form_recordatorios'].errors)
+        self.assertEqual(response.status_code, 403)
 
     def test_reminder_tasks_include_each_configured_offset_and_scheduled_time(self):
         from agenda.models import Reserva
