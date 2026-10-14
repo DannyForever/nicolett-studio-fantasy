@@ -724,6 +724,7 @@ def crear_reserva_cliente(request):
             'profesional': str(profesional.pk),
             'hora': hora.strftime('%H:%M'),
             'pago': '',
+            'viene_con_acompanante': request.POST.get('viene_con_acompanante') == 'si',
         })
         _guardar_carrito(request, carrito)
     messages.success(

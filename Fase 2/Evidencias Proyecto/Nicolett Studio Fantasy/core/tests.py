@@ -3,6 +3,15 @@ from django.urls import reverse
 
 
 class LandingPageNavigationTests(TestCase):
+    def test_landing_gallery_renders_all_instagram_posts_with_one_embed_script(self):
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.count(b'class="instagram-media"'), 6)
+        self.assertNotContains(response, 'DbiomKORWY7')
+        self.assertNotContains(response, 'DbioRK0R5ze')
+        self.assertEqual(response.content.count(b'https://www.instagram.com/embed.js'), 1)
+
     def test_landing_reviews_navigation_targets_google_reviews_section(self):
         response = self.client.get(reverse('home'))
 

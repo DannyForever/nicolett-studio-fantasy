@@ -34,6 +34,7 @@
                                 <p class="mb-1 text-xs uppercase tracking-widest text-[#7a6e6a]">{{ reserva.fecha_hora|date:"d/m/Y" }} · {{ reserva.fecha_hora|date:"H:i" }}</p>
                                 <h2 class="font-serif text-xl">{{ reserva.servicio_nombre|default:reserva.servicio.nombre|default:"Servicio no disponible" }}</h2>
                                 <p class="mt-1 text-sm text-[#7a6e6a]">Profesional: {% if reserva.profesional %}{{ reserva.profesional.nombre }} {{ reserva.profesional.apellido_paterno }}{% else %}Sin profesional asignado{% endif %} · {{ reserva.duracion_minutos }} min</p>
+                                <p class="mt-1 text-sm text-[#7a6e6a]">{% if reserva.viene_con_acompanante %}Asistirás con acompañante{% else %}Asistirás sin acompañante{% endif %}</p>
                             </div>
                             <span class="border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">{{ reserva.estado_cliente }}</span>
                         </div>

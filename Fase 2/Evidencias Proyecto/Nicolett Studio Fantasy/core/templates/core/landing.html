@@ -33,6 +33,36 @@
             }
         }
     </script>
+    <style>
+        #galeria .instagram-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 326px), 326px));
+            justify-content: center;
+            gap: 24px;
+        }
+
+        #galeria .instagram-gallery-grid > .instagram-media {
+            box-sizing: border-box;
+            width: 326px !important;
+            min-width: 326px !important;
+            max-width: 326px !important;
+            border-radius: 8px !important;
+            transform: scale(.9);
+            transform-origin: top center;
+        }
+
+        @media (max-width: 358px) {
+            #galeria .instagram-gallery-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            #galeria .instagram-gallery-grid > .instagram-media {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+            }
+        }
+    </style>
 </head>
 <body class="bg-customBg text-customDark font-sans antialiased">
 
@@ -201,26 +231,27 @@
                 </div>
                 <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" class="text-xs tracking-[0.15em] uppercase text-customMuted hover:text-customDark border-b border-customAccent pb-1 transition">VER MÁS EN INSTAGRAM →</a>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 auto-rows-[220px] gap-3">
-                <div class="overflow-hidden bg-customBorder">
-                    <img src="https://images.unsplash.com/photo-1634449571010-02389ed0f9b0?w=600&h=800&fit=crop&auto=format" alt="Corte" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                </div>
-                <div class="overflow-hidden bg-customBorder md:row-span-2">
-                    <img src="https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=600&h=800&fit=crop&auto=format" alt="Interior salón" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                </div>
-                <div class="overflow-hidden bg-customBorder">
-                    <img src="https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=600&h=800&fit=crop&auto=format" alt="Secado" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                </div>
-                <div class="overflow-hidden bg-customBorder">
-                    <img src="https://images.unsplash.com/photo-1560869713-7d0a29430803?w=600&h=800&fit=crop&auto=format" alt="Ondas" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                </div>
-                <div class="overflow-hidden bg-customBorder">
-                    <img src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600&h=600&fit=crop&auto=format" alt="Maquillaje" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                </div>
-                <div class="overflow-hidden bg-customBorder">
-                    <img src="https://images.unsplash.com/photo-1787651344170-c2f81514934d?w=600&h=800&fit=crop&auto=format" alt="Pedicure" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                </div>
+            <div class="instagram-gallery-grid">
+                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/Dc0yoC7RNZ6/" data-instgrm-version="14" style="background:#fff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
+                    <a href="https://www.instagram.com/reel/Dc0yoC7RNZ6/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
+                </blockquote>
+                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DcZ5hEIRDFF/" data-instgrm-version="14" style="background:#fff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
+                    <a href="https://www.instagram.com/reel/DcZ5hEIRDFF/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
+                </blockquote>
+                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/Dd3o_-uRG3X/" data-instgrm-version="14" style="background:#fff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
+                    <a href="https://www.instagram.com/reel/Dd3o_-uRG3X/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
+                </blockquote>
+                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DX_98xzRAlA/" data-instgrm-version="14" style="background:#fff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
+                    <a href="https://www.instagram.com/reel/DX_98xzRAlA/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
+                </blockquote>
+                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DXt5_6XkaLY/" data-instgrm-version="14" style="background:#fff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
+                    <a href="https://www.instagram.com/reel/DXt5_6XkaLY/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
+                </blockquote>
+                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DXt7KGakUtx/" data-instgrm-version="14" style="background:#fff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
+                    <a href="https://www.instagram.com/reel/DXt7KGakUtx/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
+                </blockquote>
             </div>
+            <script async src="https://www.instagram.com/embed.js"></script>
         </div>
     </section>
 

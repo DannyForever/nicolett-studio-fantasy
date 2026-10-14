@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Recuperar contraseña | Nicolett Studio Fantasy</title>
+    <style>
+        body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #faf7f4; color: #2a2320; font-family: Arial, sans-serif; }
+        main { width: min(440px, calc(100% - 40px)); padding: 32px; box-sizing: border-box; background: #fff; border: 1px solid #e8e0da; }
+        h1 { margin: 0 0 12px; font-family: Georgia, serif; }
+        p { color: #7a6e6a; line-height: 1.6; }
+        label { display: block; margin: 22px 0 7px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+        input { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #e8e0da; background: #faf7f4; }
+        button { width: 100%; margin-top: 16px; padding: 13px; border: 0; background: #2a2320; color: #faf7f4; cursor: pointer; }
+        .notice { padding: 12px; background: #f2ece7; color: #2a2320; line-height: 1.5; }
+        .error { background: #f8d7da; color: #721c24; }
+        a { color: #7a6e6a; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Recuperar contraseña</h1>
+        <p>Ingresa el correo asociado a tu cuenta y te enviaremos un enlace para crear una nueva contraseña.</p>
+        {% if mensaje %}<div class="notice" role="status">{{ mensaje }}</div>{% endif %}
+        {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <label for="email">Correo electrónico</label>
+            <input id="email" type="email" name="email" autocomplete="email" required>
+            <button type="submit">Enviar enlace de recuperación</button>
+        </form>
+        <p><a href="{% url 'login' %}">Volver al inicio de sesión</a></p>
+    </main>
+</body>
+</html>

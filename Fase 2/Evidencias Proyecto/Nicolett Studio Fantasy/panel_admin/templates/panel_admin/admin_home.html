@@ -59,6 +59,7 @@
                     <th>Cliente</th>
                     <th>Servicio</th>
                     <th>Profesional</th>
+                    <th>Acompañante</th>
                     <th>Estado</th>
                 </tr>
             </thead>
@@ -69,10 +70,11 @@
                         <td>{{ reserva.nombre_cliente|default:"Cliente sin nombre" }}</td>
                         <td>{% if reserva.servicio_nombre %}{{ reserva.servicio_nombre }}{% elif reserva.servicio %}{{ reserva.servicio.nombre }}{% else %}Servicio eliminado{% endif %}</td>
                         <td>{{ reserva.profesional.nombre|default:"Sin asignar" }}</td>
+                        <td>{% if reserva.viene_con_acompanante %}Sí{% else %}No{% endif %}</td>
                         <td><span class="badge text-bg-light border">{{ reserva.get_estado_display }}</span></td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="5" class="text-center text-muted py-4">No hay citas registradas para hoy.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">No hay citas registradas para hoy.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

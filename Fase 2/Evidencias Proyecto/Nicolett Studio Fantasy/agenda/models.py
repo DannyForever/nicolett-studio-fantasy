@@ -102,6 +102,7 @@ class Reserva(models.Model):
     cliente_telefono = models.CharField(max_length=30, blank=True)
     servicio_nombre = models.CharField(max_length=150, blank=True)
     duracion_minutos = models.PositiveIntegerField(default=30)
+    viene_con_acompanante = models.BooleanField(default=False)
     motivo_cancelacion = models.TextField(blank=True)
     motivo_suspension = models.TextField(blank=True)
     respuesta_suspension = models.CharField(max_length=20, blank=True)

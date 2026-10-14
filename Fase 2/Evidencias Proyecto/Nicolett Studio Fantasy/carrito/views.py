@@ -128,6 +128,7 @@ def resumen_carrito(request):
                 ) if part) if profesional else ''
             ),
             'pago': item.get('pago', ''),
+            'viene_con_acompanante': item.get('viene_con_acompanante', False),
         })
         total += servicio.precio
     return resumen, total
@@ -351,6 +352,8 @@ def ver_carrito(request):
             'profesional_id': item.get('profesional', ''),
             'hora': item.get('hora', ''),
             'pago': modalidad,
+            'viene_con_acompanante': item.get('viene_con_acompanante', False),
+            'viene_con_acompanante': item.get('viene_con_acompanante', False),
             'monto_pagar': monto_pagar,
             'saldo': precio - monto_pagar,
             'cita_completa': cita_completa,
@@ -576,6 +579,7 @@ def guardar_cita_carrito(request, key):
         'profesional': str(profesional_id),
         'hora': hora.strftime('%H:%M'),
         'pago': pago,
+        'viene_con_acompanante': request.POST.get('viene_con_acompanante') == 'si',
     })
     _guardar_carrito(request, carrito)
     messages.success(request, f'Cita de {servicio.nombre} agregada a tu carrito.')
@@ -821,6 +825,7 @@ def pagar_carrito(request):
                 cliente_telefono=cliente.telefono,
                 servicio_nombre=servicio.nombre,
                 duracion_minutos=servicio.duracion_minutos,
+                viene_con_acompanante=item.get('viene_con_acompanante', False) is True,
             )
             DetallePedido.objects.create(
                 pedido=pedido,

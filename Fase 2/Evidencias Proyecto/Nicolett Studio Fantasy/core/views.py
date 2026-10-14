@@ -1,7 +1,11 @@
+import smtplib
+
 from django.shortcuts import render, redirect
 from django.core.mail import send_mail
+from django.core.mail.message import BadHeaderError
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
+from django.conf import settings
 
 # Create your views here.
 def home_view(request):
@@ -22,17 +26,20 @@ def home_view(request):
             f"Mensaje:\n{mensaje_usuario}"
         )
 
-        try:
-            send_mail(
-                subject=f"[Contacto Web] {asunto}",
-                message=cuerpo_correo,
-                from_email='danielabe.hc@gmail.com',
-                recipient_list=['danielabe.hc@gmail.com'],
-                fail_silently=False,
-            )
-            messages.success(request, '¡Tu mensaje se envió exitosamente! Nos pondremos en contacto contigo pronto.')
-        except Exception as e:
-            messages.error(request, 'Hubo un problema al enviar el mensaje. Por favor, inténtalo nuevamente.')
+        if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+            messages.error(request, 'El servicio de correo no está configurado. Inténtalo más tarde.')
+        else:
+            try:
+                send_mail(
+                    subject=f"[Contacto Web] {asunto}",
+                    message=cuerpo_correo,
+                    from_email=None,
+                    recipient_list=[settings.EMAIL_HOST_USER],
+                    fail_silently=False,
+                )
+                messages.success(request, '¡Tu mensaje se envió exitosamente! Nos pondremos en contacto contigo pronto.')
+            except (BadHeaderError, OSError, smtplib.SMTPException):
+                messages.error(request, 'Hubo un problema al enviar el mensaje. Por favor, inténtalo nuevamente.')
 
         return redirect('home')
 
