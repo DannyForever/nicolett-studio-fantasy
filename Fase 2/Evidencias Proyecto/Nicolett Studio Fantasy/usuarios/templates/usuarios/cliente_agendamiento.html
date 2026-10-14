@@ -65,6 +65,10 @@
                                 <option value="">Selecciona servicio, fecha y profesional...</option>
                             </select>
                         </div>
+                        <label for="bookingCompanion" class="flex cursor-pointer items-center gap-3 border border-[#e8e0da] bg-[#faf7f4] p-4 text-sm">
+                            <input id="bookingCompanion" name="viene_con_acompanante" type="checkbox" value="si" class="h-4 w-4 accent-[#765747]">
+                            <span>Asistiré con acompañante</span>
+                        </label>
                         <p id="bookingStatus" class="text-sm text-[#7a6e6a]" aria-live="polite">Los horarios se sincronizan con la disponibilidad del salón.</p>
                         <button type="submit" {% if not servicios %}disabled{% endif %} class="bg-[#765747] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#604536] disabled:cursor-not-allowed disabled:opacity-50">
                             Solicitar cita

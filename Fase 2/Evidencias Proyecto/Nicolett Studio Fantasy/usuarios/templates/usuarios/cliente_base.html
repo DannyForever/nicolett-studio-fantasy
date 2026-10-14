@@ -61,6 +61,7 @@
                                                 {% if item.hora %} · {{ item.hora }}{% endif %}
                                                 {% if item.profesional %} · {{ item.profesional }}{% endif %}
                                                 {% if item.pago %} · {% if item.pago == 'abono' %}Abono{% else %}Pago completo{% endif %}{% endif %}
+                                                · {% if item.viene_con_acompanante %}Con acompañante{% else %}Sin acompañante{% endif %}
                                             </p>
                                         {% endif %}
                                     </div>

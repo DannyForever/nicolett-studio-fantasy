@@ -352,10 +352,12 @@ class CarritoTests(TestCase):
                 'profesional': self.profesional.pk,
                 'hora': '10:00',
                 'pago': 'completo',
+                'viene_con_acompanante': 'si',
             },
         )
 
         cart = self.client.get(reverse('cliente_carrito'))
+        self.assertContains(cart, 'Asistirás con acompañante')
         self.assertEqual(cart.context['total_servicios_completo'], Decimal('12000'))
         self.assertEqual(cart.context['total_servicios_abono'], Decimal('0'))
         self.assertEqual(cart.context['saldo_servicios_pendiente'], Decimal('0'))
@@ -376,6 +378,7 @@ class CarritoTests(TestCase):
         self.assertEqual(venta.total, Decimal('12000'))
         self.assertEqual(venta.estado, 'Completada')
         self.assertEqual(Pago.objects.get(venta=venta).monto, Decimal('12000'))
+        self.assertTrue(Reserva.objects.get(cliente=self.cliente).viene_con_acompanante)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [self.cliente.email])
         self.assertIn(self.servicio.nombre, mail.outbox[0].body)

@@ -1,7 +1,12 @@
 from datetime import datetime, timedelta, time
 
+import re
+from urllib.parse import urlparse
+
+from django.core import mail
 from config.formatters import formatear_pesos
 from django.test import TestCase
+from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -75,6 +80,95 @@ class RoleAccessTests(TestCase):
         self.assertFalse(cliente.is_superuser)
         self.assertIsNotNone(cliente.acepta_terminos_at)
         self.assertLessEqual(cliente.acepta_terminos_at, timezone.now())
+
+    def test_registration_accepts_local_mobile_and_stores_international_format(self):
+        response = self.client.post(
+            reverse('register'),
+            {
+                'nombre': 'Camila',
+                'apellido_paterno': 'Prueba',
+                'apellido_materno': 'Cliente',
+                'telefono': '912345678',
+                'email': 'camila@example.com',
+                'password': 'Cliente123!',
+                'password_confirm': 'Cliente123!',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Usuario.objects.get(email='camila@example.com').telefono, '+56912345678')
+
+    def test_registration_rejects_incomplete_phone(self):
+        response = self.client.post(
+            reverse('register'),
+            {
+                'nombre': 'Camila',
+                'apellido_paterno': 'Prueba',
+                'apellido_materno': 'Cliente',
+                'telefono': '+5691234567',
+                'email': 'camila@example.com',
+                'password': 'Cliente123!',
+                'password_confirm': 'Cliente123!',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ingresa un teléfono chileno válido')
+        self.assertFalse(Usuario.objects.filter(email='camila@example.com').exists())
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        EMAIL_HOST_USER='pruebas@example.com',
+        EMAIL_HOST_PASSWORD='password-de-prueba',
+        DEFAULT_FROM_EMAIL='pruebas@example.com',
+    )
+    def test_password_recovery_sends_link_and_changes_password(self):
+        cliente = self.crear_cliente()
+        response = self.client.post(
+            reverse('password_recovery'),
+            {'email': cliente.email},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Enviamos un enlace')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [cliente.email])
+        link = re.search(r'http://testserver\S+', mail.outbox[0].body).group(0)
+        reset_path = urlparse(link).path
+
+        self.assertEqual(self.client.get(reset_path).status_code, 200)
+        response = self.client.post(
+            reset_path,
+            {'password': 'NuevaClave123!', 'password_confirm': 'NuevaClave123!'},
+        )
+
+        self.assertContains(response, 'Tu contraseña se actualizó correctamente')
+        cliente.refresh_from_db()
+        self.assertTrue(cliente.check_password('NuevaClave123!'))
+        self.assertEqual(self.client.get(reset_path).status_code, 400)
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        EMAIL_HOST_USER='pruebas@example.com',
+        EMAIL_HOST_PASSWORD='password-de-prueba',
+        DEFAULT_FROM_EMAIL='pruebas@example.com',
+    )
+    def test_password_recovery_reports_unregistered_email_without_sending(self):
+        response = self.client.post(
+            reverse('password_recovery'),
+            {'email': 'desconocida@example.com'},
+        )
+
+        self.assertContains(response, 'No existe una cuenta registrada')
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_registration_terms_link_opens_terms_and_privacy_page(self):
+        response = self.client.get(reverse('login'))
+        self.assertContains(response, 'target="_blank"')
+        self.assertContains(response, reverse('terminos_privacidad'))
+        terms = self.client.get(reverse('terminos_privacidad'))
+        self.assertContains(terms, 'política de privacidad')
+        self.assertContains(terms, 'Datos personales que se utilizan')
 
     def test_client_login_redirects_to_client_home_and_cannot_open_admin_panel(self):
         cliente = self.crear_cliente()

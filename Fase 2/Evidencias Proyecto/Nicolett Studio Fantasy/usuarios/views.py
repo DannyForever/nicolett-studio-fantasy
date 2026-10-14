@@ -1,12 +1,23 @@
 from datetime import timedelta
+import binascii
+import logging
+import re
+import smtplib
 
+from django.conf import settings
 from django.contrib.auth import authenticate, login as auth_login, logout, update_session_auth_hash
 from django.contrib import messages
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.db.models import QuerySet
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -19,6 +30,8 @@ from panel_admin.models import Producto, Servicio
 from .forms import ClienteCambiarContrasenaForm, ClienteConfiguracionForm
 from .models import Rol, Usuario
 from .permissions import es_administrador, es_cliente
+
+logger = logging.getLogger(__name__)
 
 
 def login_view(request):
@@ -58,7 +71,7 @@ def register_view(request):
         segundo_nombre = request.POST.get('segundo_nombre', '').strip()
         apellido_paterno = request.POST.get('apellido_paterno', '').strip()
         apellido_materno = request.POST.get('apellido_materno', '').strip()
-        telefono = request.POST.get('telefono', '').strip()
+        telefono = re.sub(r'\s+', '', request.POST.get('telefono', ''))
         email = request.POST.get('email', '').strip()
         password = request.POST.get('password', '')
         password_confirm = request.POST.get('password_confirm', '')
@@ -67,14 +80,25 @@ def register_view(request):
             return render(
                 request,
                 'usuarios/login.html',
-                {'error': 'Completa todos los campos obligatorios.'},
+                {'error': 'Completa todos los campos obligatorios.', 'mostrar_registro': True},
             )
         if password != password_confirm:
             return render(
                 request,
                 'usuarios/login.html',
-                {'error': 'Las contraseñas no coinciden.'},
+                {'error': 'Las contraseñas no coinciden.', 'mostrar_registro': True},
             )
+        if not re.fullmatch(r'(?:\+569\d{8}|9\d{8})', telefono):
+            return render(
+                request,
+                'usuarios/login.html',
+                {
+                    'error': 'Ingresa un teléfono chileno válido: +569XXXXXXXX o 9XXXXXXXX.',
+                    'mostrar_registro': True,
+                },
+            )
+        if telefono.startswith('9'):
+            telefono = f'+56{telefono}'
 
         rol_cliente, _ = Rol.objects.get_or_create(nombre='Cliente')
         try:
@@ -96,7 +120,7 @@ def register_view(request):
             return render(
                 request,
                 'usuarios/login.html',
-                {'error': 'El correo electrónico ya se encuentra registrado.'},
+                {'error': 'El correo electrónico ya se encuentra registrado.', 'mostrar_registro': True},
             )
 
         return render(
@@ -106,6 +130,92 @@ def register_view(request):
         )
 
     return render(request, 'usuarios/login.html')
+
+
+def solicitar_recuperacion_contrasena(request):
+    mensaje = ''
+    error = ''
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip()
+        usuario = Usuario.objects.filter(
+            email__iexact=email,
+            is_active=True,
+            deleted_at__isnull=True,
+        ).first()
+        if usuario is None:
+            error = 'No existe una cuenta registrada con ese correo. No se envió ningún correo de recuperación.'
+        elif not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+            error = 'El servicio de correo no está configurado. Contacta a la administración.'
+        else:
+            uid = urlsafe_base64_encode(force_bytes(usuario.pk))
+            token = default_token_generator.make_token(usuario)
+            enlace = request.build_absolute_uri(
+                reverse('password_reset_confirm_custom', kwargs={'uidb64': uid, 'token': token})
+            )
+            try:
+                send_mail(
+                    subject='Recupera tu contraseña - Nicolett Studio Fantasy',
+                    message=(
+                        f'Hola {usuario.nombre},\n\n'
+                        f'Para crear una contraseña nueva, abre este enlace:\n{enlace}\n\n'
+                        'Si no solicitaste este cambio, puedes ignorar este correo.'
+                    ),
+                    from_email=None,
+                    recipient_list=[usuario.email],
+                    fail_silently=False,
+                )
+            except (OSError, smtplib.SMTPException):
+                logger.exception('No se pudo enviar el correo de recuperación.')
+                error = 'No fue posible enviar el correo. Inténtalo nuevamente más tarde.'
+            else:
+                mensaje = 'Enviamos un enlace para recuperar tu contraseña al correo registrado.'
+    return render(
+        request,
+        'usuarios/recuperar_contrasena.html',
+        {'mensaje': mensaje, 'error': error},
+    )
+
+
+def restablecer_contrasena(request, uidb64, token):
+    try:
+        usuario_id = force_str(urlsafe_base64_decode(uidb64))
+        usuario = Usuario.objects.get(pk=usuario_id, is_active=True)
+    except (binascii.Error, TypeError, ValueError, OverflowError, Usuario.DoesNotExist):
+        usuario = None
+
+    token_valido = usuario is not None and default_token_generator.check_token(usuario, token)
+    if not token_valido:
+        return render(
+            request,
+            'usuarios/restablecer_contrasena.html',
+            {'error': 'El enlace de recuperación no es válido o ya venció.'},
+            status=400,
+        )
+
+    error = ''
+    if request.method == 'POST':
+        password = request.POST.get('password', '')
+        password_confirm = request.POST.get('password_confirm', '')
+        if password != password_confirm:
+            error = 'Las contraseñas no coinciden.'
+        else:
+            try:
+                validate_password(password, usuario)
+            except ValidationError as exc:
+                error = ' '.join(exc.messages)
+            else:
+                usuario.set_password(password)
+                usuario.save(update_fields=['password'])
+                return render(request, 'usuarios/restablecer_contrasena.html', {'exito': True})
+    return render(
+        request,
+        'usuarios/restablecer_contrasena.html',
+        {'error': error, 'token_valido': True},
+    )
+
+
+def terminos_privacidad_view(request):
+    return render(request, 'usuarios/terminos_privacidad.html')
 
 
 def _vista_cliente(request, template, context=None):

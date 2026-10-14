@@ -69,6 +69,7 @@
                                     <h3 class="font-serif text-lg">{{ item.nombre }}</h3>
                                     {% if item.disponible %}
                                         <p class="mt-1 text-sm text-[#7a6e6a]">{{ item.precio|pesos }} · {{ item.duracion }} min</p>
+                                        <p class="mt-1 text-sm text-[#7a6e6a]">{% if item.viene_con_acompanante %}Asistirás con acompañante{% else %}Asistirás sin acompañante{% endif %}</p>
                                         {% if item.cita_completa and not item.reserva_vigente %}
                                             <p class="mt-2 text-sm text-red-700">La reserva temporal de este horario venció o ya no es válida. Selecciona y guarda nuevamente un horario disponible.</p>
                                         {% endif %}
@@ -118,6 +119,10 @@
                                             <option value="abono" {% if item.pago == 'abono' %}selected{% endif %}>Abono $5.000{% if item.precio <= 5000 %} · pago completo por ser menor o igual al abono{% endif %}</option>
                                         </select>
                                     </div>
+                                    <label for="companion-{{ forloop.counter }}" class="flex cursor-pointer items-center gap-3 border border-[#e8e0da] bg-[#faf7f4] p-4 text-sm">
+                                        <input id="companion-{{ forloop.counter }}" name="viene_con_acompanante" type="checkbox" value="si" {% if item.viene_con_acompanante %}checked{% endif %} class="h-4 w-4 accent-[#765747]">
+                                        <span>Asistiré con acompañante</span>
+                                    </label>
                                     <p class="js-cart-status text-sm text-[#7a6e6a]" aria-live="polite">
                                         {% if item.cita_completa %}
                                             {% if item.reserva_vigente %}Cita reservada por 30 minutos{% else %}Horario sin reserva activa{% endif %} · pagar ahora {{ item.monto_pagar|pesos }}{% if item.saldo %} · saldo pendiente {{ item.saldo|pesos }}{% endif %}

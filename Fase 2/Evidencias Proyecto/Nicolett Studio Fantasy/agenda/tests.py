@@ -150,6 +150,7 @@ class AgendaTests(TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertContains(page, 'Agendar una cita')
         self.assertContains(page, 'Manicure')
+        self.assertContains(page, 'Asistiré con acompañante')
         self.assertEqual(professionals.status_code, 200)
         self.assertEqual(
             [item['id'] for item in professionals.json()['professionals']],
@@ -164,6 +165,7 @@ class AgendaTests(TestCase):
                 'profesional': self.profesional.pk,
                 'fecha': self.fecha.isoformat(),
                 'hora': '09:00',
+                'viene_con_acompanante': 'si',
             },
         )
 
@@ -177,6 +179,7 @@ class AgendaTests(TestCase):
         self.assertEqual(cita_carrito['fecha'], self.fecha.isoformat())
         self.assertEqual(cita_carrito['profesional'], str(self.profesional.pk))
         self.assertEqual(cita_carrito['hora'], '09:00')
+        self.assertTrue(cita_carrito['viene_con_acompanante'])
         self.assertTrue(
             ReservaCitaTemporal.objects.filter(
                 session_key=self.client.session.session_key,
@@ -190,6 +193,11 @@ class AgendaTests(TestCase):
         self.assertContains(agendamiento, 'Manicure')
         self.assertContains(agendamiento, self.fecha.isoformat())
         self.assertContains(agendamiento, 'Juan Pérez')
+        carrito = self.client.get(reverse('cliente_carrito'))
+        self.assertContains(carrito, 'Manicure')
+        self.assertContains(carrito, 'Asistirás con acompañante')
+        self.assertContains(carrito, self.fecha.isoformat())
+        self.assertContains(carrito, 'Juan Pérez')
         self.assertEqual(
             self.client.get(
                 reverse('cliente_horas_disponibles'),

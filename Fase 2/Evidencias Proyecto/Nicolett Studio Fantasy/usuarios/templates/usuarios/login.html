@@ -125,7 +125,7 @@
                         <div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                 <label style="font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a;">Contraseña *</label>
-                                <a href="#" style="font-size: 12px; color: #c9a99b; text-decoration: none;">¿Olvidaste tu contraseña?</a>
+                                <a href="{% url 'password_recovery' %}" style="font-size: 12px; color: #c9a99b; text-decoration: none;">¿Olvidaste tu contraseña?</a>
                             </div>
                             <!-- Contenedor con ojito personalizado único -->
                             <div style="position: relative;">
@@ -148,6 +148,11 @@
 
                 <!-- SECCIÓN CREAR CUENTA -->
                 <div id="section-register" style="display: {% if mostrar_registro %}block{% else %}none{% endif %};">
+                    {% if error and mostrar_registro %}
+                    <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #f8d7da; border-left: 3px solid #dc3545; color: #721c24; font-size: 12px; line-height: 1.5;">
+                        {{ error }}
+                    </div>
+                    {% endif %}
                     <p style="font-size: 13px; color: #7a6e6a; margin-bottom: 20px; line-height: 1.6;">
                         Crea tu cuenta y disfruta de venta de productos, agendamiento online con seguimiento e historial de servicios ya realizados.
                     </p>
@@ -188,7 +193,7 @@
                             </div>
                             <div>
                                 <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Teléfono *</label>
-                                <input type="tel" id="reg-telefono" name="telefono" placeholder="+569 1234 5678" required class="form-input" style="padding-right: 14px;" oninput="validarTelefono()">
+                                <input type="tel" id="reg-telefono" name="telefono" placeholder="+569XXXXXXXX o 9XXXXXXXX" required maxlength="16" pattern="(?:\+569\s*[0-9]{8}|9[0-9]{8})" class="form-input" style="padding-right: 14px;" oninput="validarTelefono()">
                             </div>
                         </div>
 
@@ -216,7 +221,7 @@
 
                         <!-- Indicador de formato de teléfono -->
                         <div id="telefono-feedback" style="font-size: 11px; color: #7a6e6a; line-height: 1.4; background-color: #f2ece7; padding: 8px 10px; border-radius: 2px;">
-                            Formato de número de teléfono requerido: +569 XXXX XXXX.
+                            Formatos aceptados: +569XXXXXXXX o 9XXXXXXXX.
                         </div>
 
                         <!-- Indicador de seguridad de contraseña -->
@@ -233,7 +238,7 @@
                         <div id="form-alert" style="display: none; font-size: 12px; padding: 10px 12px; border-radius: 2px; line-height: 1.5;"></div>
 
                         <p style="font-size: 11px; color: #7a6e6a; line-height: 1.4; margin: 2px 0;">
-                            Al crear tu cuenta aceptas nuestros <span style="color: #2a2320; text-decoration: underline; cursor: pointer;">términos</span> y <span style="color: #2a2320; text-decoration: underline; cursor: pointer;">privacidad</span>.
+                            Al crear tu cuenta aceptas nuestros <a href="{% url 'terminos_privacidad' %}" target="_blank" rel="noopener noreferrer" style="color: #2a2320; text-decoration: underline;">términos y política de privacidad</a>.
                         </p>
 
                         <button type="submit" style="background-color: #2a2320; color: #faf7f4; padding: 14px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; border: none; cursor: pointer;" onmouseenter="this.style.backgroundColor='#c9a99b'" onmouseleave="this.style.backgroundColor='#2a2320'">
@@ -290,9 +295,9 @@
         function validarTelefono() {
             const telInput = document.getElementById('reg-telefono');
             const feedback = document.getElementById('telefono-feedback');
-            // Acepta formato tipo +569 1234 5678
-            const regex = /^\+569\s?\d{4}\s?\d{4}$/;
-            if (regex.test(telInput.value.trim())) {
+            const telefono = telInput.value.replace(/\s/g, '');
+            const regex = /^(?:\+569\d{8}|9\d{8})$/;
+            if (regex.test(telefono)) {
                 feedback.style.backgroundColor = '#d4edda';
                 feedback.style.color = '#155724';
                 feedback.innerText = 'Formato de teléfono válido.';
@@ -300,7 +305,7 @@
             } else {
                 feedback.style.backgroundColor = '#f2ece7';
                 feedback.style.color = '#7a6e6a';
-                feedback.innerText = 'Formato requerido: +569 XXXX XXXX.';
+                feedback.innerText = 'Formatos aceptados: +569XXXXXXXX o 9XXXXXXXX.';
                 return false;
             }
         }
