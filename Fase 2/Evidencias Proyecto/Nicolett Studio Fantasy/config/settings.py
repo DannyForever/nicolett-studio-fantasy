@@ -65,6 +65,7 @@ MIDDLEWARE = [
     'usuarios.middleware.RoleAccessMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -162,3 +163,6 @@ EMAIL_BACKEND = os.getenv('EMAIL_BACKEND') or (
 DEFAULT_FROM_EMAIL = (
     os.getenv('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER or 'webmaster@localhost'
 )
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
