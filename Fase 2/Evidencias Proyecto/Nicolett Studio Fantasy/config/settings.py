@@ -31,7 +31,7 @@ SECRET_KEY = os.getenv('SECRET_KEY') or 'local-development-secret-key'
 # Production deployments must set DEBUG=False explicitly.
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['nicolett-studio-fantasy.onrender.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
