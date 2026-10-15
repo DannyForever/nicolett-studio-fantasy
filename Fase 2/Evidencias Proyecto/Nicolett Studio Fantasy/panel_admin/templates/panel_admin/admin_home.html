@@ -46,8 +46,8 @@
 <section class="card-stat">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
-            <h2 class="h5 mb-1">Agenda de hoy</h2>
-            <p class="small text-muted mb-0">Citas registradas para el día de hoy.</p>
+            <h2 class="h5 mb-1">Próximas citas</h2>
+            <p class="small text-muted mb-0">Citas programadas para hoy y próximos días.</p>
         </div>
         <a class="btn salon-btn-outline btn-sm" href="{% url 'admin_agenda' %}">Ver agendamientos</a>
     </div>
@@ -55,6 +55,7 @@
         <table class="table table-sm align-middle mb-0 dashboard-appointments-table">
             <thead>
                 <tr>
+                    <th>Fecha</th>
                     <th>Hora</th>
                     <th>Cliente</th>
                     <th>Servicio</th>
@@ -64,8 +65,9 @@
                 </tr>
             </thead>
             <tbody>
-                {% for reserva in citas_hoy %}
+                {% for reserva in proximas_citas %}
                     <tr>
+                        <td class="text-nowrap">{{ reserva.fecha_hora|date:"d/m/Y" }}</td>
                         <td class="text-nowrap">{{ reserva.fecha_hora|date:"H:i" }}</td>
                         <td>{{ reserva.nombre_cliente|default:"Cliente sin nombre" }}</td>
                         <td>{% if reserva.servicio_nombre %}{{ reserva.servicio_nombre }}{% elif reserva.servicio %}{{ reserva.servicio.nombre }}{% else %}Servicio eliminado{% endif %}</td>
@@ -74,7 +76,7 @@
                         <td><span class="badge text-bg-light border">{{ reserva.get_estado_display }}</span></td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="6" class="text-center text-muted py-4">No hay citas registradas para hoy.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">No hay próximas citas registradas.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

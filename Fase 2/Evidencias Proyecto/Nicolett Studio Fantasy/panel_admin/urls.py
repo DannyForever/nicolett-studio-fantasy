@@ -26,16 +26,13 @@ urlpatterns = [
     path('productos/eliminar/<int:pk>/', views.eliminar_producto, name='eliminar_producto'),
     path('productos/estado/<int:pk>/', views.cambiar_estado_producto, name='cambiar_estado_producto'),
 
-    # 3. Agenda, Citas e Historial / Fichas de seguimiento de clientes
+    # 3. Agenda, Citas e Historial
     path('agenda/', include('agenda.urls')),
     path(
         'agenda/ficha-tecnica/<int:cliente_id>/',
         ficha_tecnica_pdf,
         name='ficha_tecnica_pdf',
     ),
-    path('clientes/fichas/', views.lista_fichas_clientes, name='admin_fichas'),
-    path('clientes/ficha/<int:pk>/', views.detalle_ficha_cliente, name='detalle_ficha_cliente'),
-
     # 4. Gestión de Ventas (Productos, Servicios y Pagos)
     path('ventas/', views.lista_ventas, name='admin_ventas'),
     path(

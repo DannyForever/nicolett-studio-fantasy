@@ -54,6 +54,20 @@
                         <td>{% if reserva.profesional %}{{ reserva.profesional.nombre }} {{ reserva.profesional.apellido_paterno }}{% else %}Sin profesional asignado{% endif %}</td>
                         <td>{% if reserva.servicio_nombre %}{{ reserva.servicio_nombre }}{% elif reserva.servicio %}{{ reserva.servicio.nombre }}{% else %}Servicio eliminado{% endif %}</td>
                         <td>
+                            {% if tarea.whatsapp_numero and tarea.usar_whatsapp %}
+                                <button class="btn btn-sm btn-outline-success mb-2"
+                                        type="button"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#whatsappRecordatorioModal"
+                                        data-whatsapp-numero="{{ tarea.whatsapp_numero }}"
+                                        data-whatsapp-mensaje="{{ tarea.whatsapp_mensaje }}">
+                                    <i class="fab fa-whatsapp me-1" aria-hidden="true"></i> Avisar por WhatsApp
+                                </button>
+                            {% else %}
+                                {% if not reserva.correo_cliente %}
+                                    <span class="small text-muted d-block mb-2">Sin correo ni WhatsApp válido registrado</span>
+                                {% endif %}
+                            {% endif %}
                             {% if reserva.correo_cliente %}
                                 <details>
                                     <summary class="btn btn-sm salon-btn-outline">Programar recordatorio</summary>
@@ -66,8 +80,8 @@
                                         <button class="btn btn-sm salon-btn-primary" type="submit">Guardar programación</button>
                                     </form>
                                 </details>
-                            {% else %}
-                                <span class="small text-muted">Falta correo</span>
+                            {% elif not reserva.correo_cliente %}
+                                <span class="small text-muted">Sin correo: usa el aviso por WhatsApp si hay un número válido.</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -118,6 +132,20 @@
                         <td>{% if reserva.profesional %}{{ reserva.profesional.nombre }} {{ reserva.profesional.apellido_paterno }}{% else %}Sin profesional asignado{% endif %}</td>
                         <td>{% if reserva.servicio_nombre %}{{ reserva.servicio_nombre }}{% elif reserva.servicio %}{{ reserva.servicio.nombre }}{% else %}Servicio eliminado{% endif %}</td>
                         <td>
+                            {% if tarea.whatsapp_numero and tarea.usar_whatsapp %}
+                                <button class="btn btn-sm btn-outline-success mb-2"
+                                        type="button"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#whatsappRecordatorioModal"
+                                        data-whatsapp-numero="{{ tarea.whatsapp_numero }}"
+                                        data-whatsapp-mensaje="{{ tarea.whatsapp_mensaje }}">
+                                    <i class="fab fa-whatsapp me-1" aria-hidden="true"></i> Avisar por WhatsApp
+                                </button>
+                            {% else %}
+                                {% if not reserva.correo_cliente %}
+                                    <span class="small text-muted d-block mb-2">Sin correo ni WhatsApp válido registrado</span>
+                                {% endif %}
+                            {% endif %}
                             {% if reserva.correo_cliente %}
                                 <details>
                                     <summary class="btn btn-sm salon-btn-outline">Programar seguimiento</summary>
@@ -130,8 +158,8 @@
                                         <button class="btn btn-sm salon-btn-primary" type="submit">Guardar programación</button>
                                     </form>
                                 </details>
-                            {% else %}
-                                <span class="small text-muted">Falta correo</span>
+                            {% elif not reserva.correo_cliente %}
+                                <span class="small text-muted">Sin correo: usa el aviso por WhatsApp si hay un número válido.</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -144,4 +172,50 @@
         </table>
     </div>
 </section>
+
+<div class="modal fade" id="whatsappRecordatorioModal" tabindex="-1" aria-labelledby="whatsappRecordatorioTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="whatsappRecordatorioTitulo">Revisar mensaje de WhatsApp</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted">Puedes editar el mensaje antes de abrir WhatsApp. El mensaje no se enviará hasta que lo confirmes en WhatsApp.</p>
+                <label class="form-label" for="whatsappRecordatorioMensaje">Mensaje personalizado</label>
+                <textarea class="form-control" id="whatsappRecordatorioMensaje" rows="10"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a class="btn btn-success" id="whatsappRecordatorioContinuar" href="#" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-whatsapp me-1" aria-hidden="true"></i> Continuar a WhatsApp
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const modal = document.getElementById('whatsappRecordatorioModal');
+        const message = document.getElementById('whatsappRecordatorioMensaje');
+        const continueLink = document.getElementById('whatsappRecordatorioContinuar');
+        if (!modal || !message || !continueLink) return;
+
+        modal.addEventListener('show.bs.modal', (event) => {
+            const trigger = event.relatedTarget;
+            if (!trigger) return;
+            message.value = trigger.dataset.whatsappMensaje || '';
+            const number = trigger.dataset.whatsappNumero || '';
+            continueLink.href = `https://wa.me/${number}?text=${encodeURIComponent(message.value)}`;
+        });
+
+        message.addEventListener('input', () => {
+            const number = continueLink.href.split('/').pop().split('?')[0];
+            if (number) {
+                continueLink.href = `https://wa.me/${number}?text=${encodeURIComponent(message.value)}`;
+            }
+        });
+    })();
+</script>
 {% endblock %}

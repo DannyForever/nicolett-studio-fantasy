@@ -101,6 +101,42 @@ def listar_recordatorios_pendientes(ahora=None):
     return sorted(tareas, key=lambda tarea: tarea['programado'])
 
 
+def construir_mensaje_recordatorio(reserva, tipo):
+    nombre = reserva.nombre_cliente or 'Hola'
+    servicio = reserva.servicio_nombre or (
+        reserva.servicio.nombre if reserva.servicio_id else 'tu servicio'
+    )
+    profesional = ' '.join(
+        parte for parte in (
+            reserva.profesional.nombre if reserva.profesional_id else '',
+            reserva.profesional.apellido_paterno if reserva.profesional_id else '',
+            reserva.profesional.apellido_materno if reserva.profesional_id else '',
+        ) if parte
+    ) or 'por confirmar'
+    fecha_cita = timezone.localtime(reserva.fecha_hora)
+    if tipo == 'cita':
+        return (
+            f'Hola {nombre} 😊, te recordamos tu cita en Nicolett Studio ✨\n\n'
+            f'💅 Servicio: {servicio}\n'
+            f'📅 Día: {fecha_cita:%d-%m-%Y}\n'
+            f'🕒 Hora: {fecha_cita:%H:%M}\n'
+            f'👩‍🎨 Profesional: {profesional}\n'
+            f'👭 ¿Vienes con acompañante?: {"Sí" if reserva.viene_con_acompanante else "No"}\n\n'
+            '¡Te esperamos! 💖'
+        )
+    if tipo == 'seguimiento':
+        return (
+            f'Hola {nombre} 😊, gracias por preferir Nicolett Studio ✨\n\n'
+            f'💅 Servicio realizado: {servicio}\n'
+            f'📅 Día de atención: {fecha_cita:%d-%m-%Y}\n'
+            f'🕒 Hora de atención: {fecha_cita:%H:%M}\n'
+            f'👩‍🎨 Profesional: {profesional}\n'
+            f'👭 ¿Viniste con acompañante?: {"Sí" if reserva.viene_con_acompanante else "No"}\n\n'
+            'Cuando quieras, estaremos felices de ayudarte a agendar tu próxima atención 💖'
+        )
+    raise ValueError('El tipo de recordatorio no es válido.')
+
+
 def enviar_recordatorio(tarea, ahora=None):
     ahora = ahora or timezone.now()
     reserva = tarea['reserva']
@@ -130,21 +166,11 @@ def enviar_recordatorio(tarea, ahora=None):
         if reserva.estado not in {'pendiente', 'confirmada'} or reserva.fecha_hora <= ahora:
             raise ValueError('La cita ya no califica para el recordatorio.')
         asunto = 'Recordatorio de tu próxima cita - Nicolett Studio'
-        mensaje = (
-            f'Hola {reserva.nombre_cliente}, te recordamos tu cita de '
-            f'{reserva.servicio_nombre or reserva.servicio or "servicio"} para el '
-            f'{timezone.localtime(reserva.fecha_hora):%d-%m-%Y a las %H:%M}. '
-            '¡Te esperamos en Nicolett Studio!'
-        )
     else:
         if reserva.estado != 'completada':
             raise ValueError('La atención no está marcada como completada.')
         asunto = '¿Qué tal estuvo tu atención? - Nicolett Studio'
-        mensaje = (
-            f'Hola {reserva.nombre_cliente}, queremos saber cómo estuvo tu atención de '
-            f'{reserva.servicio_nombre or reserva.servicio or "servicio"}. '
-            'Gracias por preferir Nicolett Studio. Nos encantará conocer tu opinión.'
-        )
+    mensaje = construir_mensaje_recordatorio(reserva, tipo)
 
     enviado = send_mail(
         asunto,
@@ -171,6 +197,8 @@ def enviar_recordatorios_vencidos():
     fallidos = 0
     for tarea in listar_recordatorios_pendientes():
         if not tarea['vencido']:
+            continue
+        if not tarea['reserva'].correo_cliente:
             continue
         try:
             if enviar_recordatorio(tarea):

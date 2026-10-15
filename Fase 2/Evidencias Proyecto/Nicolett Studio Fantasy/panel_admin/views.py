@@ -8,7 +8,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, F, Q, Sum
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -41,6 +41,7 @@ from notificaciones.recordatorios import listar_recordatorios_pendientes
 from notificaciones.models import ProgramacionRecordatorio
 from pagos.models import Pago
 from ventas.models import Venta
+from notificaciones.recordatorios import construir_mensaje_recordatorio
 
 logger = logging.getLogger(__name__)
 
@@ -49,17 +50,41 @@ def _formatear_miles_clp(valor):
     return formatear_miles_clp(valor)
 
 
+def _enlace_whatsapp_recordatorio(tarea):
+    reserva = tarea['reserva']
+    telefono = reserva.cliente_telefono or (
+        reserva.cliente.telefono if reserva.cliente_id else ''
+    )
+    numero = ''.join(caracter for caracter in telefono if caracter.isdigit())
+    if len(numero) == 9 and numero.startswith('9'):
+        numero = f'56{numero}'
+    if len(numero) != 11 or not numero.startswith('569'):
+        return {'numero': '', 'mensaje': ''}
+
+    return {
+        'numero': numero,
+        'mensaje': construir_mensaje_recordatorio(reserva, tarea['tipo']),
+    }
+
+
 def dashboard_home(request):
     hoy = timezone.localdate()
     citas_hoy = Reserva.objects.select_related(
         'cliente', 'profesional', 'servicio',
     ).filter(fecha_hora__date=hoy).order_by('fecha_hora')
+    proximas_citas = Reserva.objects.select_related(
+        'cliente', 'profesional', 'servicio',
+    ).filter(
+        fecha_hora__date__gte=hoy,
+    ).exclude(
+        estado__in=['cancelada', 'completada'],
+    ).order_by('fecha_hora')
     ventas_mes = Venta.objects.filter(
         fecha_venta__year=hoy.year,
         fecha_venta__month=hoy.month,
     ).aggregate(total=Sum('total'))['total'] or Decimal('0.00')
     return render(request, 'panel_admin/admin_home.html', {
-        'citas_hoy': citas_hoy,
+        'proximas_citas': proximas_citas,
         'total_citas_hoy': citas_hoy.count(),
         'ventas_mes': ventas_mes,
         'ventas_mes_formateado': _formatear_miles_clp(ventas_mes),
@@ -382,9 +407,6 @@ def cambiar_estado_producto(request, pk):
     messages.success(request, f'El producto quedó {estado} correctamente.')
     return redirect('admin_productos')
 
-def lista_fichas_clientes(request): pass
-def detalle_ficha_cliente(request, pk): pass
-
 def configurar_google_calendar(request): return render(request, 'panel_admin/base_dashboard.html')
 def gestionar_disponibilidad_horaria(request): pass
 
@@ -586,6 +608,12 @@ def gestion_recordatorios(request):
         ]
 
     for tarea in recordatorios_cita + recordatorios_seguimiento:
+        datos_whatsapp = _enlace_whatsapp_recordatorio(tarea)
+        tarea['whatsapp_numero'] = datos_whatsapp['numero']
+        tarea['whatsapp_mensaje'] = datos_whatsapp['mensaje']
+        tarea['usar_whatsapp'] = (
+            tarea['tipo'] == 'cita' or not tarea['reserva'].correo_cliente
+        )
         tarea['programado_input'] = timezone.localtime(
             tarea['programado'],
         ).strftime('%Y-%m-%dT%H:%M')

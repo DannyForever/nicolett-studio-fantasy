@@ -265,9 +265,51 @@ class ServiciosPageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'dashboard-appointments-table')
-        for heading in ('Hora', 'Cliente', 'Servicio', 'Profesional', 'Estado'):
+        self.assertContains(response, reverse('admin_recordatorios'))
+        self.assertNotContains(response, 'Fichas de clientas')
+        for heading in ('Fecha', 'Hora', 'Cliente', 'Servicio', 'Profesional', 'Acompañante', 'Estado'):
             self.assertContains(response, f'<th>{heading}</th>', html=True)
         self.assertNotContains(response, '<th>HORA</th>', html=True)
+
+    def test_admin_dashboard_lists_upcoming_client_appointments_and_companion_status(self):
+        from agenda.models import Reserva
+
+        hoy = timezone.localdate()
+        reserva_con_acompanante = Reserva.objects.create(
+            fecha_hora=timezone.make_aware(datetime.combine(hoy + timedelta(days=5), datetime.min.time())),
+            estado='confirmada',
+            cliente_nombre='Camila Pérez',
+            servicio_nombre='Manicure',
+            viene_con_acompanante=True,
+        )
+        Reserva.objects.create(
+            fecha_hora=timezone.make_aware(datetime.combine(hoy + timedelta(days=2), datetime.min.time())),
+            estado='confirmada',
+            cliente_nombre='Sofía López',
+            servicio_nombre='Pedicure',
+            viene_con_acompanante=False,
+        )
+        Reserva.objects.create(
+            fecha_hora=timezone.make_aware(datetime.combine(hoy + timedelta(days=1), datetime.min.time())),
+            estado='cancelada',
+            cliente_nombre='Reserva cancelada',
+            servicio_nombre='Manicure',
+        )
+
+        response = self.client.get(reverse('admin_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Próximas citas')
+        self.assertContains(response, 'Camila Pérez')
+        self.assertContains(response, 'Sofía López')
+        self.assertContains(response, reserva_con_acompanante.fecha_hora.strftime('%d/%m/%Y'))
+        self.assertContains(response, 'Sí')
+        self.assertContains(response, 'No')
+        self.assertNotContains(response, 'Reserva cancelada')
+        self.assertEqual(
+            [reserva.cliente_nombre for reserva in response.context['proximas_citas']],
+            ['Sofía López', 'Camila Pérez'],
+        )
 
     def test_create_product_saves_all_fields_to_database(self):
         response = self.client.post(
@@ -1449,7 +1491,10 @@ class SalesAndReminderPageTests(TestCase):
 
         from agenda.models import Reserva
         from notificaciones.models import ProgramacionRecordatorio, RecordatorioEnviado
-        from notificaciones.recordatorios import enviar_recordatorios_vencidos
+        from notificaciones.recordatorios import (
+            construir_mensaje_recordatorio,
+            enviar_recordatorios_vencidos,
+        )
 
         ahora = timezone.now()
         reserva = Reserva.objects.create(
@@ -1476,6 +1521,12 @@ class SalesAndReminderPageTests(TestCase):
 
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn('qué tal estuvo tu atención', mail.outbox[0].subject.casefold())
+        self.assertEqual(
+            mail.outbox[0].body,
+            construir_mensaje_recordatorio(reserva, 'seguimiento'),
+        )
+        self.assertIn('Servicio realizado: Tratamiento capilar', mail.outbox[0].body)
+        self.assertIn('¿Viniste con acompañante?: No', mail.outbox[0].body)
         self.assertTrue(
             RecordatorioEnviado.objects.filter(
                 reserva=reserva,
@@ -1502,6 +1553,124 @@ class SalesAndReminderPageTests(TestCase):
         self.assertNotContains(response, 'Guardar seguimiento')
         self.assertNotContains(response, 'Enviar ahora')
         self.assertNotContains(response, 'dias_seguimiento')
+
+    def test_reminder_page_builds_whatsapp_messages_for_appointments_and_followups(self):
+        from agenda.models import Reserva
+        from notificaciones.recordatorios import construir_mensaje_recordatorio
+
+        ahora = timezone.now()
+        rol_colaborador, _ = Rol.objects.get_or_create(nombre='Colaborador')
+        profesional = Usuario.objects.create_user(
+            email='profesional.recordatorio@example.com',
+            password='Profesional123!Test',
+            nombre='Valentina',
+            apellido_paterno='Prueba',
+            apellido_materno='Soto',
+            telefono='+56955556666',
+            rol=rol_colaborador,
+        )
+        cita = Reserva.objects.create(
+            fecha_hora=ahora + timedelta(hours=36),
+            estado='confirmada',
+            cliente_nombre='Alejandra Garrido',
+            cliente_email='alejandra@example.com',
+            cliente_telefono='+56 9 8343 4863',
+            servicio_nombre='Lifting',
+            profesional=profesional,
+            viene_con_acompanante=True,
+        )
+        seguimiento = Reserva.objects.create(
+            fecha_hora=ahora - timedelta(hours=25),
+            estado='completada',
+            cliente_nombre='Natalia Pasten',
+            cliente_email='natalia@example.com',
+            cliente_telefono='9 4270 6193',
+            servicio_nombre='Uñas soft gel diseños',
+            profesional=profesional,
+            viene_con_acompanante=True,
+        )
+
+        response = self.client.get(reverse('admin_recordatorios'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Avisar por WhatsApp')
+        tarea_cita = next(
+            tarea for tarea in response.context['recordatorios_cita']
+            if tarea['reserva'].pk == cita.pk and tarea['desfase'] == 24
+        )
+        self.assertEqual(tarea_cita['whatsapp_numero'], '56983434863')
+        mensaje_cita = tarea_cita['whatsapp_mensaje']
+        self.assertIn('Alejandra', mensaje_cita)
+        self.assertIn('Lifting', mensaje_cita)
+        self.assertIn('¿Vienes con acompañante?: Sí', mensaje_cita)
+        self.assertIn('Valentina Prueba Soto', mensaje_cita)
+        self.assertIn(
+            timezone.localtime(cita.fecha_hora).strftime('%d-%m-%Y'),
+            mensaje_cita,
+        )
+        self.assertTrue(tarea_cita['usar_whatsapp'])
+        self.assertContains(response, 'data-whatsapp-mensaje=')
+
+        tarea_seguimiento = next(
+            tarea for tarea in response.context['recordatorios_seguimiento']
+            if tarea['reserva'].pk == seguimiento.pk
+        )
+        self.assertEqual(tarea_seguimiento['whatsapp_numero'], '56942706193')
+        mensaje_seguimiento = tarea_seguimiento['whatsapp_mensaje']
+        self.assertIn('Natalia', mensaje_seguimiento)
+        self.assertIn('Uñas soft gel diseños', mensaje_seguimiento)
+        self.assertIn('¿Viniste con acompañante?: Sí', mensaje_seguimiento)
+        self.assertIn('Valentina Prueba Soto', mensaje_seguimiento)
+        self.assertFalse(tarea_seguimiento['usar_whatsapp'])
+        self.assertEqual(
+            mensaje_seguimiento,
+            construir_mensaje_recordatorio(seguimiento, 'seguimiento'),
+        )
+
+    def test_reminder_page_does_not_build_whatsapp_link_for_invalid_phone(self):
+        from agenda.models import Reserva
+
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.now() + timedelta(hours=36),
+            estado='confirmada',
+            cliente_nombre='Clienta sin teléfono válido',
+            cliente_email='sin.telefono@example.com',
+            cliente_telefono='12345',
+            servicio_nombre='Manicure',
+        )
+
+        response = self.client.get(reverse('admin_recordatorios'))
+
+        tarea = next(
+            tarea for tarea in response.context['recordatorios_cita']
+            if tarea['reserva'].pk == reserva.pk
+        )
+        self.assertEqual(tarea['whatsapp_numero'], '')
+        self.assertNotContains(response, 'Avisar por WhatsApp')
+
+    def test_followup_without_email_shows_whatsapp_and_skips_email_scheduler(self):
+        from agenda.models import Reserva
+        from notificaciones.recordatorios import enviar_recordatorios_vencidos
+
+        reserva = Reserva.objects.create(
+            fecha_hora=timezone.now() - timedelta(hours=25),
+            estado='completada',
+            cliente_nombre='Natalia Pasten',
+            cliente_telefono='+56942706193',
+            servicio_nombre='Lifting',
+        )
+
+        response = self.client.get(reverse('admin_recordatorios'))
+
+        self.assertEqual(response.status_code, 200)
+        tarea = next(
+            tarea for tarea in response.context['recordatorios_seguimiento']
+            if tarea['reserva'].pk == reserva.pk
+        )
+        self.assertTrue(tarea['usar_whatsapp'])
+        self.assertContains(response, 'Avisar por WhatsApp')
+        self.assertIn('Sin correo: usa el aviso por WhatsApp', response.content.decode())
+        self.assertEqual(enviar_recordatorios_vencidos(), (0, 0))
 
     def test_reminder_settings_cannot_be_changed_through_global_post(self):
         response = self.client.post(
