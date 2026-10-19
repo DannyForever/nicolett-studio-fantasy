@@ -1,5 +1,19 @@
+# Entornos virtuales
+venv/
 .venv/
+env/
+**/venv/
+**/.venv/
+
+# Cache y compilados de Python
 __pycache__/
+*.pyc
+**/__pycache__/
+
+# Base de datos local y secretos
 db.sqlite3
 .env
-*.pyc
+
+# Archivos multimedia subidos durante pruebas
+media/
+**/media/
