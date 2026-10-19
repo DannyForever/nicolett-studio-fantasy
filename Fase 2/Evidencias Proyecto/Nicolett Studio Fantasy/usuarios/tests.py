@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, time
+from urllib.parse import parse_qs, urlparse
 
 import re
 from urllib.parse import urlparse
@@ -57,7 +58,13 @@ class RoleAccessTests(TestCase):
             ['$1.000', '$10.000', '$100.000', '$1.000.000', '$10.000.000'],
         )
 
-    def test_registration_always_creates_client_and_records_terms_acceptance(self):
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        EMAIL_HOST_USER='pruebas@example.com',
+        EMAIL_HOST_PASSWORD='password-de-prueba',
+        DEFAULT_FROM_EMAIL='pruebas@example.com',
+    )
+    def test_registration_requires_email_confirmation_before_client_login(self):
         response = self.client.post(
             reverse('register'),
             {
@@ -76,11 +83,130 @@ class RoleAccessTests(TestCase):
         self.assertEqual(response.status_code, 200)
         cliente = Usuario.objects.get(email='valentina@example.com')
         self.assertEqual(cliente.rol, self.client_role)
+        self.assertFalse(cliente.is_active)
         self.assertFalse(cliente.is_staff)
         self.assertFalse(cliente.is_superuser)
         self.assertIsNotNone(cliente.acepta_terminos_at)
         self.assertLessEqual(cliente.acepta_terminos_at, timezone.now())
+        self.assertContains(response, 'class="success-brand"')
+        self.assertContains(response, 'Te hemos enviado un correo')
+        self.assertContains(response, 'aria-label="Escribir a Nicolett Studio Fantasy por WhatsApp"')
+        self.assertContains(response, 'name="email" placeholder="valentina@ejemplo.cl" value="valentina@example.com"')
+        whatsapp_link = re.search(r'href="(https://wa\.me/56982108409\?text=[^"]+)"', response.content.decode()).group(1)
+        whatsapp_message = parse_qs(urlparse(whatsapp_link).query)['text'][0]
+        self.assertEqual(
+            whatsapp_message,
+            '✨ ¡Hola! Bienvenida a Nicolett Studio Fantasy 💖\n'
+            'Gracias por escribirnos 💌\n'
+            'Somos un espacio dedicado a realzar tu belleza con atención 100% personalizada ✨\n'
+            '💅 Servicios disponibles:\n'
+            '• Uñas\n'
+            '• Peluquería 💇‍♀️\n'
+            '• Pestañas 👁️\n'
+            '• Depilación\n'
+            '📍 Atendemos en Buin con previo abono\n'
+            '💳 Aceptamos todos los medios de pago\n'
+            'Para agendar tu hora, cuéntanos:\n'
+            '👉 Qué servicio te interesa\n'
+            '👉 Qué día y horario prefieres\n'
+            'Te responderemos lo antes posible para coordinar contigo 💕',
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        confirmation_email = mail.outbox[0]
+        self.assertIn('Nicolett Studio Fantasy', confirmation_email.subject)
+        self.assertIn('Nicolett Studio Fantasy', confirmation_email.body)
+        self.assertIn('CONFIRMAR MI CORREO', confirmation_email.alternatives[0][0])
+        self.assertNotIn('Palumbo', confirmation_email.body)
 
+        inactive_login = self.client.post(
+            reverse('login'),
+            {'email': cliente.email, 'password': 'Cliente123!'},
+        )
+        self.assertEqual(inactive_login.status_code, 200)
+        self.assertContains(inactive_login, 'verifica tu cuenta')
+        self.assertFalse('_auth_user_id' in self.client.session)
+
+        verification_url = re.search(r'http://testserver\S+', confirmation_email.body).group(0)
+        verification_path = urlparse(verification_url).path
+        verified = self.client.get(verification_path)
+        self.assertEqual(verified.status_code, 200)
+        self.assertContains(verified, 'Tu correo fue confirmado')
+        cliente.refresh_from_db()
+        self.assertTrue(cliente.is_active)
+        self.assertEqual(len(mail.outbox), 2)
+        activation_email = mail.outbox[1]
+        self.assertIn('cuenta está activa', activation_email.subject)
+        self.assertIn(cliente.email, activation_email.body)
+        self.assertIn('http://testserver/login/', activation_email.body)
+        self.assertIn('Nicolett Studio Fantasy', activation_email.alternatives[0][0])
+        self.assertIn('INICIAR SESIÓN', activation_email.alternatives[0][0])
+        self.assertNotIn('Palumbo', activation_email.body)
+        self.client.get(verification_path)
+        self.assertEqual(len(mail.outbox), 2)
+
+        login_response = self.client.post(
+            reverse('login'),
+            {'email': cliente.email, 'password': 'Cliente123!'},
+        )
+        self.assertRedirects(login_response, reverse('cliente_home'))
+
+    def test_registration_does_not_create_account_without_email_configuration(self):
+        with override_settings(EMAIL_HOST_USER='', EMAIL_HOST_PASSWORD=''):
+            response = self.client.post(
+                reverse('register'),
+                {
+                    'nombre': 'Valentina',
+                    'apellido_paterno': 'Prueba',
+                    'apellido_materno': 'Cliente',
+                    'telefono': '+56912345678',
+                    'email': 'sin.correo@example.com',
+                    'password': 'Cliente123!',
+                    'password_confirm': 'Cliente123!',
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'EMAIL_HOST_USER y EMAIL_HOST_PASSWORD')
+        self.assertFalse(Usuario.objects.filter(email='sin.correo@example.com').exists())
+
+    def test_verified_account_stays_active_if_activation_email_cannot_be_sent(self):
+        with override_settings(
+            EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+            EMAIL_HOST_USER='pruebas@example.com',
+            EMAIL_HOST_PASSWORD='password-de-prueba',
+            DEFAULT_FROM_EMAIL='pruebas@example.com',
+        ):
+            self.client.post(
+                reverse('register'),
+                {
+                    'nombre': 'Camila',
+                    'apellido_paterno': 'Prueba',
+                    'apellido_materno': 'Cliente',
+                    'telefono': '+56912345678',
+                    'email': 'camila.activada@example.com',
+                    'password': 'Cliente123!',
+                    'password_confirm': 'Cliente123!',
+                },
+            )
+            confirmation_url = re.search(
+                r'http://testserver\S+',
+                mail.outbox[0].body,
+            ).group(0)
+
+        with override_settings(EMAIL_HOST_USER='', EMAIL_HOST_PASSWORD=''):
+            response = self.client.get(urlparse(confirmation_url).path)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Tu cuenta quedó activa')
+        self.assertTrue(Usuario.objects.get(email='camila.activada@example.com').is_active)
+        self.assertEqual(len(mail.outbox), 1)
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        EMAIL_HOST_USER='pruebas@example.com',
+        EMAIL_HOST_PASSWORD='password-de-prueba',
+        DEFAULT_FROM_EMAIL='pruebas@example.com',
+    )
     def test_registration_accepts_local_mobile_and_stores_international_format(self):
         response = self.client.post(
             reverse('register'),
@@ -97,6 +223,31 @@ class RoleAccessTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Usuario.objects.get(email='camila@example.com').telefono, '+56912345678')
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        EMAIL_HOST_USER='pruebas@example.com',
+        EMAIL_HOST_PASSWORD='password-de-prueba',
+        DEFAULT_FROM_EMAIL='pruebas@example.com',
+    )
+    def test_registration_accepts_long_passwords_generated_by_password_managers(self):
+        password = 'Secure!GeneratedPass123'
+        response = self.client.post(
+            reverse('register'),
+            {
+                'nombre': 'Camila',
+                'apellido_paterno': 'Prueba',
+                'apellido_materno': 'Cliente',
+                'telefono': '912345678',
+                'email': 'camila.password@example.com',
+                'password': password,
+                'password_confirm': password,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        cliente = Usuario.objects.get(email='camila.password@example.com')
+        self.assertTrue(cliente.check_password(password))
 
     def test_registration_rejects_incomplete_phone(self):
         response = self.client.post(
@@ -170,7 +321,22 @@ class RoleAccessTests(TestCase):
         self.assertContains(terms, 'política de privacidad')
         self.assertContains(terms, 'Datos personales que se utilizan')
 
-    def test_client_login_redirects_to_client_home_and_cannot_open_admin_panel(self):
+    def test_registration_brand_and_password_manager_autocomplete_are_available(self):
+        response = self.client.get(reverse('login'), {'tab': 'register'})
+
+        self.assertContains(response, 'Crea una cuenta en')
+        self.assertContains(response, 'Nicolett Studio Fantasy')
+        self.assertContains(response, 'id="reg-password" name="password" placeholder="Mínimo 8 caracteres" required minlength="8" autocomplete="new-password"')
+        self.assertContains(response, 'id="reg-password-confirm" name="password_confirm" placeholder="Repetir contraseña" required minlength="8" autocomplete="new-password"')
+        self.assertContains(response, 'const regex = /^(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}$/;')
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        EMAIL_HOST_USER='pruebas@example.com',
+        EMAIL_HOST_PASSWORD='password-de-prueba',
+        DEFAULT_FROM_EMAIL='pruebas@example.com',
+    )
+    def test_client_login_sends_email_and_cannot_open_admin_panel(self):
         cliente = self.crear_cliente()
 
         response = self.client.post(
@@ -178,12 +344,25 @@ class RoleAccessTests(TestCase):
             {'email': cliente.email, 'password': 'Cliente123!'},
         )
 
-        self.assertRedirects(response, reverse('cliente_servicios'))
+        self.assertRedirects(response, reverse('cliente_home'))
+        self.assertEqual(len(mail.outbox), 1)
+        login_email = mail.outbox[0]
+        self.assertEqual(login_email.to, [cliente.email])
+        self.assertIn('Nuevo inicio de sesión', login_email.subject)
+        self.assertIn('Nicolett Studio Fantasy', login_email.body)
+        self.assertIn('hora de Chile', login_email.body)
+        self.assertIn('Nuevo inicio de sesión', login_email.alternatives[0][0])
         denied = self.client.get(reverse('admin_dashboard'))
         self.assertEqual(denied.status_code, 403)
         self.assertContains(denied, 'Acceso restringido', status_code=403)
         self.assertEqual(self.client.get('/admin/').status_code, 403)
 
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        EMAIL_HOST_USER='pruebas@example.com',
+        EMAIL_HOST_PASSWORD='password-de-prueba',
+        DEFAULT_FROM_EMAIL='pruebas@example.com',
+    )
     def test_admin_login_redirects_to_admin_panel_and_cannot_open_client_home(self):
         administrador = self.crear_admin()
 
@@ -193,6 +372,7 @@ class RoleAccessTests(TestCase):
         )
 
         self.assertRedirects(response, reverse('admin_dashboard'))
+        self.assertEqual(len(mail.outbox), 0)
         denied = self.client.get(reverse('cliente_home'))
         self.assertEqual(denied.status_code, 403)
         self.assertContains(denied, 'Acceso restringido', status_code=403)
@@ -236,8 +416,20 @@ class RoleAccessTests(TestCase):
                 response = self.client.get(reverse(name))
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, 'Hola,')
-                self.assertContains(response, cliente.nombre)
+                self.assertContains(response, '<strong class="text-white">Cliente</strong>')
                 self.assertContains(response, 'Cerrar sesión')
+                self.assertContains(response, 'https://www.instagram.com/nicolettstudiofantasy/')
+                self.assertNotContains(response, 'text-[11px] uppercase tracking-[0.12em] text-[#d8cfca] hover:text-white">Cerrar sesión')
+                self.assertContains(response, 'method="post" class="mt-auto px-5 pb-2 pt-6"')
+                self.assertContains(response, 'id="client-services-category-panel"')
+                for categoria in (
+                    'Depilación Trilaser',
+                    'Lash &amp; Brow',
+                    'Nails',
+                    'Peluquería',
+                    'Tratamientos Faciales',
+                ):
+                    self.assertContains(response, categoria)
                 self.assertContains(response, f'href="{reverse(name)}"')
                 self.assertContains(response, 'aria-current="page"')
                 self.assertIn('no-store', response['Cache-Control'])
@@ -435,12 +627,20 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(response, 'Formulario de contacto')
         self.assertNotContains(response, 'Contactar por WhatsApp')
 
-    def test_customer_home_redirects_to_services(self):
+    def test_customer_home_shows_contact_and_empty_address_sections(self):
         self.client.force_login(self.crear_cliente())
 
         response = self.client.get(reverse('cliente_home'))
 
-        self.assertRedirects(response, reverse('cliente_servicios'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Datos de contacto')
+        self.assertContains(response, 'cliente@example.com')
+        self.assertContains(response, '+56987654321')
+        self.assertContains(response, 'Direcciones de envío')
+        self.assertContains(response, 'Direcciones de facturación')
+        self.assertContains(response, 'Aún no tienes direcciones de envío guardadas.')
+        self.assertContains(response, reverse('cliente_configuracion'))
+        self.assertContains(response, 'Esta opción estará disponible próximamente.')
 
     def test_client_profile_fields_are_disabled_with_locked_visual_state(self):
         self.client.force_login(self.crear_cliente())
@@ -574,6 +774,33 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'id="section-register" style="display: block;"')
         self.assertContains(response, 'aria-selected="true"')
 
+    def test_login_page_uses_requested_salon_background_without_schedule_overlay(self):
+        response = self.client.get(reverse('login'))
+
+        self.assertContains(response, 'class="auth-page')
+        self.assertContains(response, 'class="auth-page-layout"')
+        self.assertContains(response, 'class="auth-form-panel"')
+        self.assertContains(response, 'img/login-salon.jpg')
+        self.assertContains(response, 'Ingresa a tu cuenta en')
+        self.assertContains(response, 'id="btn-login"')
+        self.assertContains(response, 'id="btn-register"')
+        self.assertNotContains(response, 'Agenda abierta')
+
+    def test_authenticated_client_header_hides_sign_in_and_registration_buttons(self):
+        self.client.force_login(self.crear_cliente())
+
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            'class="px-5 py-2.5 font-medium tracking-widest text-customDark transition hover:text-customAccent">INICIAR SESIÓN</a>',
+        )
+        self.assertNotContains(
+            response,
+            'class="bg-customDark px-5 py-2.5 tracking-widest text-customBg transition hover:bg-customAccent hover:text-customDark">CREAR CUENTA</a>',
+        )
+
     def test_logout_requires_post_clears_session_and_protects_back_navigation(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
@@ -595,7 +822,7 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'aria-current="page"')
         self.assertContains(
             response,
-            'href="{}" class="nav-link active"'.format(reverse('listar_servicios')),
+            'href="{}" class="nav-link js-services-menu-trigger active"'.format(reverse('listar_servicios')),
         )
 
     def test_customer_can_update_account_details_and_password(self):
@@ -695,23 +922,29 @@ class RoleAccessTests(TestCase):
         ).exists())
         self.assertTrue(PagoSimulado.objects.filter(pk=pago.pk, pedido=pedido).exists())
 
-        registro = self.client.post(
-            reverse('register'),
-            {
-                'nombre': 'Nueva',
-                'segundo_nombre': '',
-                'apellido_paterno': 'Cuenta',
-                'apellido_materno': 'Cliente',
-                'telefono': '+56912345678',
-                'email': 'cliente@example.com',
-                'password': 'Cliente123!',
-                'password_confirm': 'Cliente123!',
-            },
-        )
+        with override_settings(
+            EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+            EMAIL_HOST_USER='pruebas@example.com',
+            EMAIL_HOST_PASSWORD='password-de-prueba',
+            DEFAULT_FROM_EMAIL='pruebas@example.com',
+        ):
+            registro = self.client.post(
+                reverse('register'),
+                {
+                    'nombre': 'Nueva',
+                    'segundo_nombre': '',
+                    'apellido_paterno': 'Cuenta',
+                    'apellido_materno': 'Cliente',
+                    'telefono': '+56912345678',
+                    'email': 'cliente@example.com',
+                    'password': 'Cliente123!',
+                    'password_confirm': 'Cliente123!',
+                },
+            )
         self.assertEqual(registro.status_code, 200)
         self.assertTrue(Usuario.objects.filter(
             email='cliente@example.com',
-            is_active=True,
+            is_active=False,
             deleted_at__isnull=True,
         ).exists())
 

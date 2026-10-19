@@ -1,0 +1,10 @@
+Nicolett Studio Fantasy
+Confirma tu correo electrónico
+
+Hola {{ nombre }},
+
+Gracias por crear una cuenta en Nicolett Studio Fantasy. Para confirmar tu correo electrónico y activar tu cuenta, abre este enlace:
+
+{{ verification_url }}
+
+Si no creaste esta cuenta, puedes ignorar este mensaje.

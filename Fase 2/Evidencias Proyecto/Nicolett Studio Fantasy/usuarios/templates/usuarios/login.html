@@ -18,12 +18,12 @@
             theme: {
                 extend: {
                     colors: {
-                        customBg: '#faf7f4',    /* Fondo principal marfil suave */
-                        customDark: '#2a2320',  /* Tono oscuro principal */
-                        customAccent: '#c9a99b',/* Acento rosado/cobrizo */
-                        customMuted: '#7a6e6a', /* Texto secundario */
-                        customBorder: '#e8e0da',/* Bordes sutiles */
-                        customAltBg: '#f2ece7', /* Fondo alternativo sección servicios */
+                        customBg: '#f5efe8',
+                        customDark: '#66584a',
+                        customAccent: '#b49a7c',
+                        customMuted: '#897b6b',
+                        customBorder: '#e2d5c8',
+                        customAltBg: '#eee4da',
                     },
                     fontFamily: {
                         serif: ['"Playfair Display"', 'Georgia', 'serif'],
@@ -37,15 +37,15 @@
         .form-input {
             width: 100%;
             padding: 11px 40px 11px 14px; /* Espacio a la derecha para el ícono del ojito */
-            border: 1px solid #e8e0da;
-            background-color: #faf7f4;
+            border: 1px solid #e2d5c8;
+            background-color: #f5efe8;
             font-size: 14px;
-            color: #2a2320;
+            color: #66584a;
             outline: none;
             box-sizing: border-box;
         }
         .form-input:focus {
-            border-color: #c9a99b;
+            border-color: #b49a7c;
         }
         /* Ocultar el ícono nativo de los navegadores para contraseñas */
         input[type="password"]::-ms-reveal,
@@ -57,18 +57,331 @@
             grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
+        .registration-card {
+            border: 1px solid #4a4d50;
+            background: #292d30;
+            padding: 24px;
+            color: #f8f5f2;
+        }
+        .registration-brand {
+            margin: 0 0 18px;
+            text-align: center;
+        }
+        .registration-brand-label {
+            margin: 0 0 6px;
+            color: #d8cfca;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+        .registration-brand-name {
+            margin: 0;
+            color: #fff;
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 25px;
+            font-weight: 700;
+        }
+        #section-register .registration-description {
+            color: #d8cfca !important;
+        }
+        #section-register .registration-card label {
+            color: #f8f5f2 !important;
+        }
+        #section-register .registration-card .form-input {
+            background: #fff;
+            text-align: center;
+        }
+        #section-register .registration-card .registration-feedback {
+            background: #383d40 !important;
+            color: #f0e9e5 !important;
+        }
+        @media (max-width: 560px) {
+            .registration-card {
+                padding: 18px 14px;
+            }
+            .reg-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        body.auth-page {
+            height: 100vh !important;
+            overflow: hidden !important;
+            background: #f5efe8 !important;
+        }
+        body.auth-page > footer {
+            display: none !important;
+        }
+        .auth-page-layout {
+            position: relative;
+            align-items: stretch !important;
+            justify-content: flex-start;
+            min-height: 0;
+            overflow: hidden !important;
+            background: #f5efe8;
+        }
+        .auth-page .login-deco {
+            position: relative !important;
+            inset: auto !important;
+            flex: 0 0 47% !important;
+            width: 47% !important;
+            height: 100% !important;
+            min-height: 0;
+        }
+        .auth-page .login-deco > img {
+            filter: grayscale(100%);
+            object-position: center center;
+        }
+        .auth-page .login-deco > div:first-of-type {
+            background: linear-gradient(180deg, rgba(24, 24, 24, 0.03), rgba(24, 24, 24, 0.16)) !important;
+        }
+        .auth-page .login-deco > div:last-child {
+            display: none;
+        }
+        .auth-page .auth-form-panel {
+            position: relative;
+            z-index: 1;
+            flex: 1 1 53% !important;
+            width: 53%;
+            height: 100%;
+            min-height: 0;
+            align-items: flex-start !important;
+            justify-content: flex-start !important;
+            padding: 12px clamp(8px, 1vw, 14px) !important;
+            background: rgba(245, 239, 232, 0.98) !important;
+            overflow-y: auto !important;
+        }
+        .auth-page .auth-form-card {
+            width: 100% !important;
+            max-width: 700px !important;
+            margin: auto 0;
+            padding: 12px;
+            box-sizing: border-box;
+            background: rgba(251, 247, 242, 0.98);
+            box-shadow: 0 14px 48px rgba(25, 22, 20, 0.22);
+        }
+        .auth-brand {
+            margin: 0 0 22px;
+            text-align: center;
+        }
+        .auth-brand p {
+            margin: 0 0 10px;
+            color: #897b6b;
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+        .auth-brand h1 {
+            margin: 0;
+            color: #66584a;
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 26px;
+            font-weight: 700;
+        }
+        .auth-brand span {
+            display: block;
+            margin-top: 3px;
+            color: #8b7257;
+            font-size: 11px;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+        }
+        .auth-page .registration-card {
+            border-color: #e2d5c8;
+            background: #fbf7f2;
+            color: #66584a;
+        }
+        .auth-page #section-login form .form-input {
+            background: #f1e7dc;
+            text-align: center;
+        }
+        .auth-page #section-register .registration-brand-label,
+        .auth-page #section-register .registration-description,
+        .auth-page #section-register .registration-card label {
+            color: #897b6b !important;
+        }
+        .auth-page #section-register .registration-brand-name {
+            color: #66584a;
+        }
+        .auth-page #section-register .registration-card .registration-feedback {
+            background: #eee4da !important;
+            color: #6e5d4d !important;
+        }
+        @media (max-width: 560px) {
+            body.auth-page {
+                height: auto !important;
+                min-height: 100vh;
+                overflow-y: auto !important;
+            }
+            .auth-page-layout {
+                flex-direction: column;
+                min-height: calc(100vh - 72px);
+                overflow: visible !important;
+            }
+            .auth-page .login-deco {
+                flex: 0 0 210px !important;
+                width: 100% !important;
+                height: 210px !important;
+            }
+            .auth-page .auth-form-panel {
+                flex: 1 1 auto !important;
+                width: 100%;
+                height: auto;
+                padding: 16px !important;
+                overflow: visible !important;
+            }
+            .auth-page .auth-form-card {
+                max-width: 460px !important;
+                margin: 0 auto 20px;
+                padding: 18px 16px;
+            }
+        }
+        body.registration-success-page {
+            display: block !important;
+            height: auto !important;
+            min-height: 100vh;
+            overflow: auto !important;
+            background-color: #1c2023 !important;
+        }
+        .registration-success-page > header,
+        .registration-success-page > footer {
+            display: none !important;
+        }
+        .registration-success-page .registration-success-layout {
+            position: relative;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100%;
+            min-height: 100vh !important;
+            height: auto !important;
+            padding: 24px 16px;
+            box-sizing: border-box;
+            overflow: auto !important;
+        }
+        .registration-success-page .login-deco {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .registration-success-page .login-deco > div:last-child {
+            display: none !important;
+        }
+        .registration-success-page .registration-success-form {
+            position: relative !important;
+            inset: auto !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: calc(100vh - 48px);
+            padding: 0 !important;
+            box-sizing: border-box;
+            overflow: visible !important;
+            background: transparent !important;
+        }
+        .registration-success-page .success-login-card {
+            position: relative;
+            width: min(380px, 100%) !important;
+            max-width: 380px !important;
+            max-height: none;
+            overflow: visible;
+            box-sizing: border-box;
+            padding: 24px;
+            border: 1px solid rgba(230, 230, 230, 0.45);
+            background: rgba(41, 45, 48, 0.94);
+            color: #f8f5f2;
+        }
+        .success-brand {
+            margin: 8px 0 18px;
+            text-align: center;
+        }
+        .success-brand p {
+            margin: 0 0 6px;
+            color: #d8cfca;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+        .success-brand h1 {
+            margin: 0;
+            color: #fff;
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 26px;
+            font-weight: 700;
+        }
+        .registration-success-page #btn-login,
+        .registration-success-page #btn-register,
+        .registration-success-page #section-login > p,
+        .registration-success-page #section-login > div:last-child {
+            display: none !important;
+        }
+        .registration-success-page #section-login {
+            display: block !important;
+        }
+        .registration-success-page #section-login > div[role="status"] {
+            margin: 0 0 16px !important;
+            padding: 12px !important;
+            border: 1px solid rgba(230, 230, 230, 0.45) !important;
+            background: transparent !important;
+            color: #fff !important;
+            text-align: center;
+        }
+        .registration-success-page #section-login form label {
+            color: #f8f5f2 !important;
+        }
+        .registration-success-page #section-login form .form-input {
+            background: #e8f0fe !important;
+            text-align: center;
+        }
+        .whatsapp-welcome-link {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 100;
+            display: flex;
+            width: 52px;
+            height: 52px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            background: #25d366;
+            color: #fff;
+            font-size: 27px;
+            text-decoration: none;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+            transition: background-color 160ms ease, transform 160ms ease;
+        }
+        .whatsapp-welcome-link:hover {
+            transform: translateY(-2px);
+            background: #1ebe5d;
+            color: #fff;
+        }
+        @media (max-width: 560px) {
+            .registration-success-page .registration-success-layout {
+                padding: 16px;
+            }
+            .registration-success-page .registration-success-form {
+                min-height: calc(100vh - 32px);
+            }
+            .registration-success-page .success-login-card {
+                padding: 18px 14px;
+            }
+        }
     </style>
 </head>
-<body class="bg-customBg font-sans text-customDark antialiased" style="display: flex; flex-direction: column; height: 100vh; overflow: hidden; margin: 0;">
+<body class="bg-customBg font-sans text-customDark antialiased{% if exito %} registration-success-page{% else %} auth-page{% endif %}" style="display: flex; flex-direction: column; height: 100vh; overflow: hidden; margin: 0;">
 
     {% include 'header.html' %}
 
     <!-- CONTENIDO PRINCIPAL -->
-    <div style="flex: 1; min-height: 0; display: flex; align-items: stretch; overflow: hidden;">
+    <div class="{% if exito %}registration-success-layout{% else %}auth-page-layout{% endif %}" style="flex: 1; min-height: 0; display: flex; align-items: stretch; overflow: hidden;">
         
         <!-- DECO / IMAGEN IZQUIERDA -->
         <div style="flex: 0 0 42%; min-height: 0; position: relative; overflow: hidden; background-color: #e8e0da;" class="login-deco">
-            <img src="https://images.unsplash.com/photo-1562322140-8baeececf3df?w=900&h=1200&fit=crop&auto=format" alt="Salón Nicolett Studio" style="width: 100%; height: 100%; object-fit: cover;" />
+            <img src="{% static 'img/login-salon.jpg' %}" alt="" aria-hidden="true" style="width: 100%; height: 100%; object-fit: cover;" />
             <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(42,35,32,0.72) 0%, rgba(201,169,155,0.3) 100%);"></div>
             <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 32px 40px;">
                 <a href="{% url 'home' %}" style="text-decoration: none; color: #faf7f4;">
@@ -83,11 +396,11 @@
         </div>
 
         <!-- FORMULARIO DERECHA  -->
-        <div style="flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center; padding: 24px 40px; background-color: #ffffff; overflow-y: auto;">
-            <div style="width: 100%; max-width: 480px;">
+        <div class="{% if exito %}registration-success-form{% else %}auth-form-panel{% endif %}" style="flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center; padding: 24px 40px; background-color: #ffffff; overflow-y: auto;">
+            <div class="{% if exito %}success-login-card{% else %}auth-form-card{% endif %}" style="width: 100%; max-width: 480px;">
                 
                 <!-- TABS (PESTAÑAS) -->
-                <div style="display: flex; border-bottom: 1px solid #e8e0da; margin-bottom: 24px; background-color: #ffffff;">
+                {% if not exito %}<div style="display: flex; border-bottom: 1px solid #e8e0da; margin-bottom: 24px; background-color: #ffffff;">
                     <button type="button" id="btn-login" onclick="switchTab('login')" aria-selected="{% if not mostrar_registro %}true{% else %}false{% endif %}" style="flex: 1; padding: 10px 0; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; background: #ffffff; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: {% if mostrar_registro %}#7a6e6a{% else %}#2a2320{% endif %}; border-bottom: 2px solid {% if mostrar_registro %}transparent{% else %}#2a2320{% endif %}; margin-bottom: -1px; transition: all 0.2s;">
                         Iniciar sesión
                     </button>
@@ -95,20 +408,36 @@
                         Crear cuenta
                     </button>
                 </div>
+                {% endif %}
 
                 <!-- SECCIÓN INICIAR SESIÓN -->
                 <div id="section-login" style="display: {% if mostrar_registro %}none{% else %}block{% endif %};">
-                    <p style="font-size: 13px; color: #7a6e6a; margin-bottom: 24px; line-height: 1.6;">
+                    {% if not exito %}
+                    <div class="auth-brand">
+                        <p>Ingresa a tu cuenta en</p>
+                        <h1>Nicolett</h1>
+                        <span>Studio Fantasy</span>
+                    </div>
+                    {% endif %}
+                    {% if exito %}
+                    <div class="success-brand">
+                        <p>Ingresa a tu cuenta en</p>
+                        <h1>Nicolett Studio Fantasy</h1>
+                    </div>
+                    <div role="status">
+                        {{ exito }}
+                    </div>
+                    {% if activation_email_error %}
+                    <div role="alert" style="margin-bottom: 16px; padding: 12px; border: 1px solid #c9a99b; color: #fff; font-size: 12px; line-height: 1.5;">
+                        {{ activation_email_error }}
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    <p style="{% if exito %}display: none;{% endif %} font-size: 13px; color: #7a6e6a; margin-bottom: 24px; line-height: 1.6;">
                         Ingresa con tu cuenta para gestionar tus citas, ver tu historial y acceder a promociones exclusivas.
                     </p>
 
                     <!-- CAJITA DE ÉXITO CUANDO SE REGISTRA -->
-                    {% if exito %}
-                    <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #d4edda; border-left: 3px solid #28a745; color: #155724; font-size: 12px; line-height: 1.5;">
-                        {{ exito }}
-                    </div>
-                    {% endif %}
-
                     <!-- CAJITA DE ERROR SI LLEGA A HABERLO -->
                     {% if error %}
                     <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #f8d7da; border-left: 3px solid #dc3545; color: #721c24; font-size: 12px; line-height: 1.5;">
@@ -120,12 +449,12 @@
                         {% csrf_token %}
                         <div>
                             <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Correo electrónico *</label>
-                            <input type="email" name="email" placeholder="valentina@ejemplo.cl" required class="form-input" style="padding-right: 14px;">
+                            <input type="email" name="email" placeholder="valentina@ejemplo.cl" value="{{ email|default:'' }}" required class="form-input" style="padding-right: 14px;">
                         </div>
                         <div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                 <label style="font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a;">Contraseña *</label>
-                                <a href="{% url 'password_recovery' %}" style="font-size: 12px; color: #c9a99b; text-decoration: none;">¿Olvidaste tu contraseña?</a>
+                                <a href="{% url 'password_recovery' %}" style="font-size: 12px; color: #c9a99b; text-decoration: none;">Restablecer mi clave</a>
                             </div>
                             <!-- Contenedor con ojito personalizado único -->
                             <div style="position: relative;">
@@ -139,21 +468,21 @@
                             Ingresar
                         </button>
                     </form>
-                    <div style="margin-top: 20px; padding: 12px 16px; background-color: #f2ece7; border-left: 3px solid #c9a99b;">
-                        <p style="font-size: 12px; color: #7a6e6a; line-height: 1.6; margin: 0;">
-                            <strong style="color: #2a2320;">Acceso admin:</strong> usa un email con "admin" para el panel de administración.
-                        </p>
-                    </div>
                 </div>
 
                 <!-- SECCIÓN CREAR CUENTA -->
                 <div id="section-register" style="display: {% if mostrar_registro %}block{% else %}none{% endif %};">
+                    <div class="registration-card">
+                    <div class="registration-brand">
+                        <p class="registration-brand-label">Crea una cuenta en</p>
+                        <h1 class="registration-brand-name">Nicolett Studio Fantasy</h1>
+                    </div>
                     {% if error and mostrar_registro %}
                     <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #f8d7da; border-left: 3px solid #dc3545; color: #721c24; font-size: 12px; line-height: 1.5;">
                         {{ error }}
                     </div>
                     {% endif %}
-                    <p style="font-size: 13px; color: #7a6e6a; margin-bottom: 20px; line-height: 1.6;">
+                    <p class="registration-description" style="font-size: 13px; color: #7a6e6a; margin-bottom: 20px; line-height: 1.6;">
                         Crea tu cuenta y disfruta de venta de productos, agendamiento online con seguimiento e historial de servicios ya realizados.
                     </p>
                     <form id="form-register" method="POST" action="{% url 'register' %}" onsubmit="return validarRegister(event)" style="display: flex; flex-direction: column; gap: 14px; padding-bottom: 16px;">
@@ -202,7 +531,7 @@
                             <div>
                                 <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Contraseña *</label>
                                 <div style="position: relative;">
-                                    <input type="password" id="reg-password" name="password" placeholder="8-12 carac." required class="form-input" oninput="validarPasswordFuerza(); validarCoincidencia();">
+                                    <input type="password" id="reg-password" name="password" placeholder="Mínimo 8 caracteres" required minlength="8" autocomplete="new-password" class="form-input" oninput="validarPasswordFuerza(); validarCoincidencia();">
                                     <button type="button" onclick="togglePassword('reg-password', 'eye-reg')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #7a6e6a; padding: 4px;">
                                         <i id="eye-reg" class="fa-regular fa-eye"></i>
                                     </button>
@@ -211,7 +540,7 @@
                             <div>
                                 <label style="display: block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e6a; margin-bottom: 6px;">Confirmar *</label>
                                 <div style="position: relative;">
-                                    <input type="password" id="reg-password-confirm" name="password_confirm" placeholder="Repetir" required class="form-input" oninput="validarCoincidencia()">
+                                    <input type="password" id="reg-password-confirm" name="password_confirm" placeholder="Repetir contraseña" required minlength="8" autocomplete="new-password" class="form-input" oninput="validarCoincidencia()">
                                     <button type="button" onclick="togglePassword('reg-password-confirm', 'eye-reg-confirm')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #7a6e6a; padding: 4px;">
                                         <i id="eye-reg-confirm" class="fa-regular fa-eye"></i>
                                     </button>
@@ -220,17 +549,17 @@
                         </div>
 
                         <!-- Indicador de formato de teléfono -->
-                        <div id="telefono-feedback" style="font-size: 11px; color: #7a6e6a; line-height: 1.4; background-color: #f2ece7; padding: 8px 10px; border-radius: 2px;">
+                        <div id="telefono-feedback" class="registration-feedback" style="font-size: 11px; color: #7a6e6a; line-height: 1.4; background-color: #f2ece7; padding: 8px 10px; border-radius: 2px;">
                             Formatos aceptados: +569XXXXXXXX o 9XXXXXXXX.
                         </div>
 
                         <!-- Indicador de seguridad de contraseña -->
-                        <div id="password-feedback" style="font-size: 11px; color: #7a6e6a; line-height: 1.4; background-color: #f2ece7; padding: 8px 10px; border-radius: 2px;">
-                            De 8 a 12 carac., incl. Mayúscula, número(s) y carácter especial obligatorio (@, #, etc.).
+                        <div id="password-feedback" class="registration-feedback" style="font-size: 11px; color: #7a6e6a; line-height: 1.4; background-color: #f2ece7; padding: 8px 10px; border-radius: 2px;">
+                            Mínimo 8 caracteres, con al menos una mayúscula, un número y un símbolo.
                         </div>
 
                         <!-- Indicador en tiempo real de coincidencia de contraseñas -->
-                        <div id="coincidencia-feedback" style="font-size: 11px; color: #7a6e6a; line-height: 1.4; background-color: #f2ece7; padding: 8px 10px; border-radius: 2px; display: none;">
+                        <div id="coincidencia-feedback" class="registration-feedback" style="font-size: 11px; color: #7a6e6a; line-height: 1.4; background-color: #f2ece7; padding: 8px 10px; border-radius: 2px; display: none;">
                             Las contraseñas deben coincidir.
                         </div>
 
@@ -241,10 +570,11 @@
                             Al crear tu cuenta aceptas nuestros <a href="{% url 'terminos_privacidad' %}" target="_blank" rel="noopener noreferrer" style="color: #2a2320; text-decoration: underline;">términos y política de privacidad</a>.
                         </p>
 
-                        <button type="submit" style="background-color: #2a2320; color: #faf7f4; padding: 14px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; border: none; cursor: pointer;" onmouseenter="this.style.backgroundColor='#c9a99b'" onmouseleave="this.style.backgroundColor='#2a2320'">
+                        <button type="submit" style="background-color: #c9a99b; color: #2a2320; padding: 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; border: none; cursor: pointer;" onmouseenter="this.style.backgroundColor='#d8bfb4'" onmouseleave="this.style.backgroundColor='#c9a99b'">
                             Crear cuenta
                         </button>
                     </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -313,8 +643,8 @@
         function validarPasswordFuerza() {
             const pass = document.getElementById('reg-password').value;
             const feedback = document.getElementById('password-feedback');
-            // 8 a 12 caracteres, al menos una mayúscula, un número y un carácter especial
-            const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._#\-])[A-Za-z\d@$!%*?&._#\-]{8,12}$/;
+            // Permite contraseñas largas creadas por gestores de contraseñas.
+            const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
             if (regex.test(pass)) {
                 feedback.style.backgroundColor = '#d4edda';
                 feedback.style.color = '#155724';
@@ -323,7 +653,7 @@
             } else {
                 feedback.style.backgroundColor = '#f2ece7';
                 feedback.style.color = '#7a6e6a';
-                feedback.innerText = 'De 8 a 12 carac., incl. Mayúscula, número(s) y carácter especial obligatorio (@, #, etc.).';
+                feedback.innerText = 'Mínimo 8 caracteres, con al menos una mayúscula, un número y un símbolo.';
                 return false;
             }
         }
@@ -365,6 +695,12 @@
             return true;
         }
     </script>
+
+    {% if whatsapp_url %}
+    <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="whatsapp-welcome-link" aria-label="Escribir a Nicolett Studio Fantasy por WhatsApp">
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+    </a>
+    {% endif %}
 
     {% include 'footer.html' %}
 </body>

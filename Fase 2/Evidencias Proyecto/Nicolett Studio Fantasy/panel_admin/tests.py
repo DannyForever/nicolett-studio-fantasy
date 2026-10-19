@@ -80,6 +80,17 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, 'Disponibilidad para clientes')
         self.assertContains(response, 'data-live-filter="#serviciosTabla"')
         self.assertContains(response, 'data-filter-row')
+        for categoria in (
+            'Depilación Trilaser',
+            'Lash &amp; Brow',
+            'Nails',
+            'Peluquería',
+            'Tratamientos Faciales',
+        ):
+            with self.subTest(categoria=categoria):
+                self.assertContains(response, categoria)
+        self.assertContains(response, 'id="admin-services-category-panel"')
+        self.assertContains(response, 'aria-label="Buscar categorías de servicios"')
 
     def test_create_service_persists_active_or_inactive_value(self):
         response = self.client.post(

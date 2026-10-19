@@ -9,15 +9,49 @@
             <p class="text-[10px] tracking-widest uppercase text-customMuted">Studio Fantasy</p>
             </div>
         </a>
-        <nav class="hidden items-center justify-self-center space-x-8 text-xs font-medium tracking-widest lg:flex">
+        <nav class="hidden items-center justify-self-center gap-8 text-xs font-medium tracking-widest lg:flex">
             <a href="{% url 'home' %}#servicios" class="text-customDark transition hover:text-customAccent">SERVICIOS</a>
             <a href="{% url 'home' %}#nosotras" class="text-customDark transition hover:text-customAccent">NOSOTRAS</a>
             <a href="{% url 'home' %}#galeria" class="text-customDark transition hover:text-customAccent">GALERÍA</a>
             <a href="{% url 'home' %}#resenas" class="text-customDark transition hover:text-customAccent">RESEÑAS</a>
-            <a href="{% url 'home' %}#contacto" class="text-customDark transition hover:text-customAccent">CONTACTO</a>
+            <div class="flex items-center gap-4">
+                <a href="{% url 'home' %}#contacto" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
+                    CONTÁCTANOS
+                    <i class="fa-solid fa-chevron-down text-[9px]" aria-hidden="true"></i>
+                </a>
+                <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram de Nicolett Studio Fantasy" title="@nicolettstudiofantasy" class="text-lg text-customDark transition hover:text-customAccent">
+                    <i class="fa-brands fa-instagram" aria-hidden="true"></i>
+                </a>
+            </div>
         </nav>
-        <div class="flex items-center justify-self-end space-x-4">
-            <a href="{% url 'login' %}" class="px-5 py-2.5 font-medium tracking-widest text-customDark transition hover:text-customAccent">INICIAR SESIÓN</a>
-            <a href="{% url 'login' %}?tab=register" class="bg-customDark px-5 py-2.5 tracking-widest text-customBg transition hover:bg-customAccent hover:text-customDark">CREAR CUENTA</a>
+        <div class="flex items-center justify-self-end gap-4">
+            {% if request.user.is_authenticated and request.user.rol.nombre == 'Cliente' %}
+            <a href="{% url 'cliente_home' %}" aria-label="Ir a mi cuenta de cliente" class="flex items-center gap-2 font-medium tracking-wider text-customDark transition hover:text-customAccent">
+                <i class="fa-regular fa-user text-base" aria-hidden="true"></i>
+                <span>CLIENTES</span>
+            </a>
+            <a href="{% url 'cliente_carrito' %}" aria-label="Abrir carrito" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
+                <i class="fa-solid fa-bag-shopping text-base" aria-hidden="true"></i>
+                {% if cantidad_articulos_carrito %}<span>{{ cantidad_articulos_carrito }}</span>{% endif %}
+            </a>
+            {% else %}
+            <a href="{% url 'login' %}" aria-label="Ingresar o crear cuenta de cliente" class="flex items-center gap-2 font-medium tracking-wider text-customDark transition hover:text-customAccent">
+                <i class="fa-regular fa-user text-base" aria-hidden="true"></i>
+                <span>CLIENTES</span>
+            </a>
+            <a href="{% url 'login' %}" aria-label="Ingresar para abrir el carrito" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
+                <i class="fa-solid fa-bag-shopping text-base" aria-hidden="true"></i>
+                <span>$0</span>
+            </a>
+            {% endif %}
         </div>
+        <nav class="col-span-3 flex items-center justify-end gap-5 border-t border-customBorder pt-3 text-xs font-medium tracking-wider lg:hidden" aria-label="Contacto y redes sociales">
+            <a href="{% url 'home' %}#contacto" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
+                Contáctanos
+                <i class="fa-solid fa-chevron-down text-[9px]" aria-hidden="true"></i>
+            </a>
+            <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram de Nicolett Studio Fantasy" title="@nicolettstudiofantasy" class="text-base text-customDark transition hover:text-customAccent">
+                <i class="fa-brands fa-instagram" aria-hidden="true"></i>
+            </a>
+        </nav>
     </header>

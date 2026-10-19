@@ -12,7 +12,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <!-- Nuestro archivo CSS externo y profesional -->
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261010-1">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261019-2">
 </head>
 
 <body>
@@ -26,7 +26,7 @@
             </div>
             <ul class="sidebar-menu">
                 <li class="nav-item"><a href="{% url 'admin_dashboard' %}" class="nav-link{% if request.resolver_match.url_name == 'admin_dashboard' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_dashboard' %} aria-current="page"{% endif %}><i class="fas fa-home me-2"></i> Dashboard</a></li>
-                <li class="nav-item"><a href="{% url 'listar_servicios' %}" class="nav-link{% if request.resolver_match.url_name in 'listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} active{% endif %}"{% if request.resolver_match.url_name in 'listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} aria-current="page"{% endif %}><i class="fas fa-spa me-2"></i> Servicios</a></li>
+                <li class="nav-item"><a href="{% url 'listar_servicios' %}" class="nav-link js-services-menu-trigger{% if request.resolver_match.url_name in 'listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} active{% endif %}" aria-haspopup="dialog" aria-expanded="false"{% if request.resolver_match.url_name in 'listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} aria-current="page"{% endif %}><i class="fas fa-spa me-2"></i> Servicios</a></li>
                 <li class="nav-item"><a href="{% url 'admin_productos' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} aria-current="page"{% endif %}><i class="fas fa-box me-2"></i> Productos</a></li>
                 <li class="nav-item"><a href="{% url 'admin_agenda' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio crear_reserva_manual guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia reagendar_cita cancelar_cita responder_suspension guardar_respuesta_suspension' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio crear_reserva_manual guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia reagendar_cita cancelar_cita responder_suspension guardar_respuesta_suspension' %} aria-current="page"{% endif %}><i class="fas fa-calendar-alt me-2"></i> Agendamientos</a></li>
                 <li class="nav-item"><a href="{% url 'admin_ventas' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_ventas admin_detalle_venta' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_ventas admin_detalle_venta' %} aria-current="page"{% endif %}><i class="fas fa-cash-register me-2"></i> Ventas y pagos</a></li>
@@ -35,6 +35,26 @@
                 <li class="nav-item"><a href="{% url 'admin_configuracion' %}" class="nav-link{% if request.resolver_match.url_name == 'admin_configuracion' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_configuracion' %} aria-current="page"{% endif %}><i class="fas fa-user-cog me-2"></i> Configuración</a></li>
             </ul>
         </div>
+
+        <section id="admin-services-category-panel" class="services-category-panel" role="dialog" aria-label="Categorías de servicios" hidden>
+            <div class="services-category-header">
+                <h2>Servicios</h2>
+                <button type="button" class="services-category-close" aria-label="Cerrar categorías">&times;</button>
+            </div>
+            <label class="services-category-search">
+                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                <input type="search" placeholder="Busca un servicio..." aria-label="Buscar categorías de servicios">
+            </label>
+            <ul class="services-category-list">
+                {% for categoria in categorias_servicios %}
+                    <li><span><i class="fas fa-caret-right" aria-hidden="true"></i> {{ categoria.nombre }}</span></li>
+                {% empty %}
+                    <li>No hay categorías disponibles.</li>
+                {% endfor %}
+            </ul>
+            <a class="services-category-all" href="{% url 'listar_servicios' %}">Ver todos los servicios</a>
+            <p class="services-category-empty" hidden>No se encontraron categorías.</p>
+        </section>
 
         <!-- Parte inferior del menú: Sesión activa y botón salir -->
         <div class="sidebar-footer">
@@ -47,7 +67,7 @@
                 {% endif %}
             </span>
             <!-- Formulario de cierre de sesión seguro por POST que redirige al home de core -->
-            <form action="{% url 'logout' %}" method="post" style="display: inline;">
+            <form action="{% url 'logout' %}" method="post">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="/">
                 <button type="submit" class="btn-logout">
@@ -66,6 +86,63 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        (() => {
+            const trigger = document.querySelector('.js-services-menu-trigger');
+            const panel = document.getElementById('admin-services-category-panel');
+            if (!trigger || !panel) return;
+
+            const search = panel.querySelector('input[type="search"]');
+            const items = Array.from(panel.querySelectorAll('.services-category-list li'));
+            const empty = panel.querySelector('.services-category-empty');
+            const closeButton = panel.querySelector('.services-category-close');
+
+            function positionPanel() {
+                const triggerRect = trigger.getBoundingClientRect();
+                const panelRect = panel.getBoundingClientRect();
+                const left = Math.min(triggerRect.right, window.innerWidth - panelRect.width - 8);
+                const top = Math.max(8, Math.min(triggerRect.top, window.innerHeight - panelRect.height - 8));
+                panel.style.left = `${Math.max(8, left)}px`;
+                panel.style.top = `${top}px`;
+            }
+
+            function setOpen(open) {
+                panel.hidden = !open;
+                trigger.setAttribute('aria-expanded', String(open));
+                if (open) {
+                    positionPanel();
+                    search.focus();
+                }
+            }
+
+            trigger.addEventListener('click', event => {
+                event.preventDefault();
+                setOpen(panel.hidden);
+            });
+            closeButton.addEventListener('click', () => setOpen(false));
+            search.addEventListener('input', () => {
+                const phrase = search.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
+                let visibleItems = 0;
+                items.forEach(item => {
+                    const matches = item.textContent.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(phrase);
+                    item.hidden = !matches;
+                    if (matches) visibleItems += 1;
+                });
+                empty.hidden = visibleItems > 0;
+            });
+            document.addEventListener('click', event => {
+                if (!panel.hidden && !panel.contains(event.target) && !trigger.contains(event.target)) setOpen(false);
+            });
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape' && !panel.hidden) {
+                    setOpen(false);
+                    trigger.focus();
+                }
+            });
+            window.addEventListener('resize', () => {
+                if (!panel.hidden) positionPanel();
+            });
+        })();
+
         document.querySelectorAll('[data-live-filter]').forEach((filters) => {
             const table = document.querySelector(filters.dataset.liveFilter);
             if (!table) return;

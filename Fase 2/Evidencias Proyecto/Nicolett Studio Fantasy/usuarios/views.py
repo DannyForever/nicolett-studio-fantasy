@@ -3,6 +3,7 @@ import binascii
 import logging
 import re
 import smtplib
+from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib.auth import authenticate, login as auth_login, logout, update_session_auth_hash
@@ -16,6 +17,7 @@ from django.db.models import QuerySet
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils import timezone
@@ -33,6 +35,23 @@ from .permissions import es_administrador, es_cliente
 
 logger = logging.getLogger(__name__)
 
+MENSAJE_BIENVENIDA_WHATSAPP = (
+    '✨ ¡Hola! Bienvenida a Nicolett Studio Fantasy 💖\n'
+    'Gracias por escribirnos 💌\n'
+    'Somos un espacio dedicado a realzar tu belleza con atención 100% personalizada ✨\n'
+    '💅 Servicios disponibles:\n'
+    '• Uñas\n'
+    '• Peluquería 💇‍♀️\n'
+    '• Pestañas 👁️\n'
+    '• Depilación\n'
+    '📍 Atendemos en Buin con previo abono\n'
+    '💳 Aceptamos todos los medios de pago\n'
+    'Para agendar tu hora, cuéntanos:\n'
+    '👉 Qué servicio te interesa\n'
+    '👉 Qué día y horario prefieres\n'
+    'Te responderemos lo antes posible para coordinar contigo 💕'
+)
+
 
 def login_view(request):
     if request.method == 'POST':
@@ -41,6 +60,28 @@ def login_view(request):
         usuario = authenticate(request, email=email, password=password)
 
         if usuario is None:
+            usuario_pendiente = Usuario.objects.filter(
+                email__iexact=email,
+                is_active=False,
+                deleted_at__isnull=True,
+            ).select_related('rol').first()
+            if (
+                usuario_pendiente is not None
+                and usuario_pendiente.check_password(password)
+                and es_cliente(usuario_pendiente)
+            ):
+                return render(
+                    request,
+                    'usuarios/login.html',
+                    {
+                        'email': usuario_pendiente.email,
+                        'exito': (
+                            'Por favor, verifica tu cuenta. Te hemos enviado un correo '
+                            'electrónico para confirmar tu cuenta.'
+                        ),
+                        'verification_pending': True,
+                    },
+                )
             return render(
                 request,
                 'usuarios/login.html',
@@ -51,7 +92,8 @@ def login_view(request):
         if es_administrador(usuario):
             return redirect('admin_dashboard')
         if es_cliente(usuario):
-            return redirect('cliente_servicios')
+            enviar_aviso_inicio_sesion(request, usuario)
+            return redirect('cliente_home')
         return render(
             request,
             'usuarios/acceso_denegado.html',
@@ -63,6 +105,44 @@ def login_view(request):
         'usuarios/login.html',
         {'mostrar_registro': request.GET.get('tab') == 'register'},
     )
+
+
+def enviar_aviso_inicio_sesion(request, usuario):
+    if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+        logger.error(
+            'No se pudo enviar el aviso de inicio de sesión a %s: faltan credenciales SMTP.',
+            usuario.email,
+        )
+        return
+
+    email_context = {
+        'nombre': usuario.nombre,
+        'fecha_hora': timezone.localtime().strftime('%d/%m/%Y a las %H:%M'),
+    }
+    try:
+        sent_count = send_mail(
+            subject='Nuevo inicio de sesión - Nicolett Studio Fantasy',
+            message=render_to_string(
+                'usuarios/emails/inicio_sesion.txt',
+                email_context,
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[usuario.email],
+            fail_silently=False,
+            html_message=render_to_string(
+                'usuarios/emails/inicio_sesion.html',
+                email_context,
+            ),
+        )
+    except (OSError, smtplib.SMTPException):
+        logger.exception('No se pudo enviar el aviso de inicio de sesión a %s.', usuario.email)
+        return
+
+    if sent_count != 1:
+        logger.error(
+            'El backend de correo no confirmó el aviso de inicio de sesión a %s.',
+            usuario.email,
+        )
 
 
 def register_view(request):
@@ -100,9 +180,23 @@ def register_view(request):
         if telefono.startswith('9'):
             telefono = f'+56{telefono}'
 
+        if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+            return render(
+                request,
+                'usuarios/login.html',
+                {
+                    'error': (
+                        'El envío de correo todavía no está configurado. Para activar el '
+                        'registro, configura EMAIL_HOST_USER y EMAIL_HOST_PASSWORD en el '
+                        'archivo .env del proyecto o en las variables del servidor.'
+                    ),
+                    'mostrar_registro': True,
+                },
+            )
+
         rol_cliente, _ = Rol.objects.get_or_create(nombre='Cliente')
         try:
-            Usuario.objects.create_user(
+            usuario = Usuario.objects.create_user(
                 email=email,
                 password=password,
                 nombre=nombre,
@@ -111,7 +205,7 @@ def register_view(request):
                 apellido_materno=apellido_materno,
                 telefono=telefono,
                 rol=rol_cliente,
-                is_active=True,
+                is_active=False,
                 is_staff=False,
                 is_superuser=False,
                 acepta_terminos_at=timezone.now(),
@@ -123,13 +217,169 @@ def register_view(request):
                 {'error': 'El correo electrónico ya se encuentra registrado.', 'mostrar_registro': True},
             )
 
+        uid = urlsafe_base64_encode(force_bytes(usuario.pk))
+        token = default_token_generator.make_token(usuario)
+        verification_url = request.build_absolute_uri(
+            reverse('verify_email', kwargs={'uidb64': uid, 'token': token})
+        )
+        email_context = {
+            'nombre': usuario.nombre,
+            'verification_url': verification_url,
+        }
+        try:
+            sent_count = send_mail(
+                subject='Confirma tu correo - Nicolett Studio Fantasy',
+                message=render_to_string(
+                    'usuarios/emails/verificar_cuenta.txt',
+                    email_context,
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[usuario.email],
+                fail_silently=False,
+                html_message=render_to_string(
+                    'usuarios/emails/verificar_cuenta.html',
+                    email_context,
+                ),
+            )
+        except (OSError, smtplib.SMTPException):
+            logger.exception('No se pudo enviar el correo de confirmación de cuenta.')
+            usuario.delete()
+            return render(
+                request,
+                'usuarios/login.html',
+                {
+                    'error': (
+                        'No fue posible enviar el correo de confirmación. '
+                        'Verifica tu dirección e inténtalo nuevamente más tarde.'
+                    ),
+                    'mostrar_registro': True,
+                },
+            )
+
+        if sent_count != 1:
+            logger.error('El backend de correo no confirmó el envío de verificación a %s.', email)
+            usuario.delete()
+            return render(
+                request,
+                'usuarios/login.html',
+                {
+                    'error': (
+                        'No fue posible enviar el correo de confirmación. '
+                        'Inténtalo nuevamente más tarde.'
+                    ),
+                    'mostrar_registro': True,
+                },
+            )
+
         return render(
             request,
             'usuarios/login.html',
-            {'exito': '¡Cuenta creada con éxito! Ya puedes iniciar sesión con tus credenciales.'},
+            {
+                'exito': (
+                    'Por favor, verifica tu cuenta. Te hemos enviado un correo '
+                    'electrónico para confirmar tu cuenta.'
+                ),
+                'email': email,
+                'verification_pending': True,
+                'whatsapp_url': (
+                    'https://wa.me/56982108409?text='
+                    f'{quote(MENSAJE_BIENVENIDA_WHATSAPP, safe="")}'
+                ),
+            },
         )
 
     return render(request, 'usuarios/login.html')
+
+
+def verificar_correo_view(request, uidb64, token):
+    try:
+        usuario_id = force_str(urlsafe_base64_decode(uidb64))
+        usuario = Usuario.objects.get(pk=usuario_id, deleted_at__isnull=True)
+    except (
+        binascii.Error,
+        TypeError,
+        ValueError,
+        OverflowError,
+        UnicodeDecodeError,
+        Usuario.DoesNotExist,
+    ):
+        usuario = None
+
+    token_valido = (
+        usuario is not None
+        and es_cliente(usuario)
+        and default_token_generator.check_token(usuario, token)
+    )
+    if not token_valido:
+        return render(
+            request,
+            'usuarios/login.html',
+            {'error': 'El enlace de confirmación no es válido o ya venció.'},
+            status=400,
+        )
+
+    cuenta_activada = not usuario.is_active
+    if cuenta_activada:
+        usuario.is_active = True
+        usuario.save(update_fields=['is_active'])
+
+    activation_email_error = ''
+    if cuenta_activada:
+        if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+            activation_email_error = (
+                'Tu cuenta quedó activa, pero no se pudo enviar el correo de confirmación. '
+                'Contacta a la administración si necesitas ayuda.'
+            )
+            logger.error(
+                'No se pudo enviar el correo de cuenta activada: faltan credenciales SMTP.'
+            )
+        else:
+            login_url = request.build_absolute_uri(reverse('login'))
+            email_context = {
+                'email': usuario.email,
+                'login_url': login_url,
+            }
+            try:
+                sent_count = send_mail(
+                    subject='Tu cuenta está activa - Nicolett Studio Fantasy',
+                    message=render_to_string(
+                        'usuarios/emails/cuenta_activada.txt',
+                        email_context,
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[usuario.email],
+                    fail_silently=False,
+                    html_message=render_to_string(
+                        'usuarios/emails/cuenta_activada.html',
+                        email_context,
+                    ),
+                )
+            except (OSError, smtplib.SMTPException):
+                logger.exception('No se pudo enviar el correo de cuenta activada.')
+                activation_email_error = (
+                    'Tu cuenta quedó activa, pero no fue posible enviar el correo de '
+                    'confirmación. Puedes iniciar sesión ahora.'
+                )
+            else:
+                if sent_count != 1:
+                    logger.error(
+                        'El backend de correo no confirmó el envío de activación a %s.',
+                        usuario.email,
+                    )
+                    activation_email_error = (
+                        'Tu cuenta quedó activa, pero no fue posible enviar el correo de '
+                        'confirmación. Puedes iniciar sesión ahora.'
+                    )
+
+    return render(
+        request,
+        'usuarios/login.html',
+        {
+            'email': usuario.email,
+            'exito': 'Tu correo fue confirmado. Tu cuenta está activa y ya puedes iniciar sesión.',
+            'activation_email_error': activation_email_error,
+        },
+    )
 
 
 def solicitar_recuperacion_contrasena(request):
@@ -248,7 +498,7 @@ def cliente_home_view(request):
             'usuarios/acceso_denegado.html',
             status=403,
         )
-    return redirect('cliente_servicios')
+    return _vista_cliente(request, 'usuarios/cliente_home.html')
 
 
 @never_cache

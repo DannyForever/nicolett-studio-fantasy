@@ -29,6 +29,13 @@
             },
         };
     </script>
+    <style>
+        #client-services-category-panel[hidden],
+        #client-services-category-panel li[hidden],
+        #client-services-category-panel .services-category-empty[hidden] {
+            display: none;
+        }
+    </style>
 </head>
 <body class="flex min-h-screen flex-col bg-[#faf7f4] font-sans text-[#2a2320] antialiased">
     <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-[#38302d] bg-[#262120] px-5 text-[#f8f5f2] shadow-sm sm:px-8 lg:px-16">
@@ -37,7 +44,7 @@
             <span class="text-[10px] uppercase tracking-[0.2em] text-[#c9bdb5]">Studio</span>
         </a>
         <div class="flex items-center gap-5 text-sm">
-            <span class="hidden text-[#d8cfca] sm:inline">Hola, <strong class="text-white">{{ request.user.nombre }}</strong></span>
+            <span class="hidden text-[#d8cfca] sm:inline">Hola, <strong class="text-white">Cliente</strong></span>
             <div class="relative">
                 <button id="cart-summary-toggle" type="button" aria-label="Abrir resumen de compra" aria-expanded="false" aria-controls="cart-summary-panel" class="relative border-0 bg-transparent text-lg text-[#eee7e2] transition hover:text-white">
                     <i class="fa-solid fa-cart-shopping"></i>
@@ -131,20 +138,19 @@
                     </footer>
                 </section>
             </div>
-            <form action="{% url 'logout' %}" method="post" class="m-0">
-                {% csrf_token %}
-                <button type="submit" class="border-0 bg-transparent text-[11px] uppercase tracking-[0.12em] text-[#d8cfca] hover:text-white">Cerrar sesión</button>
-            </form>
+            <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram de Nicolett Studio Fantasy" title="@nicolettstudiofantasy" class="text-lg text-[#eee7e2] transition hover:text-white">
+                <i class="fa-brands fa-instagram" aria-hidden="true"></i>
+            </a>
         </div>
     </header>
 
     <div class="flex flex-1">
-        <aside class="sticky top-14 hidden max-h-[calc(100vh-3.5rem)] w-[240px] shrink-0 self-start overflow-y-auto border-r border-[#e8e0da] bg-[#f7f3f0] py-7 md:block">
+        <aside class="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[240px] shrink-0 self-start flex-col overflow-y-auto border-r border-[#e8e0da] bg-[#f7f3f0] py-7 md:flex">
             <nav class="flex flex-col gap-1" aria-label="Menú de cliente">
                 <a href="{% url 'cliente_sobre_nosotros' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-heart w-4 text-center text-[#c9a99b]"></i> Nosotras
                 </a>
-                <a href="{% url 'cliente_servicios' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_servicios' %}aria-current="page"{% endif %}>
+                <a href="{% url 'cliente_servicios' %}" class="js-services-menu-trigger flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" aria-haspopup="dialog" aria-expanded="false" {% if request.resolver_match.url_name == 'cliente_servicios' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-spa w-4 text-center text-[#c9a99b]"></i> Servicios
                 </a>
                 <a href="{% url 'cliente_productos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
@@ -163,7 +169,33 @@
                     <i class="fa-solid fa-gear w-4 text-center text-[#c9a99b]"></i> Configuración
                 </a>
             </nav>
+            <form action="{% url 'logout' %}" method="post" class="mt-auto px-5 pb-2 pt-6">
+                {% csrf_token %}
+                <button type="submit" class="flex w-full items-center gap-3 border border-[#c9a99b] bg-[#f2ece7] px-4 py-3 text-left text-xs font-medium text-[#765747] transition-colors hover:bg-[#e8e0da]">
+                    <i class="fa-solid fa-right-from-bracket w-4 text-center"></i> Cerrar sesión
+                </button>
+            </form>
         </aside>
+
+        <section id="client-services-category-panel" class="fixed z-50 flex w-60 flex-col border border-[#e8e0da] bg-white p-3 text-[#2a2320] shadow-xl" role="dialog" aria-label="Categorías de servicios" hidden>
+            <div class="mb-2 flex items-center justify-between gap-2">
+                <h2 class="text-xs font-medium">Servicios</h2>
+                <button type="button" class="services-category-close border-0 bg-transparent px-1 text-lg leading-none text-[#7a6e6a]" aria-label="Cerrar categorías">&times;</button>
+            </div>
+            <label class="mb-2 flex items-center gap-2 border border-[#ded5cf] px-2 py-1.5 text-[#7a6e6a]">
+                <i class="fa-solid fa-magnifying-glass text-[10px]" aria-hidden="true"></i>
+                <input type="search" placeholder="Busca un servicio..." aria-label="Buscar categorías de servicios" class="w-full min-w-0 border-0 bg-transparent text-[10px] text-[#2a2320] outline-none">
+            </label>
+            <ul class="-mx-3 mb-1 list-none p-0">
+                {% for categoria in categorias_servicios %}
+                    <li class="border-b border-[#f0ece9] px-3 py-2 text-[11px]"><span><i class="fa-solid fa-caret-right mr-1 text-[#c9a99b]" aria-hidden="true"></i> {{ categoria.nombre }}</span></li>
+                {% empty %}
+                    <li class="px-3 py-2 text-[11px]">No hay categorías disponibles.</li>
+                {% endfor %}
+            </ul>
+            <a href="{% url 'cliente_servicios' %}" class="py-1 text-center text-[10px] text-[#765747] no-underline hover:underline">Ver todos los servicios</a>
+            <p class="services-category-empty my-2 text-[11px] text-[#7a6e6a]" hidden>No se encontraron categorías.</p>
+        </section>
 
         <main class="w-full min-w-0 px-5 py-8 md:flex-1 md:px-10">
             {% block content %}{% endblock %}
@@ -177,6 +209,63 @@
             }
         });
         (() => {
+            const trigger = document.querySelector('.js-services-menu-trigger');
+            const servicesPanel = document.getElementById('client-services-category-panel');
+            if (trigger && servicesPanel) {
+                const search = servicesPanel.querySelector('input[type="search"]');
+                const items = Array.from(servicesPanel.querySelectorAll('li'));
+                const empty = servicesPanel.querySelector('.services-category-empty');
+                const closeButton = servicesPanel.querySelector('.services-category-close');
+
+                function positionServicesPanel() {
+                    const triggerRect = trigger.getBoundingClientRect();
+                    const panelRect = servicesPanel.getBoundingClientRect();
+                    const left = Math.min(triggerRect.right, window.innerWidth - panelRect.width - 8);
+                    const top = Math.max(8, Math.min(triggerRect.top, window.innerHeight - panelRect.height - 8));
+                    servicesPanel.style.left = `${Math.max(8, left)}px`;
+                    servicesPanel.style.top = `${top}px`;
+                }
+
+                function setServicesPanelOpen(open) {
+                    servicesPanel.hidden = !open;
+                    trigger.setAttribute('aria-expanded', String(open));
+                    if (open) {
+                        positionServicesPanel();
+                        search.focus();
+                    }
+                }
+
+                trigger.addEventListener('click', event => {
+                    event.preventDefault();
+                    setServicesPanelOpen(servicesPanel.hidden);
+                });
+                closeButton.addEventListener('click', () => setServicesPanelOpen(false));
+                search.addEventListener('input', () => {
+                    const phrase = search.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
+                    let visibleItems = 0;
+                    items.forEach(item => {
+                        const matches = item.textContent.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(phrase);
+                        item.hidden = !matches;
+                        if (matches) visibleItems += 1;
+                    });
+                    empty.hidden = visibleItems > 0;
+                });
+                document.addEventListener('click', event => {
+                    if (!servicesPanel.hidden && !servicesPanel.contains(event.target) && !trigger.contains(event.target)) {
+                        setServicesPanelOpen(false);
+                    }
+                });
+                document.addEventListener('keydown', event => {
+                    if (event.key === 'Escape' && !servicesPanel.hidden) {
+                        setServicesPanelOpen(false);
+                        trigger.focus();
+                    }
+                });
+                window.addEventListener('resize', () => {
+                    if (!servicesPanel.hidden) positionServicesPanel();
+                });
+            }
+
             const toggle = document.getElementById('cart-summary-toggle');
             const panel = document.getElementById('cart-summary-panel');
             const close = document.getElementById('cart-summary-close');

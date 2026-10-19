@@ -1,0 +1,8 @@
+Hola {{ nombre }},
+
+Se inició sesión en tu cuenta de Nicolett Studio Fantasy el {{ fecha_hora }} (hora de Chile).
+
+Si no reconoces este inicio de sesión, te recomendamos cambiar tu contraseña y contactar a Nicolett Studio Fantasy.
+
+Gracias,
+Nicolett Studio Fantasy

@@ -7,6 +7,11 @@ from fichas import views as fichas_views
 urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
+    path(
+        'confirmar-correo/<uidb64>/<token>/',
+        views.verificar_correo_view,
+        name='verify_email',
+    ),
     path('recuperar-contrasena/', views.solicitar_recuperacion_contrasena, name='password_recovery'),
     path(
         'restablecer-contrasena/<uidb64>/<token>/',

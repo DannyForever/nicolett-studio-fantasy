@@ -1,0 +1,14 @@
+Nicolett Studio Fantasy
+Cuenta activada
+
+¡Hola!
+
+Tu cuenta de Nicolett Studio Fantasy ya está activa con el correo electrónico {{ email }}.
+
+Haz clic en el siguiente enlace para iniciar sesión:
+{{ login_url }}
+
+Desde tu cuenta podrás revisar tus reservas y completar tus datos de contacto y direcciones cuando lo necesites.
+
+Gracias,
+Nicolett Studio Fantasy
