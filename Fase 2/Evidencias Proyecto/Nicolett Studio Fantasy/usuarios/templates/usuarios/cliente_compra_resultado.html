@@ -4,11 +4,11 @@
 {% block title %}Confirmación de compra | Nicolett Studio Fantasy{% endblock %}
 
 {% block content %}
-    <section class="mx-auto max-w-3xl border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8">
+    <section class="mx-auto max-w-3xl border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8">
         <div class="text-center">
             <i class="fa-solid fa-circle-check text-4xl text-green-700" aria-hidden="true"></i>
             <h1 class="mt-4 font-serif text-2xl">Pago aprobado</h1>
-            <p class="mt-2 text-sm text-[#7a6e6a]">Orden #{{ pedido.pk }} · {{ pedido.creado_en|date:"d/m/Y H:i" }}</p>
+            <p class="mt-2 text-sm text-[#6b5643]">Orden #{{ pedido.pk }} · {{ pedido.creado_en|date:"d/m/Y H:i" }}</p>
         </div>
 
         {% if messages %}
@@ -25,13 +25,13 @@
             Puedes revisar tus compras{% if tiene_citas %}, modificar o cancelar tus citas{% endif %} desde las opciones de esta página.
         </p>
 
-        <div class="mt-6 space-y-3 border-y border-[#e8e0da] py-5">
+        <div class="mt-6 space-y-3 border-y border-[#ead7bc] py-5">
             {% for detalle in pedido.detalles.all %}
                 <div class="flex flex-wrap justify-between gap-3 text-sm">
                     <span>{{ detalle.nombre }}{% if detalle.tipo == 'producto' %} × {{ detalle.cantidad }}{% endif %}</span>
                     <span>Pagado {{ detalle.monto_pagado|pesos }}{% if detalle.saldo_pendiente %} · saldo {{ detalle.saldo_pendiente|pesos }}{% endif %}</span>
                     {% if detalle.reserva %}
-                        <span class="w-full text-[#7a6e6a]">
+                        <span class="w-full text-[#6b5643]">
                             Cita confirmada: {{ detalle.reserva.fecha_hora|date:"d/m/Y H:i" }} ·
                             {% if detalle.reserva.profesional %}{{ detalle.reserva.profesional.nombre }} {{ detalle.reserva.profesional.apellido_paterno }}{% else %}Profesional por confirmar{% endif %}
                         </span>
@@ -42,17 +42,17 @@
 
         <dl class="mt-5 space-y-2 text-sm">
             <div class="flex justify-between"><dt>Valor total</dt><dd>{{ pedido.total|pesos }}</dd></div>
-            <div class="flex justify-between font-semibold text-[#765747]"><dt>Pagado</dt><dd>{{ pedido.monto_pagado|pesos }}</dd></div>
-            <div class="flex justify-between text-[#7a6e6a]"><dt>Saldo pendiente de servicios</dt><dd>{{ pedido.saldo_pendiente|pesos }}</dd></div>
+            <div class="flex justify-between font-semibold text-[#5a3e27]"><dt>Pagado</dt><dd>{{ pedido.monto_pagado|pesos }}</dd></div>
+            <div class="flex justify-between text-[#6b5643]"><dt>Saldo pendiente de servicios</dt><dd>{{ pedido.saldo_pendiente|pesos }}</dd></div>
         </dl>
 
-        <p class="mt-5 text-center text-xs text-[#7a6e6a]">
+        <p class="mt-5 text-center text-xs text-[#6b5643]">
             N.º de transacción: {{ pedido.pagos_simulados.first.transaccion_id }}
         </p>
         <div class="mt-6 flex flex-wrap justify-center gap-3">
-            <a href="{% url 'cliente_gestionar_citas' %}" class="bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline">Gestionar citas</a>
-            <a href="{% url 'cliente_historial_pagos' %}" class="border border-[#765747] px-5 py-3 text-sm font-medium text-[#765747] no-underline">Historial de pagos</a>
-            <a href="{% url 'cliente_productos' %}" class="border border-[#765747] px-5 py-3 text-sm font-medium text-[#765747] no-underline">Seguir comprando</a>
+            <a href="{% url 'cliente_gestionar_citas' %}" class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white no-underline">Gestionar citas</a>
+            <a href="{% url 'cliente_historial_pagos' %}" class="border border-[#5a3e27] px-5 py-3 text-sm font-medium text-[#5a3e27] no-underline">Historial de pagos</a>
+            <a href="{% url 'cliente_productos' %}" class="border border-[#5a3e27] px-5 py-3 text-sm font-medium text-[#5a3e27] no-underline">Seguir comprando</a>
         </div>
     </section>
 {% endblock %}

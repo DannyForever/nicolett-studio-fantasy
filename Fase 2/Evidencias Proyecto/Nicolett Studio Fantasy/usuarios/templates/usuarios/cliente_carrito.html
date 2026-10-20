@@ -4,7 +4,7 @@
 {% block title %}Carrito de compra | Nicolett Studio Fantasy{% endblock %}
 
 {% block content %}
-    <section id="cart-page" data-initial-products="{{ total_productos }}" data-initial-total="{{ total_pedido }}" data-initial-pay="{{ total_pagar }}" class="mx-auto max-w-4xl border border-[#e8e0da] bg-white shadow-sm" aria-label="Carrito de compra">
+    <section id="cart-page" data-initial-products="{{ total_productos }}" data-initial-total="{{ total_pedido }}" data-initial-pay="{{ total_pagar }}" class="mx-auto max-w-4xl border border-[#ead7bc] bg-white shadow-sm" aria-label="Carrito de compra">
         <div class="p-6 sm:p-8">
             <h1 class="font-serif text-2xl">Carrito de compra</h1>
         </div>
@@ -18,25 +18,25 @@
         {% endif %}
 
         {% if not productos and not servicios %}
-            <div class="border-t border-[#e8e0da] py-8 text-center">
-                <i class="fa-solid fa-cart-shopping text-3xl text-[#c9a99b]" aria-hidden="true"></i>
+            <div class="border-t border-[#ead7bc] py-8 text-center">
+                <i class="fa-solid fa-cart-shopping text-3xl text-[#bd8c43]" aria-hidden="true"></i>
                 <h2 class="mt-4 font-serif text-xl">Tu carrito está vacío</h2>
-                <p class="mt-2 text-sm text-[#7a6e6a]">Añade productos o servicios para continuar.</p>
+                <p class="mt-2 text-sm text-[#6b5643]">Añade productos o servicios para continuar.</p>
                 <div class="mt-5 flex flex-wrap justify-center gap-3">
-                    <a href="{% url 'cliente_productos' %}" class="bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline">Ver productos</a>
-                    <a href="{% url 'cliente_servicios' %}" class="border border-[#765747] px-5 py-3 text-sm font-medium text-[#765747] no-underline">Ver servicios</a>
+                    <a href="{% url 'cliente_productos' %}" class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white no-underline">Ver productos</a>
+                    <a href="{% url 'cliente_servicios' %}" class="border border-[#5a3e27] px-5 py-3 text-sm font-medium text-[#5a3e27] no-underline">Ver servicios</a>
                 </div>
             </div>
         {% else %}
             {% if productos %}
-                <section class="border-t border-[#e8e0da] py-5" aria-label="Productos en el carrito">
+                <section class="border-t border-[#ead7bc] py-5" aria-label="Productos en el carrito">
                     <h2 class="mb-2 font-serif text-xl">Productos</h2>
                     {% for item in productos %}
-                        <article class="flex flex-wrap items-center justify-between gap-4 border-b border-[#e8e0da] py-4 last:border-b-0" data-cart-product data-price="{{ item.precio }}">
+                        <article class="flex flex-wrap items-center justify-between gap-4 border-b border-[#ead7bc] py-4 last:border-b-0" data-cart-product data-price="{{ item.precio }}">
                             <div class="min-w-0">
                                 <h3 class="font-medium">{{ item.nombre }}</h3>
                                 {% if item.disponible %}
-                                    <p class="mt-1 text-sm text-[#7a6e6a]">$<span data-unit-price>{{ item.precio|miles_clp }}</span> c/u · Subtotal $<span data-line-total data-value="{{ item.subtotal }}">{{ item.subtotal|miles_clp }}</span></p>
+                                    <p class="mt-1 text-sm text-[#6b5643]">$<span data-unit-price>{{ item.precio|miles_clp }}</span> c/u · Subtotal $<span data-line-total data-value="{{ item.subtotal }}">{{ item.subtotal|miles_clp }}</span></p>
                                 {% else %}
                                     <p class="mt-1 text-sm text-red-700">No disponible o stock insuficiente. Ajusta la cantidad o elimínalo.</p>
                                 {% endif %}
@@ -47,10 +47,10 @@
                                 <input type="hidden" name="clave" value="{{ item.id }}">
                                 <input type="hidden" name="return_to" value="{{ request.path }}">
                                 <input type="hidden" name="cantidad" value="{{ item.cantidad }}">
-                                <div class="flex items-center border border-[#ded5cf]">
-                                    <button type="button" data-quantity-delta="-1" {% if item.cantidad <= 1 %}disabled{% endif %} aria-label="Disminuir cantidad de {{ item.nombre }}" class="h-9 w-9 border-0 bg-white text-lg hover:bg-[#f7f3f0] disabled:cursor-not-allowed disabled:opacity-40">&minus;</button>
+                                <div class="flex items-center border border-[#ead7bc]">
+                                    <button type="button" data-quantity-delta="-1" {% if item.cantidad <= 1 %}disabled{% endif %} aria-label="Disminuir cantidad de {{ item.nombre }}" class="h-9 w-9 border-0 bg-white text-lg hover:bg-[#fae9cf] disabled:cursor-not-allowed disabled:opacity-40">&minus;</button>
                                     <output data-cart-quantity class="min-w-9 text-center text-sm">{{ item.cantidad }}</output>
-                                    <button type="button" data-quantity-delta="1" aria-label="Aumentar cantidad de {{ item.nombre }}" class="h-9 w-9 border-0 bg-white text-lg hover:bg-[#f7f3f0]">+</button>
+                                    <button type="button" data-quantity-delta="1" aria-label="Aumentar cantidad de {{ item.nombre }}" class="h-9 w-9 border-0 bg-white text-lg hover:bg-[#fae9cf]">+</button>
                                 </div>
                                 <button type="submit" data-remove-cart-item name="cantidad" value="0" aria-label="Eliminar {{ item.nombre }}" class="ml-1 border-0 bg-transparent px-2 text-sm text-red-700 hover:text-red-900">Eliminar</button>
                             </form>
@@ -60,16 +60,16 @@
             {% endif %}
 
             {% if servicios %}
-                <section class="border-t border-[#e8e0da] py-5" aria-label="Servicios en el carrito">
+                <section class="border-t border-[#ead7bc] py-5" aria-label="Servicios en el carrito">
                     <h2 class="mb-2 font-serif text-xl">Servicios y agenda</h2>
                     {% for item in servicios %}
-                        <article class="border-b border-[#e8e0da] py-5 last:border-b-0" data-cart-service data-price="{{ item.precio }}">
+                        <article class="border-b border-[#ead7bc] py-5 last:border-b-0" data-cart-service data-price="{{ item.precio }}">
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div>
                                     <h3 class="font-serif text-lg">{{ item.nombre }}</h3>
                                     {% if item.disponible %}
-                                        <p class="mt-1 text-sm text-[#7a6e6a]">{{ item.precio|pesos }} · {{ item.duracion }} min</p>
-                                        <p class="mt-1 text-sm text-[#7a6e6a]">{% if item.viene_con_acompanante %}Asistirás con acompañante{% else %}Asistirás sin acompañante{% endif %}</p>
+                                        <p class="mt-1 text-sm text-[#6b5643]">{{ item.precio|pesos }} · {{ item.duracion }} min</p>
+                                        <p class="mt-1 text-sm text-[#6b5643]">{% if item.viene_con_acompanante %}Asistirás con acompañante{% else %}Asistirás sin acompañante{% endif %}</p>
                                         {% if item.cita_completa and not item.reserva_vigente %}
                                             <p class="mt-2 text-sm text-red-700">La reserva temporal de este horario venció o ya no es válida. Selecciona y guarda nuevamente un horario disponible.</p>
                                         {% endif %}
@@ -89,48 +89,48 @@
                             </div>
 
                             {% if item.disponible %}
-                                <form method="post" action="{% url 'cliente_carrito_guardar_cita' item.key %}" class="js-cart-service mt-5 space-y-4 border-t border-[#e8e0da] pt-5"
+                                <form method="post" action="{% url 'cliente_carrito_guardar_cita' item.key %}" class="js-cart-service mt-5 space-y-4 border-t border-[#ead7bc] pt-5"
                                       data-service="{{ item.id }}" data-cart-item="{{ item.key }}" data-profesional-original="{{ item.profesional_id }}"
                                       data-fecha-original="{{ item.fecha }}" data-hora-original="{{ item.hora }}">
                                     {% csrf_token %}
                                     <div class="grid gap-4 sm:grid-cols-3">
                                         <div>
                                             <label for="date-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Día de atención</label>
-                                            <input id="date-{{ forloop.counter }}" name="fecha" type="date" min="{{ hoy }}" value="{{ item.fecha }}" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                            <input id="date-{{ forloop.counter }}" name="fecha" type="date" min="{{ hoy }}" value="{{ item.fecha }}" required class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm">
                                         </div>
                                         <div>
                                             <label for="professional-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Profesional</label>
-                                            <select id="professional-{{ forloop.counter }}" name="profesional" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                                            <select id="professional-{{ forloop.counter }}" name="profesional" required disabled class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm disabled:bg-[#fae9cf]">
                                                 <option value="">Consultando disponibilidad...</option>
                                             </select>
                                         </div>
                                         <div>
                                             <label for="hour-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Hora</label>
-                                            <select id="hour-{{ forloop.counter }}" name="hora" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                                            <select id="hour-{{ forloop.counter }}" name="hora" required disabled class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm disabled:bg-[#fae9cf]">
                                                 <option value="">Selecciona profesional...</option>
                                             </select>
                                         </div>
                                     </div>
                                     <div>
                                         <label for="payment-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Pago del servicio</label>
-                                        <select id="payment-{{ forloop.counter }}" name="pago" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                        <select id="payment-{{ forloop.counter }}" name="pago" required class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm">
                                             <option value="">Selecciona pago completo o abono...</option>
                                             <option value="completo" {% if item.pago == 'completo' %}selected{% endif %}>Pagar completo · {{ item.precio|pesos }}</option>
                                             <option value="abono" {% if item.pago == 'abono' %}selected{% endif %}>Abono $5.000{% if item.precio <= 5000 %} · pago completo por ser menor o igual al abono{% endif %}</option>
                                         </select>
                                     </div>
-                                    <label for="companion-{{ forloop.counter }}" class="flex cursor-pointer items-center gap-3 border border-[#e8e0da] bg-[#faf7f4] p-4 text-sm">
-                                        <input id="companion-{{ forloop.counter }}" name="viene_con_acompanante" type="checkbox" value="si" {% if item.viene_con_acompanante %}checked{% endif %} class="h-4 w-4 accent-[#765747]">
+                                    <label for="companion-{{ forloop.counter }}" class="flex cursor-pointer items-center gap-3 border border-[#ead7bc] bg-[#fffaf5] p-4 text-sm">
+                                        <input id="companion-{{ forloop.counter }}" name="viene_con_acompanante" type="checkbox" value="si" {% if item.viene_con_acompanante %}checked{% endif %} class="h-4 w-4 accent-[#5a3e27]">
                                         <span>Asistiré con acompañante</span>
                                     </label>
-                                    <p class="js-cart-status text-sm text-[#7a6e6a]" aria-live="polite">
+                                    <p class="js-cart-status text-sm text-[#6b5643]" aria-live="polite">
                                         {% if item.cita_completa %}
                                             {% if item.reserva_vigente %}Cita reservada por 30 minutos{% else %}Horario sin reserva activa{% endif %} · pagar ahora {{ item.monto_pagar|pesos }}{% if item.saldo %} · saldo pendiente {{ item.saldo|pesos }}{% endif %}
                                         {% else %}
                                             Selecciona día, profesional, hora y modalidad de pago; luego guarda la cita.
                                         {% endif %}
                                     </p>
-                                    <button type="submit" class="border border-[#765747] px-4 py-2 text-sm font-medium text-[#765747] transition hover:bg-[#f7f3f0]">Guardar cita</button>
+                                    <button type="submit" class="border border-[#5a3e27] px-4 py-2 text-sm font-medium text-[#5a3e27] transition hover:bg-[#fae9cf]">Guardar cita</button>
                                 </form>
                             {% endif %}
                         </article>
@@ -138,18 +138,18 @@
                 </section>
             {% endif %}
 
-            <section class="border-t border-[#e8e0da] pt-6" aria-label="Resumen de compra">
+            <section class="border-t border-[#ead7bc] pt-6" aria-label="Resumen de compra">
                 <h2 class="font-serif text-xl">Resumen de pago</h2>
                 <dl class="mt-4 space-y-3 text-sm">
                     <div class="flex justify-between gap-4"><dt>Productos</dt><dd>$<span id="cart-products-total">{{ total_productos|miles_clp }}</span></dd></div>
                     <div class="flex justify-between gap-4"><dt>Servicios (pago completo)</dt><dd>{{ total_servicios_completo|pesos }}</dd></div>
                     <div class="flex justify-between gap-4"><dt>Servicios (abono)</dt><dd>{{ total_servicios_abono|pesos }}</dd></div>
-                    <div class="flex justify-between gap-4 border-t border-[#e8e0da] pt-3 font-medium"><dt>Sub-total</dt><dd>$<span id="cart-order-total">{{ total_pedido|miles_clp }}</span></dd></div>
-                    <div class="flex justify-between gap-4 text-[#7a6e6a]"><dt>Saldos pendientes</dt><dd>{{ saldo_servicios_pendiente|pesos }}</dd></div>
-                    <div class="flex justify-between gap-4 border-t border-[#e8e0da] pt-3 text-base font-semibold text-[#765747]"><dt>Pagar ahora</dt><dd>$<span id="cart-pay-total">{{ total_pagar|miles_clp }}</span></dd></div>
+                    <div class="flex justify-between gap-4 border-t border-[#ead7bc] pt-3 font-medium"><dt>Sub-total</dt><dd>$<span id="cart-order-total">{{ total_pedido|miles_clp }}</span></dd></div>
+                    <div class="flex justify-between gap-4 text-[#6b5643]"><dt>Saldos pendientes</dt><dd>{{ saldo_servicios_pendiente|pesos }}</dd></div>
+                    <div class="flex justify-between gap-4 border-t border-[#ead7bc] pt-3 text-base font-semibold text-[#5a3e27]"><dt>Pagar ahora</dt><dd>$<span id="cart-pay-total">{{ total_pagar|miles_clp }}</span></dd></div>
                 </dl>
                 {% if saldos_servicios %}
-                    <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-[#7a6e6a]">
+                    <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-[#6b5643]">
                         {% for item in saldos_servicios %}
                             <li>{{ item.nombre }}: {{ item.saldo|pesos }}</li>
                         {% endfor %}
@@ -157,7 +157,7 @@
                 {% endif %}
                 <form method="post" action="{% url 'cliente_carrito_pagar' %}" class="mt-5">
                     {% csrf_token %}
-                    <button id="confirmar-pago-carrito" type="submit" {% if not puede_pagar %}disabled{% endif %} class="bg-[#765747] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#604536] disabled:cursor-not-allowed disabled:opacity-50">
+                    <button id="confirmar-pago-carrito" type="submit" {% if not puede_pagar %}disabled{% endif %} class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#5a3e27] disabled:cursor-not-allowed disabled:opacity-50">
                         Pagar ahora
                     </button>
                     {% if not puede_pagar %}

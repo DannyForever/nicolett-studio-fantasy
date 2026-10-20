@@ -1,4 +1,4 @@
-    <header class="sticky top-0 z-50 grid grid-cols-[1fr_auto_1fr] items-center border-b border-customBorder bg-customBg px-8 py-5 font-sans text-xs leading-normal text-customDark antialiased lg:px-16">
+    <header class="sticky top-0 z-50 grid grid-cols-[1fr_auto_1fr] items-center border-b border-customBorder bg-white px-8 py-5 font-sans text-xs leading-normal text-customDark antialiased lg:px-16">
         {% if request.user.is_authenticated and request.user.rol.nombre == 'Cliente' %}
         <a href="{% url 'cliente_servicios' %}" aria-label="Ir a Servicios" class="block justify-self-start text-customDark no-underline">
         {% else %}
@@ -17,17 +17,13 @@
             <div class="flex items-center gap-4">
                 <a href="{% url 'home' %}#contacto" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
                     CONTÁCTANOS
-                    <i class="fa-solid fa-chevron-down text-[9px]" aria-hidden="true"></i>
-                </a>
-                <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram de Nicolett Studio Fantasy" title="@nicolettstudiofantasy" class="text-lg text-customDark transition hover:text-customAccent">
-                    <i class="fa-brands fa-instagram" aria-hidden="true"></i>
                 </a>
             </div>
         </nav>
-        <div class="flex items-center justify-self-end gap-4">
+        <div class="flex items-center justify-self-end gap-3">
             {% if request.user.is_authenticated and request.user.rol.nombre == 'Cliente' %}
-            <a href="{% url 'cliente_home' %}" aria-label="Ir a mi cuenta de cliente" class="flex items-center gap-2 font-medium tracking-wider text-customDark transition hover:text-customAccent">
-                <i class="fa-regular fa-user text-base" aria-hidden="true"></i>
+            <a href="{% url 'cliente_home' %}" aria-label="Ir a mi cuenta de cliente" class="flex h-11 w-40 items-center justify-center gap-2 bg-[#8b5e28] px-3 font-medium tracking-wider text-white transition hover:bg-[#73491f]">
+                <i class="fa-regular fa-user text-base text-white" aria-hidden="true"></i>
                 <span>CLIENTES</span>
             </a>
             <a href="{% url 'cliente_carrito' %}" aria-label="Abrir carrito" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
@@ -35,23 +31,15 @@
                 {% if cantidad_articulos_carrito %}<span>{{ cantidad_articulos_carrito }}</span>{% endif %}
             </a>
             {% else %}
-            <a href="{% url 'login' %}" aria-label="Ingresar o crear cuenta de cliente" class="flex items-center gap-2 font-medium tracking-wider text-customDark transition hover:text-customAccent">
-                <i class="fa-regular fa-user text-base" aria-hidden="true"></i>
+            <a href="{% url 'login' %}" aria-label="Ingresar a clientes" class="flex h-11 w-40 items-center justify-center gap-2 bg-[#8b5e28] px-3 font-medium tracking-wider text-white transition hover:bg-[#73491f]">
+                <i class="fa-regular fa-user text-base text-white" aria-hidden="true"></i>
                 <span>CLIENTES</span>
-            </a>
-            <a href="{% url 'login' %}" aria-label="Ingresar para abrir el carrito" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
-                <i class="fa-solid fa-bag-shopping text-base" aria-hidden="true"></i>
-                <span>$0</span>
             </a>
             {% endif %}
         </div>
         <nav class="col-span-3 flex items-center justify-end gap-5 border-t border-customBorder pt-3 text-xs font-medium tracking-wider lg:hidden" aria-label="Contacto y redes sociales">
             <a href="{% url 'home' %}#contacto" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
                 Contáctanos
-                <i class="fa-solid fa-chevron-down text-[9px]" aria-hidden="true"></i>
-            </a>
-            <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram de Nicolett Studio Fantasy" title="@nicolettstudiofantasy" class="text-base text-customDark transition hover:text-customAccent">
-                <i class="fa-brands fa-instagram" aria-hidden="true"></i>
             </a>
         </nav>
     </header>

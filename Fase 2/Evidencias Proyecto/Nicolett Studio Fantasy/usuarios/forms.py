@@ -20,7 +20,7 @@ class ClienteConfiguracionForm(forms.Form):
         for field in self.fields.values():
             field.widget.attrs.update({
                 'class': (
-                    'w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm '
+                    'w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm '
                     'disabled:cursor-not-allowed disabled:border-gray-200 '
                     'disabled:bg-gray-100 disabled:text-gray-500 disabled:opacity-100'
                 ),
@@ -72,7 +72,7 @@ class ClienteCambiarContrasenaForm(forms.Form):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs.update({
-                'class': 'w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm',
+                'class': 'w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm',
             })
 
     def clean_password_actual(self):

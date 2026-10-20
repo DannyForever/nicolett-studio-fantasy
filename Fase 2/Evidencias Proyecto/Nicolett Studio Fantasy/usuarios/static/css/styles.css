@@ -1,10 +1,10 @@
 :root {
-    --c-dark: #2a2320;
-    --c-bg: #faf7f4;
-    --c-rose: #c9a99b;
-    --c-muted: #7a6e6a;
-    --c-border: #e8e0da;
-    --c-sidebar: #f7f3f0;
+    --c-dark: #281b14;
+    --c-bg: #fffaf5;
+    --c-rose: #bd8c43;
+    --c-muted: #6b5643;
+    --c-border: #ead7bc;
+    --c-sidebar: #ffffff;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
@@ -62,7 +62,7 @@ body { background-color: var(--c-bg); color: var(--c-dark); min-height: 100vh; d
     gap: 12px;
     padding: 12px 18px;
     text-decoration: none;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--c-muted);
     border-left: 3px solid transparent;
 }
@@ -73,7 +73,7 @@ body { background-color: var(--c-bg); color: var(--c-dark); min-height: 100vh; d
     border-left-color: var(--c-rose);
     font-weight: 500;
 }
-.sidebar-icon { font-size: 10px; color: var(--c-rose); flex-shrink: 0; }
+.sidebar-icon { font-size: 14px; color: var(--c-rose); flex-shrink: 0; }
 .badge-notif {
     margin-left: auto;
     background-color: #c0392b;

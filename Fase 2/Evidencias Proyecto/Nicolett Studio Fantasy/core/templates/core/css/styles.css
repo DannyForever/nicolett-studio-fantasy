@@ -4,13 +4,13 @@
  :root {
 --font-display: 'Playfair Display', Georgia, serif;
 --font-body: 'Outfit', system-ui, sans-serif;
---color-cream: #faf7f4;
---color-rose: #c9a99b;
---color-rose-dark: #a07060;
---color-charcoal: #2a2320;
---color-muted: #7a6e6a;
---color-border: #e8e0da;
---color-accent-bg: #f2ece7;
+--color-cream: #fffaf5;
+--color-rose: #bd8c43;
+--color-rose-dark: #bd8c43;
+--color-charcoal: #281b14;
+--color-muted: #6b5643;
+--color-border: #ead7bc;
+--color-accent-bg: #fae9cf;
 }
 
 *, *::before, *::after {

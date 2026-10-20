@@ -1,46 +1,517 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#fffaf5">
     <title>Términos y privacidad | Nicolett Studio Fantasy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { margin: 0; background: #faf7f4; color: #2a2320; font-family: Arial, sans-serif; line-height: 1.7; }
-        main { width: min(820px, calc(100% - 40px)); margin: 48px auto; padding: 36px; box-sizing: border-box; background: #fff; border: 1px solid #e8e0da; }
-        h1, h2 { font-family: Georgia, serif; }
-        h1 { margin-top: 0; }
-        h2 { margin-top: 30px; }
-        p, li { color: #5e514b; }
-        a { color: #7a6e6a; }
-        .notice { padding: 12px 16px; background: #f2ece7; color: #5e514b; }
+        :root {
+            color-scheme: light;
+            --page: #fffaf5;
+            --paper: #ffffff;
+            --white: #ffffff;
+            --ink: #281b14;
+            --body: #5a4030;
+            --muted: #6b5643;
+            --accent: #bd8c43;
+            --line: #ead7bc;
+            --soft: #fae9cf;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; scroll-padding-top: 30px; }
+        body {
+            margin: 0;
+            background: var(--page);
+            color: var(--ink);
+            font-family: "Outfit", sans-serif;
+            line-height: 1.75;
+        }
+        a { color: inherit; }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 18px max(32px, calc((100vw - 1240px) / 2));
+            border-bottom: 1px solid var(--line);
+            background: var(--paper);
+        }
+        .brand {
+            color: var(--ink);
+            text-decoration: none;
+            line-height: 1.1;
+        }
+        .brand strong {
+            display: block;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: 20px;
+            letter-spacing: .12em;
+        }
+        .brand span {
+            color: var(--muted);
+            font-size: 9px;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+        }
+        .topbar-link {
+            color: var(--body);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-decoration: none;
+            text-transform: uppercase;
+        }
+        .topbar-link:hover, .topbar-link:focus-visible { color: var(--accent); }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 780px) 250px;
+            gap: clamp(36px, 6vw, 88px);
+            align-items: start;
+            width: min(1120px, calc(100% - 48px));
+            margin: 54px auto 80px;
+        }
+        .document { min-width: 0; }
+        .page-title {
+            margin: 0 0 22px;
+            color: var(--ink);
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(38px, 4vw, 48px);
+            line-height: 1.2;
+        }
+        h2, h3 { font-family: "Playfair Display", Georgia, serif; }
+
+        .section-index {
+            position: fixed;
+            top: 96px;
+            right: max(24px, calc((100vw - 1120px) / 2));
+            z-index: 20;
+            width: 250px;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+            padding: 22px 18px;
+            border: 1px solid var(--line);
+            background: var(--paper);
+            scrollbar-color: var(--line) transparent;
+        }
+        .section-index-title {
+            margin: 0 0 14px;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+        }
+        .section-index ol {
+            display: grid;
+            gap: 4px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .section-index a {
+            display: flex;
+            gap: 10px;
+            padding: 8px 9px;
+            border-left: 2px solid transparent;
+            color: var(--body);
+            font-size: 12px;
+            line-height: 1.4;
+            text-decoration: none;
+            transition: background .2s ease, color .2s ease, border-color .2s ease;
+        }
+        .section-index a span {
+            flex: 0 0 20px;
+            color: var(--accent);
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .section-index a:hover, .section-index a:focus-visible, .section-index a[aria-current="location"] {
+            border-left-color: var(--accent);
+            background: var(--soft);
+            color: var(--ink);
+            outline: none;
+        }
+
+        .notice {
+            display: flex;
+            gap: 15px;
+            margin: 0 0 22px;
+            padding: 20px 22px;
+            border: 1px solid var(--line);
+            background: #fae9cf;
+            color: var(--body);
+            font-size: 13px;
+        }
+        .notice i { margin-top: 3px; color: var(--accent); font-size: 18px; }
+        .notice p { margin: 0; }
+        .notice strong { color: var(--ink); }
+
+        .section-card {
+            margin-bottom: 18px;
+            padding: clamp(24px, 4vw, 36px);
+            border: 1px solid var(--line);
+            background: var(--paper);
+            scroll-margin-top: 24px;
+        }
+        .section-heading {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 17px;
+        }
+        .section-icon {
+            display: grid;
+            flex: 0 0 42px;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border: 1px solid var(--line);
+            background: var(--white);
+            color: var(--accent);
+        }
+        .section-number {
+            display: block;
+            margin-bottom: 2px;
+            color: var(--accent);
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .2em;
+        }
+        .section-card h2 {
+            margin: 0;
+            color: var(--ink);
+            font-size: clamp(30px, 3vw, 36px);
+            line-height: 1.25;
+        }
+        h3 {
+            margin: 24px 0 8px;
+            color: var(--ink);
+            font-size: 17px;
+        }
+        .section-card p, .section-card li {
+            color: var(--body);
+            font-size: 14px;
+            line-height: 1.9;
+        }
+        .section-card p { margin: 10px 0; }
+        .section-card ul, .section-card ol {
+            margin: 12px 0 0;
+            padding-left: 24px;
+        }
+        .section-card ul { list-style: disc; }
+        .section-card ol { list-style: decimal; }
+        .section-card li { margin: 7px 0; padding-left: 4px; }
+        .section-card li::marker { color: var(--accent); }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .detail-item {
+            padding: 15px;
+            border: 1px solid var(--line);
+            background: var(--white);
+        }
+        .detail-item i { margin-right: 7px; color: var(--accent); }
+        .detail-item strong { color: var(--ink); font-size: 12px; }
+        .detail-item p { margin: 5px 0 0; font-size: 12px; }
+        .inline-link {
+            color: var(--ink);
+            font-weight: 600;
+            text-decoration-color: var(--accent);
+            text-underline-offset: 3px;
+        }
+        .inline-link:hover { color: var(--accent); }
+        .contact-links {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .contact-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            padding: 14px;
+            border: 1px solid var(--line);
+            background: var(--white);
+            color: var(--ink);
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            overflow-wrap: anywhere;
+            transition: border-color .2s ease, background .2s ease;
+        }
+        .contact-link:hover, .contact-link:focus-visible {
+            border-color: var(--accent);
+            background: var(--soft);
+            outline: none;
+        }
+        .contact-link i { color: var(--accent); font-size: 17px; }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 18px;
+                width: min(780px, calc(100% - 32px));
+                margin-top: 28px;
+            }
+            .section-index {
+                position: fixed;
+                z-index: 5;
+                top: 88px;
+                right: 16px;
+                width: min(250px, calc(100vw - 32px));
+                max-height: calc(100vh - 32px);
+                padding: 16px 14px;
+                box-shadow: 0 6px 14px rgba(63, 51, 45, .06);
+            }
+        }
+        @media (max-width: 560px) {
+            .topbar { padding: 14px 16px; }
+            .topbar-link { max-width: 145px; font-size: 9px; text-align: right; }
+            .layout { width: calc(100% - 24px); margin: 16px auto 44px; }
+            .section-card { padding: 22px 18px; }
+            .section-card p, .section-card li { font-size: 13px; }
+            .detail-grid { grid-template-columns: 1fr; }
+            .contact-links { grid-template-columns: 1fr; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after { transition-duration: .01ms !important; }
+        }
     </style>
 </head>
 <body>
-    <main>
-        <h1>Términos y política de privacidad</h1>
-        <p class="notice">Este apartado informa las condiciones de uso del sitio y el tratamiento de datos personales asociados a la cuenta, las citas y las compras.</p>
+    <header class="topbar">
+        <a class="brand" href="{% url 'home' %}" aria-label="Nicolett Studio Fantasy, ir al inicio">
+            <strong>Nicolett</strong>
+            <span>Studio Fantasy</span>
+        </a>
+        <a class="topbar-link" href="{% url 'register' %}">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            Volver al registro
+        </a>
+    </header>
 
-        <h2>Uso del sitio y cuentas</h2>
-        <p>Al crear una cuenta, la persona usuaria se compromete a entregar información correcta, mantener sus credenciales bajo resguardo y utilizar el sitio de manera lícita. La cuenta es personal. Nicolett Studio Fantasy puede limitar el acceso cuando detecte un uso indebido o que ponga en riesgo el servicio.</p>
+    <div class="layout">
+        <main class="document">
+            <h1 class="page-title">Términos y política de privacidad</h1>
+            <div class="notice" role="note">
+                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                <p><strong>Antes de continuar.</strong> Este texto describe el funcionamiento actual del sitio y es informativo; no reemplaza asesoría legal. Las condiciones específicas de cada cita u operación se muestran durante su gestión.</p>
+            </div>
 
-        <h2>Servicios, citas y productos</h2>
-        <p>Las citas dependen de la disponibilidad de horarios y profesionales que muestra el sistema. La solicitud queda sujeta a las condiciones y restricciones informadas durante el agendamiento y la gestión de citas. Los precios, detalles y disponibilidad publicados pueden cambiar; se respetarán las condiciones confirmadas para una operación ya aceptada.</p>
-        <p>El sitio puede ofrecer un flujo de pago simulado para fines de demostración. Ese flujo no realiza por sí mismo un cobro real ni sustituye una confirmación de pago por un proveedor externo.</p>
+            <section class="section-card" id="alcance" data-toc-section>
+                <div class="section-heading">
+                    <span class="section-icon"><i class="fa-solid fa-compass" aria-hidden="true"></i></span>
+                    <div><span class="section-number">01 · ALCANCE</span><h2>Uso del sitio</h2></div>
+                </div>
+                <p>El sitio permite conocer los servicios y productos de Nicolett Studio Fantasy, enviar consultas, crear una cuenta, gestionar citas y acceder a las funciones de compra disponibles. Al navegar o utilizar estas funciones, la persona usuaria se compromete a hacerlo de forma responsable y conforme a la normativa aplicable.</p>
+                <ul>
+                    <li>Utiliza información verdadera y actualizada cuando completes formularios.</li>
+                    <li>No intentes acceder a cuentas ajenas, alterar información ni interferir con el funcionamiento del sitio.</li>
+                    <li>Los contenidos, horarios, precios y disponibilidad publicados pueden actualizarse. La información confirmada para una cita u operación será la referencia de esa gestión.</li>
+                </ul>
+            </section>
 
-        <h2>Datos personales que se utilizan</h2>
-        <p>Para crear y administrar una cuenta, el sitio solicita datos como nombre, correo electrónico y teléfono. Al agendar o comprar también se registran los datos necesarios para gestionar la cita, los productos, el estado de la operación y su historial.</p>
+            <section class="section-card" id="cuenta" data-toc-section>
+                <div class="section-heading">
+                    <span class="section-icon"><i class="fa-regular fa-user" aria-hidden="true"></i></span>
+                    <div><span class="section-number">02 · CUENTA</span><h2>Registro y seguridad</h2></div>
+                </div>
+                <p>Para crear una cuenta se solicitan datos de identificación y contacto, como nombre, correo electrónico y teléfono. El correo se utiliza para verificar la cuenta y para comunicaciones necesarias relacionadas con el acceso y las solicitudes realizadas en el sitio.</p>
+                <ol>
+                    <li>Mantén tus credenciales en privado y cierra la sesión si compartes el dispositivo.</li>
+                    <li>Avísanos si detectas un acceso que no reconoces o si ya no puedes utilizar tu cuenta.</li>
+                    <li>La cuenta es personal. Podemos restringir temporalmente el acceso si es necesario proteger el servicio o investigar un uso indebido.</li>
+                </ol>
+                <p>Al registrarse, la persona usuaria declara haber podido revisar estos términos. El sistema registra la fecha asociada a esa aceptación.</p>
+            </section>
 
-        <h2>Finalidades y resguardo</h2>
-        <p>Los datos se utilizan para autenticar a la persona usuaria, coordinar y administrar citas, atender consultas, procesar las operaciones disponibles en el sitio, enviar comunicaciones relacionadas con la cuenta o sus solicitudes y mantener los registros necesarios para el funcionamiento del servicio. No se publican los datos de la cuenta en la galería ni se usan para fines ajenos a estos sin informar y obtener la autorización que corresponda.</p>
-        <p>Se aplican medidas razonables para proteger la información y limitar su acceso. Los datos se conservan durante el tiempo necesario para las finalidades indicadas y para cumplir obligaciones aplicables.</p>
+            <section class="section-card" id="servicios" data-toc-section>
+                <div class="section-heading">
+                    <span class="section-icon"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i></span>
+                    <div><span class="section-number">03 · CITAS Y COMPRAS</span><h2>Servicios, citas y productos</h2></div>
+                </div>
+                <p>Las solicitudes de cita dependen de los horarios disponibles y de la confirmación que muestre el sistema. Revisa los datos de fecha, hora, servicio y contacto antes de finalizar. Si necesitas modificar o cancelar una cita, utiliza las opciones habilitadas en tu cuenta o comunícate con el salón.</p>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <strong><i class="fa-regular fa-calendar" aria-hidden="true"></i> Citas</strong>
+                        <p>La disponibilidad puede cambiar hasta que la solicitud quede registrada o confirmada.</p>
+                    </div>
+                    <div class="detail-item">
+                        <strong><i class="fa-solid fa-bag-shopping" aria-hidden="true"></i> Productos y servicios</strong>
+                        <p>El detalle y el total de la operación se muestran en el flujo de compra antes de completarla.</p>
+                    </div>
+                </div>
+                <p>El flujo de pago disponible en la versión actual es de demostración y no procesa un cobro bancario real. No ingreses números de tarjetas ni claves financieras en este sitio. Si se incorpora un medio de pago real, se informarán sus condiciones antes de su uso.</p>
+                <p>Las condiciones particulares de cambios, cancelaciones, disponibilidad o entrega que se indiquen al gestionar una cita o compra prevalecen para esa operación.</p>
+            </section>
 
-        <h2>Derechos y consultas</h2>
-        <p>La persona usuaria puede solicitar acceso, rectificación o eliminación de sus datos y realizar consultas sobre su tratamiento mediante el formulario de contacto disponible en el sitio. Algunas solicitudes podrían requerir verificar la identidad y conservar información cuando sea necesario para cumplir obligaciones aplicables.</p>
+            <section class="section-card" id="datos" data-toc-section>
+                <div class="section-heading">
+                    <span class="section-icon"><i class="fa-solid fa-database" aria-hidden="true"></i></span>
+                    <div><span class="section-number">04 · INFORMACIÓN</span><h2>Datos personales que se utilizan</h2></div>
+                </div>
+                <p>La información depende de las funciones que decidas utilizar. El sitio puede tratar las siguientes categorías:</p>
+                <ul>
+                    <li><strong>Cuenta:</strong> nombre, apellidos, correo electrónico, teléfono y datos técnicos necesarios para autenticar la sesión.</li>
+                    <li><strong>Citas:</strong> datos de contacto, servicio solicitado, fecha y hora, profesional asignada y estado de la reserva. Si corresponde, también la respuesta a una solicitud de coordinación.</li>
+                    <li><strong>Compras:</strong> productos o servicios, cantidades, valores, estado de la operación y registros asociados a su gestión.</li>
+                    <li><strong>Consultas:</strong> nombre, apellido, correo, teléfono, asunto y mensaje enviados mediante el formulario de contacto.</li>
+                </ul>
+                <p>El formulario de contacto remite la consulta al correo configurado para el salón. Evita incluir información sensible o datos de pago en el mensaje si no son necesarios para atender tu solicitud.</p>
+            </section>
 
-        <h2>Cambios a estos términos</h2>
-        <p>Estos términos pueden actualizarse para reflejar cambios en el sitio o en sus procesos. La versión vigente se publicará en esta página. El uso de la cuenta después de una actualización implica que la persona usuaria pudo consultar el texto vigente.</p>
+            <section class="section-card" id="finalidades" data-toc-section>
+                <div class="section-heading">
+                    <span class="section-icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></span>
+                    <div><span class="section-number">05 · FINALIDADES</span><h2>Cómo se utiliza la información</h2></div>
+                </div>
+                <p>Los datos se utilizan en la medida necesaria para prestar las funciones que solicitas, por ejemplo:</p>
+                <ul>
+                    <li>Crear, verificar y proteger tu cuenta; gestionar el acceso y la recuperación de contraseña.</li>
+                    <li>Coordinar citas, enviar recordatorios o comunicar cambios relacionados con una reserva.</li>
+                    <li>Responder consultas y atender solicitudes de soporte.</li>
+                    <li>Registrar y administrar compras, productos, servicios y sus estados dentro de la plataforma.</li>
+                    <li>Mantener registros operativos, prevenir usos indebidos y cumplir obligaciones aplicables.</li>
+                </ul>
+                <p>La información de la cuenta no se publica en la galería del sitio. No se utilizará para finalidades incompatibles con las informadas aquí sin entregar la información y obtener la autorización que corresponda.</p>
+            </section>
 
-        <p><a href="{% url 'register' %}">Volver al registro</a></p>
-    </main>
+            <section class="section-card" id="resguardo" data-toc-section>
+                <div class="section-heading">
+                    <span class="section-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+                    <div><span class="section-number">06 · RESGUARDO</span><h2>Acceso, conservación y protección</h2></div>
+                </div>
+                <p>El acceso a los datos se limita a las personas que necesitan utilizarlos para administrar las funciones del sitio y atender a sus clientes. Se aplican medidas técnicas y organizativas razonables para proteger la información; aun así, ningún sistema conectado a internet puede garantizar seguridad absoluta.</p>
+                <p>La información se conserva durante el tiempo necesario para gestionar la cuenta, las citas, las consultas y las operaciones, o mientras deban mantenerse registros por motivos administrativos o legales. El plazo puede variar según el tipo de dato y la situación concreta.</p>
+            </section>
+
+            <section class="section-card" id="derechos" data-toc-section>
+                <div class="section-heading">
+                    <span class="section-icon"><i class="fa-regular fa-circle-check" aria-hidden="true"></i></span>
+                    <div><span class="section-number">07 · TUS SOLICITUDES</span><h2>Acceso, corrección y eliminación</h2></div>
+                </div>
+                <p>Puedes consultar qué información se utiliza y solicitar su actualización, corrección o eliminación, según corresponda. Para proteger tu cuenta, podríamos pedir antecedentes razonables para verificar tu identidad antes de tramitar una solicitud.</p>
+                <p>Algunos registros podrían conservarse cuando resulte necesario completar una operación, resolver una solicitud pendiente o cumplir obligaciones aplicables. Para iniciar una consulta, escríbenos desde el <a class="inline-link" href="{% url 'home' %}#contacto">formulario de contacto</a> e indica el correo asociado a tu cuenta; no incluyas tu contraseña.</p>
+            </section>
+
+            <section class="section-card" id="tecnologias" data-toc-section>
+                <div class="section-heading">
+                    <span class="section-icon"><i class="fa-solid fa-cookie-bite" aria-hidden="true"></i></span>
+                    <div><span class="section-number">08 · FUNCIONAMIENTO</span><h2>Sesión y servicios externos</h2></div>
+                </div>
+                <p>El sitio utiliza almacenamiento técnico de sesión para funciones esenciales, como mantener el acceso autenticado, proteger formularios y conservar temporalmente el carrito. Si bloqueas estas tecnologías, algunas funciones podrían dejar de operar correctamente.</p>
+                <p>Algunas páginas incorporan contenido o servicios externos, como mapas, fuentes tipográficas, iconos o publicaciones de Instagram. Cuando cargas ese contenido, el proveedor externo puede recibir información técnica de tu navegador conforme a sus propias políticas y configuraciones.</p>
+            </section>
+
+            <section class="section-card" id="cambios" data-toc-section>
+                <div class="section-heading">
+                    <span class="section-icon"><i class="fa-solid fa-rotate" aria-hidden="true"></i></span>
+                    <div><span class="section-number">09 · VIGENCIA</span><h2>Cambios en estos términos</h2></div>
+                </div>
+                <p>Este texto puede actualizarse si cambian las funciones del sitio, la forma de gestionar los servicios o las obligaciones aplicables. Publicaremos la versión vigente en esta página. Si un cambio requiere una nueva aceptación, se solicitará mediante el mecanismo correspondiente antes de continuar con la función afectada.</p>
+            </section>
+
+            <section class="section-card" id="contacto" data-toc-section>
+                <div class="section-heading">
+                    <span class="section-icon"><i class="fa-regular fa-envelope" aria-hidden="true"></i></span>
+                    <div><span class="section-number">10 · CONTACTO</span><h2>¿Tienes alguna consulta?</h2></div>
+                </div>
+                <p>Para consultas sobre servicios, productos o citas, puedes escribirnos mediante el <a class="inline-link" href="{% url 'home' %}#contacto">formulario de contacto</a>. Si tu consulta es específica o personalizada y se relaciona con el funcionamiento del sitio, tu cuenta u otra dificultad técnica, también puedes comunicarte directamente por correo o WhatsApp.</p>
+                <div class="contact-links">
+                    <a class="contact-link" href="mailto:nicolettstudio@gmail.com">
+                        <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                        <span>nicolettstudio@gmail.com</span>
+                    </a>
+                    <a class="contact-link" href="https://wa.me/56940322551" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+                        <span>WhatsApp · +56 9 4032 2551</span>
+                    </a>
+                </div>
+                <p>Incluye información suficiente para identificar tu solicitud, pero nunca compartas tu contraseña ni datos completos de tarjetas.</p>
+            </section>
+
+        </main>
+
+        <nav class="section-index" aria-label="Índice de términos y privacidad">
+            <p class="section-index-title"><i class="fa-solid fa-list" aria-hidden="true"></i> En esta página</p>
+            <ol>
+                <li><a href="#alcance"><span>01</span>Uso del sitio</a></li>
+                <li><a href="#cuenta"><span>02</span>Registro y seguridad</a></li>
+                <li><a href="#servicios"><span>03</span>Citas y compras</a></li>
+                <li><a href="#datos"><span>04</span>Datos utilizados</a></li>
+                <li><a href="#finalidades"><span>05</span>Uso de la información</a></li>
+                <li><a href="#resguardo"><span>06</span>Resguardo</a></li>
+                <li><a href="#derechos"><span>07</span>Tus solicitudes</a></li>
+                <li><a href="#tecnologias"><span>08</span>Sesión y servicios</a></li>
+                <li><a href="#cambios"><span>09</span>Cambios</a></li>
+                <li><a href="#contacto"><span>10</span>Contacto</a></li>
+            </ol>
+        </nav>
+    </div>
+
+    {% include 'footer.html' %}
+    <script>
+        const sections = document.querySelectorAll('[data-toc-section]');
+        const links = document.querySelectorAll('.section-index a');
+        let activeSectionFrame = 0;
+
+        const updateActiveSection = () => {
+            const atPageEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+            const activationLine = window.scrollY + Math.min(window.innerHeight * 0.25, 180);
+            let activeSection = sections[0];
+
+            if (atPageEnd) {
+                activeSection = sections[sections.length - 1];
+            } else {
+                sections.forEach((section) => {
+                    if (section.getBoundingClientRect().top + window.scrollY <= activationLine) {
+                        activeSection = section;
+                    }
+                });
+            }
+
+            links.forEach((link) => {
+                if (link.getAttribute('href') === `#${activeSection.id}`) {
+                    link.setAttribute('aria-current', 'location');
+                } else {
+                    link.removeAttribute('aria-current');
+                }
+            });
+        };
+
+        const scheduleActiveSectionUpdate = () => {
+            if (activeSectionFrame) return;
+            activeSectionFrame = window.requestAnimationFrame(() => {
+                activeSectionFrame = 0;
+                updateActiveSection();
+            });
+        };
+
+        window.addEventListener('scroll', scheduleActiveSectionUpdate, { passive: true });
+        window.addEventListener('resize', scheduleActiveSectionUpdate);
+        window.addEventListener('hashchange', scheduleActiveSectionUpdate);
+        window.addEventListener('load', scheduleActiveSectionUpdate);
+        updateActiveSection();
+    </script>
 </body>
 </html>

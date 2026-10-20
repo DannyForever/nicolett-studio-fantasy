@@ -180,15 +180,20 @@ def register_view(request):
         if telefono.startswith('9'):
             telefono = f'+56{telefono}'
 
-        if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+        correo_smtp_configurado = bool(
+            settings.EMAIL_HOST_USER and settings.EMAIL_HOST_PASSWORD
+        )
+        if not correo_smtp_configurado and not settings.DEBUG:
             return render(
                 request,
                 'usuarios/login.html',
                 {
                     'error': (
-                        'El envío de correo todavía no está configurado. Para activar el '
-                        'registro, configura EMAIL_HOST_USER y EMAIL_HOST_PASSWORD en el '
-                        'archivo .env del proyecto o en las variables del servidor.'
+                        'El envío de correo todavía no está configurado. '
+                        'EMAIL_HOST_USER y EMAIL_HOST_PASSWORD son las credenciales del '
+                        'correo del salón que envía los mensajes; el enlace de activación '
+                        'se enviará al correo que ingresaste en el formulario. Configura '
+                        'ambas variables en el archivo .env del proyecto o en el servidor.'
                     ),
                     'mostrar_registro': True,
                 },
@@ -276,11 +281,21 @@ def register_view(request):
             'usuarios/login.html',
             {
                 'exito': (
-                    'Por favor, verifica tu cuenta. Te hemos enviado un correo '
-                    'electrónico para confirmar tu cuenta.'
+                    (
+                        'La cuenta se creó. Como el correo real no está configurado, '
+                        'actívala con el enlace de prueba que aparece a continuación.'
+                    )
+                    if not correo_smtp_configurado
+                    else (
+                        'Por favor, verifica tu cuenta. Te hemos enviado un correo '
+                        'electrónico para confirmar tu cuenta.'
+                    )
                 ),
                 'email': email,
                 'verification_pending': True,
+                'verification_url_local': (
+                    verification_url if settings.DEBUG and not correo_smtp_configurado else ''
+                ),
                 'whatsapp_url': (
                     'https://wa.me/56982108409?text='
                     f'{quote(MENSAJE_BIENVENIDA_WHATSAPP, safe="")}'
@@ -498,7 +513,7 @@ def cliente_home_view(request):
             'usuarios/acceso_denegado.html',
             status=403,
         )
-    return _vista_cliente(request, 'usuarios/cliente_home.html')
+    return _vista_cliente(request, 'usuarios/cliente_sobre_nosotros.html')
 
 
 @never_cache
@@ -647,7 +662,7 @@ def cliente_gestionar_citas_view(request):
                 'Modificado': 'border-violet-200 bg-violet-50 text-violet-800',
                 'En curso': 'border-blue-200 bg-blue-50 text-blue-800',
                 'Finalizado': 'border-green-200 bg-green-50 text-green-800',
-            }.get(reserva.estado_cliente, 'border-[#e8e0da] bg-[#f7f3f0] text-[#66564e]'),
+            }.get(reserva.estado_cliente, 'border-[#ead7bc] bg-[#fae9cf] text-[#6b5643]'),
             'motivo': reserva.motivo_cancelacion or reserva.motivo_suspension,
         })
         for evento in reserva.historial.all():

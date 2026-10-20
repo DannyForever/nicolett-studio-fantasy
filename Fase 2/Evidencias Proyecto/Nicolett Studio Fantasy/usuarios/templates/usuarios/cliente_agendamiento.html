@@ -5,7 +5,7 @@
 
 {% block content %}
     <div class="mx-auto max-w-5xl">
-        <section class="border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8">
+        <section class="border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8">
             <h1 class="mb-6 font-serif text-2xl">Agendar una cita</h1>
 
             {% if messages %}
@@ -19,58 +19,58 @@
             <form method="post" action="{% url 'cliente_crear_reserva' %}" class="space-y-6">
                 {% csrf_token %}
                 <div class="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]">
-                    <section class="border border-[#e8e0da] p-4 sm:p-5" aria-label="Calendario de disponibilidad">
+                    <section class="border border-[#ead7bc] p-4 sm:p-5" aria-label="Calendario de disponibilidad">
                         <div class="mb-4 flex items-center justify-between gap-3">
-                            <button id="bookingPreviousMonth" type="button" class="border border-[#e8e0da] px-3 py-2 text-sm hover:bg-[#f7f3f0]" aria-label="Mes anterior">&larr;</button>
+                            <button id="bookingPreviousMonth" type="button" class="border border-[#ead7bc] px-3 py-2 text-sm hover:bg-[#fae9cf]" aria-label="Mes anterior">&larr;</button>
                             <h2 id="bookingMonthLabel" class="font-serif text-lg" aria-live="polite">Cargando calendario...</h2>
-                            <button id="bookingNextMonth" type="button" class="border border-[#e8e0da] px-3 py-2 text-sm hover:bg-[#f7f3f0]" aria-label="Mes siguiente">&rarr;</button>
+                            <button id="bookingNextMonth" type="button" class="border border-[#ead7bc] px-3 py-2 text-sm hover:bg-[#fae9cf]" aria-label="Mes siguiente">&rarr;</button>
                         </div>
-                        <div class="grid grid-cols-7 text-center text-xs font-medium text-[#7a6e6a]" aria-hidden="true">
+                        <div class="grid grid-cols-7 text-center text-xs font-medium text-[#6b5643]" aria-hidden="true">
                             <span class="py-2">Lun</span><span class="py-2">Mar</span><span class="py-2">Mié</span><span class="py-2">Jue</span><span class="py-2">Vie</span><span class="py-2">Sáb</span><span class="py-2">Dom</span>
                         </div>
                         <div id="bookingCalendar" class="grid grid-cols-7 gap-1" aria-label="Días del mes"></div>
-                        <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#7a6e6a]" aria-label="Leyenda">
+                        <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#6b5643]" aria-label="Leyenda">
                             <span><i class="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-[#6b9b5b]"></i>Horas disponibles</span>
                             <span><i class="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-[#d88478]"></i>Día bloqueado</span>
                             <span class="line-through decoration-2">Día pasado</span>
                             <span><i class="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-gray-300"></i>No disponible</span>
                         </div>
-                        <p id="calendarStatus" class="mt-3 text-sm text-[#7a6e6a]" aria-live="polite">Consulta los días disponibles; usa los filtros para personalizar la búsqueda.</p>
+                        <p id="calendarStatus" class="mt-3 text-sm text-[#6b5643]" aria-live="polite">Consulta los días disponibles; usa los filtros para personalizar la búsqueda.</p>
                     </section>
 
                     <section class="space-y-5" aria-label="Filtros personalizados de cita">
                         <div>
                             <label for="bookingService" class="mb-2 block text-sm font-medium">Servicio</label>
-                            <select id="bookingService" name="servicio" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                            <select id="bookingService" name="servicio" required class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm">
                                 <option value="">Selecciona un servicio...</option>
                                 {% for servicio in servicios %}
                                     <option value="{{ servicio.pk }}">{{ servicio.nombre }} · {{ servicio.precio|pesos }} · {{ servicio.duracion_minutos }} min</option>
                                 {% endfor %}
                             </select>
-                            {% if not servicios %}<p class="mt-2 text-sm text-[#7a6e6a]">No hay servicios activos disponibles para agendar.</p>{% endif %}
+                            {% if not servicios %}<p class="mt-2 text-sm text-[#6b5643]">No hay servicios activos disponibles para agendar.</p>{% endif %}
                         </div>
                         <div>
                             <label for="bookingDate" class="mb-2 block text-sm font-medium">Fecha (búsqueda personalizada)</label>
-                            <input id="bookingDate" name="fecha" type="date" value="{{ hoy }}" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                            <input id="bookingDate" name="fecha" type="date" value="{{ hoy }}" required class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm">
                         </div>
                         <div>
                             <label for="bookingProfessional" class="mb-2 block text-sm font-medium">Profesional</label>
-                            <select id="bookingProfessional" name="profesional" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                            <select id="bookingProfessional" name="profesional" required disabled class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm disabled:bg-[#fae9cf]">
                                 <option value="">Selecciona primero un servicio y fecha...</option>
                             </select>
                         </div>
                         <div>
                             <label for="bookingHour" class="mb-2 block text-sm font-medium">Hora disponible</label>
-                            <select id="bookingHour" name="hora" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]">
+                            <select id="bookingHour" name="hora" required disabled class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm disabled:bg-[#fae9cf]">
                                 <option value="">Selecciona servicio, fecha y profesional...</option>
                             </select>
                         </div>
-                        <label for="bookingCompanion" class="flex cursor-pointer items-center gap-3 border border-[#e8e0da] bg-[#faf7f4] p-4 text-sm">
-                            <input id="bookingCompanion" name="viene_con_acompanante" type="checkbox" value="si" class="h-4 w-4 accent-[#765747]">
+                        <label for="bookingCompanion" class="flex cursor-pointer items-center gap-3 border border-[#ead7bc] bg-[#fffaf5] p-4 text-sm">
+                            <input id="bookingCompanion" name="viene_con_acompanante" type="checkbox" value="si" class="h-4 w-4 accent-[#5a3e27]">
                             <span>Asistiré con acompañante</span>
                         </label>
-                        <p id="bookingStatus" class="text-sm text-[#7a6e6a]" aria-live="polite">Los horarios se sincronizan con la disponibilidad del salón.</p>
-                        <button type="submit" {% if not servicios %}disabled{% endif %} class="bg-[#765747] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#604536] disabled:cursor-not-allowed disabled:opacity-50">
+                        <p id="bookingStatus" class="text-sm text-[#6b5643]" aria-live="polite">Los horarios se sincronizan con la disponibilidad del salón.</p>
+                        <button type="submit" {% if not servicios %}disabled{% endif %} class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#5a3e27] disabled:cursor-not-allowed disabled:opacity-50">
                             Solicitar cita
                         </button>
                     </section>
@@ -124,7 +124,7 @@
                             button.disabled = true;
                             button.classList.add('invisible');
                         } else if (day.past) {
-                            button.classList.add('border-transparent', 'text-[#cfc6c1]', 'line-through', 'decoration-2');
+                            button.classList.add('border-transparent', 'text-[#ead7bc]', 'line-through', 'decoration-2');
                             button.setAttribute('aria-label', `${day.date}, fecha pasada`);
                         } else if (day.closed) {
                             button.classList.add('border-red-200', 'bg-[#fae9e6]', 'text-[#a84a3f]', 'line-through', 'decoration-2');
@@ -137,11 +137,11 @@
                             button.append(dot);
                             button.setAttribute('aria-label', `${day.date}, horas disponibles`);
                         } else {
-                            button.classList.add('border-[#e8e0da]', 'bg-gray-100', 'text-[#8c817b]');
+                            button.classList.add('border-[#ead7bc]', 'bg-gray-100', 'text-[#6b5643]');
                             button.setAttribute('aria-label', `${day.date}, no disponible`);
                         }
                         if (day.date === dateInput.value && day.in_month) {
-                            button.classList.add('ring-2', 'ring-[#765747]', 'ring-offset-1');
+                            button.classList.add('ring-2', 'ring-[#5a3e27]', 'ring-offset-1');
                         }
                         if (day.in_month) {
                             button.addEventListener('click', () => {

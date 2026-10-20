@@ -14,12 +14,12 @@
             theme: {
                 extend: {
                     colors: {
-                        customBg: '#faf7f4',
-                        customDark: '#2a2320',
-                        customAccent: '#c9a99b',
-                        customMuted: '#7a6e6a',
-                        customBorder: '#e8e0da',
-                        customAltBg: '#f2ece7',
+                        customBg: '#fffaf5',
+                        customDark: '#281b14',
+                        customAccent: '#bd8c43',
+                        customMuted: '#6b5643',
+                        customBorder: '#ead7bc',
+                        customAltBg: '#fae9cf',
                     },
                     fontFamily: {
                         serif: ['"Playfair Display"', 'Georgia', 'serif'],
@@ -37,33 +37,33 @@
         }
     </style>
 </head>
-<body class="flex min-h-screen flex-col bg-[#faf7f4] font-sans text-[#2a2320] antialiased">
-    <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-[#38302d] bg-[#262120] px-5 text-[#f8f5f2] shadow-sm sm:px-8 lg:px-16">
-        <a href="{% url 'cliente_servicios' %}" aria-label="Ir a Servicios" class="flex items-baseline gap-2 text-[#f8f5f2] no-underline">
+<body class="flex min-h-screen flex-col bg-[#fffaf5] font-sans text-[#281b14] antialiased">
+    <header class="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-[#60452f] bg-[#332216] px-5 text-[#ffffff] shadow-sm sm:px-8 lg:px-16">
+        <a href="{% url 'cliente_home' %}" aria-label="Ir a Nosotras" class="flex items-baseline gap-2 text-[#ffffff] no-underline">
             <span class="font-serif text-xl font-bold">Nicolett</span>
-            <span class="text-[10px] uppercase tracking-[0.2em] text-[#c9bdb5]">Studio</span>
+            <span class="text-[10px] uppercase tracking-[0.2em] text-[#e0bd7c]">Studio</span>
         </a>
         <div class="flex items-center gap-5 text-sm">
-            <span class="hidden text-[#d8cfca] sm:inline">Hola, <strong class="text-white">Cliente</strong></span>
+            <span class="hidden text-[#e0bd7c] sm:inline">Hola, <strong class="text-white">{{ request.user.nombre }}</strong></span>
             <div class="relative">
-                <button id="cart-summary-toggle" type="button" aria-label="Abrir resumen de compra" aria-expanded="false" aria-controls="cart-summary-panel" class="relative border-0 bg-transparent text-lg text-[#eee7e2] transition hover:text-white">
+                <button id="cart-summary-toggle" type="button" aria-label="Abrir resumen de compra" aria-expanded="false" aria-controls="cart-summary-panel" class="relative border-0 bg-transparent text-lg text-[#fae9cf] transition hover:text-white">
                     <i class="fa-solid fa-cart-shopping"></i>
                     {% if cantidad_articulos_carrito %}<span class="absolute -right-3 -top-2 min-w-4 rounded-full bg-[#a84a3f] px-1 text-center text-[10px] leading-4 text-white">{{ cantidad_articulos_carrito }}</span>{% endif %}
                 </button>
-                <section id="cart-summary-panel" hidden class="absolute right-0 top-full z-50 mt-3 w-[min(92vw,380px)] border border-[#e8e0da] bg-white text-[#2a2320] shadow-xl" aria-label="Resumen de compra">
-                    <header class="flex items-center justify-between border-b border-[#e8e0da] px-4 py-3">
+                <section id="cart-summary-panel" hidden class="absolute right-0 top-full z-50 mt-3 w-[min(92vw,380px)] border border-[#ead7bc] bg-white text-[#281b14] shadow-xl" aria-label="Resumen de compra">
+                    <header class="flex items-center justify-between border-b border-[#ead7bc] px-4 py-3">
                         <h2 class="font-serif text-lg">Resumen de compra</h2>
-                        <button id="cart-summary-close" type="button" aria-label="Cerrar resumen" class="border-0 bg-transparent px-2 text-xl text-[#7a6e6a] hover:text-[#2a2320]">&times;</button>
+                        <button id="cart-summary-close" type="button" aria-label="Cerrar resumen" class="border-0 bg-transparent px-2 text-xl text-[#6b5643] hover:text-[#281b14]">&times;</button>
                     </header>
                     <div class="max-h-[55vh] space-y-3 overflow-y-auto p-4">
                         {% for item in resumen_carrito %}
-                            <article class="border-b border-[#e8e0da] pb-3 last:border-b-0">
+                            <article class="border-b border-[#ead7bc] pb-3 last:border-b-0">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
                                         <h3 class="truncate text-sm font-medium">{{ item.nombre }}</h3>
-                                        <p class="mt-1 text-xs text-[#7a6e6a]">{{ item.precio|pesos }} c/u · Subtotal {{ item.subtotal|pesos }}</p>
+                                        <p class="mt-1 text-xs text-[#6b5643]">{{ item.precio|pesos }} c/u · Subtotal {{ item.subtotal|pesos }}</p>
                                         {% if item.tipo == 'servicio' %}
-                                            <p class="mt-1 text-xs text-[#7a6e6a]">
+                                            <p class="mt-1 text-xs text-[#6b5643]">
                                                 {% if item.fecha %}{{ item.fecha }}{% else %}Fecha pendiente{% endif %}
                                                 {% if item.hora %} · {{ item.hora }}{% endif %}
                                                 {% if item.profesional %} · {{ item.profesional }}{% endif %}
@@ -91,7 +91,7 @@
                                             <input type="hidden" name="clave" value="{{ item.key }}">
                                             <input type="hidden" name="cantidad" value="{{ item.cantidad|add:'-1' }}">
                                             <input type="hidden" name="return_to" value="{{ request.path }}">
-                                            <button type="submit" aria-label="Disminuir cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ded5cf] text-sm hover:bg-[#f7f3f0]">&minus;</button>
+                                            <button type="submit" aria-label="Disminuir cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ead7bc] text-sm hover:bg-[#fae9cf]">&minus;</button>
                                         </form>
                                         <span class="min-w-6 text-center text-xs">{{ item.cantidad }}</span>
                                         <form method="post" action="{{ item.url }}">
@@ -100,7 +100,7 @@
                                             <input type="hidden" name="clave" value="{{ item.key }}">
                                             <input type="hidden" name="cantidad" value="{{ item.cantidad|add:'1' }}">
                                             <input type="hidden" name="return_to" value="{{ request.path }}">
-                                            <button type="submit" aria-label="Aumentar cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ded5cf] text-sm hover:bg-[#f7f3f0]">+</button>
+                                            <button type="submit" aria-label="Aumentar cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ead7bc] text-sm hover:bg-[#fae9cf]">+</button>
                                         </form>
                                     </div>
                                 {% else %}
@@ -110,13 +110,13 @@
                                             <input type="hidden" name="tipo" value="servicio">
                                             <input type="hidden" name="clave" value="{{ item.key }}">
                                             <input type="hidden" name="return_to" value="{{ request.path }}">
-                                            <button type="submit" aria-label="Disminuir cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ded5cf] text-sm hover:bg-[#f7f3f0]">&minus;</button>
+                                            <button type="submit" aria-label="Disminuir cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ead7bc] text-sm hover:bg-[#fae9cf]">&minus;</button>
                                         </form>
                                         <span class="min-w-6 text-center text-xs">1</span>
                                         <form method="post" action="{{ item.agregar_url }}">
                                             {% csrf_token %}
                                             <input type="hidden" name="return_to" value="{{ request.path }}">
-                                            <button type="submit" aria-label="Aumentar citas de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ded5cf] text-sm hover:bg-[#f7f3f0]">+</button>
+                                            <button type="submit" aria-label="Aumentar citas de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ead7bc] text-sm hover:bg-[#fae9cf]">+</button>
                                         </form>
                                         <form method="post" action="{{ item.url }}">
                                             {% csrf_token %}
@@ -129,79 +129,81 @@
                                 {% endif %}
                             </article>
                         {% empty %}
-                            <p class="bg-[#f2f0ef] p-3 text-sm text-[#7a6e6a]">El carrito está vacío.</p>
+                            <p class="bg-[#f2f0ef] p-3 text-sm text-[#6b5643]">El carrito está vacío.</p>
                         {% endfor %}
                     </div>
-                    <footer class="border-t border-[#e8e0da] p-4">
+                    <footer class="border-t border-[#ead7bc] p-4">
                         <p class="mb-3 flex justify-between text-sm font-medium"><span>Total</span><span>{{ total_resumen_carrito|pesos }}</span></p>
-                        <a href="{% url 'cliente_carrito' %}" class="block bg-[#765747] px-4 py-3 text-center text-sm font-medium text-white no-underline transition hover:bg-[#604536]">Ir al carrito de compras</a>
+                        <a href="{% url 'cliente_carrito' %}" class="block bg-[#5a3e27] px-4 py-3 text-center text-sm font-medium text-white no-underline transition hover:bg-[#5a3e27]">Ir al carrito de compras</a>
                     </footer>
                 </section>
             </div>
-            <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram de Nicolett Studio Fantasy" title="@nicolettstudiofantasy" class="text-lg text-[#eee7e2] transition hover:text-white">
-                <i class="fa-brands fa-instagram" aria-hidden="true"></i>
+            <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram de Nicolett Studio Fantasy" title="Instagram" class="text-xl transition hover:scale-110">
+                <i class="fa-brands fa-instagram bg-gradient-to-br from-[#833AB4] via-[#E4405F] to-[#FCAF45] bg-clip-text text-transparent" aria-hidden="true"></i>
+            </a>
+            <a href="https://wa.me/56982108409" target="_blank" rel="noopener noreferrer" aria-label="Escribir a Nicolett Studio Fantasy por WhatsApp" title="WhatsApp" class="text-xl text-[#25D366] transition hover:scale-110">
+                <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
             </a>
         </div>
     </header>
 
     <div class="flex flex-1">
-        <aside class="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[240px] shrink-0 self-start flex-col overflow-y-auto border-r border-[#e8e0da] bg-[#f7f3f0] py-7 md:flex">
+        <aside class="sticky top-16 hidden h-[calc(100vh-4rem)] w-[240px] shrink-0 self-start flex-col overflow-y-auto border-r border-[#ead7bc] bg-white py-7 md:flex">
             <nav class="flex flex-col gap-1" aria-label="Menú de cliente">
-                <a href="{% url 'cliente_sobre_nosotros' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-heart w-4 text-center text-[#c9a99b]"></i> Nosotras
+                <a href="{% url 'cliente_home' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-heart w-5 text-center text-base text-[#bd8c43]"></i> Nosotras
                 </a>
-                <a href="{% url 'cliente_servicios' %}" class="js-services-menu-trigger flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" aria-haspopup="dialog" aria-expanded="false" {% if request.resolver_match.url_name == 'cliente_servicios' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-spa w-4 text-center text-[#c9a99b]"></i> Servicios
+                <a href="{% url 'cliente_servicios' %}" class="js-services-menu-trigger flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" aria-haspopup="dialog" aria-expanded="false" {% if request.resolver_match.url_name == 'cliente_servicios' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-spa w-5 text-center text-base text-[#bd8c43]"></i> Servicios
                 </a>
-                <a href="{% url 'cliente_productos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-box-open w-4 text-center text-[#c9a99b]"></i> Productos
+                <a href="{% url 'cliente_productos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]"></i> Productos
                 </a>
-                <a href="{% url 'cliente_agendamiento' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
-                    <i class="fa-regular fa-calendar-plus w-4 text-center text-[#c9a99b]"></i> Agendar citas
+                <a href="{% url 'cliente_agendamiento' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
+                    <i class="fa-regular fa-calendar-plus w-5 text-center text-base text-[#bd8c43]"></i> Agendar citas
                 </a>
-                <a href="{% url 'cliente_gestionar_citas' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}aria-current="page"{% endif %}>
-                    <i class="fa-regular fa-calendar-check w-4 text-center text-[#c9a99b]"></i> Gestionar citas
+                <a href="{% url 'cliente_gestionar_citas' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}aria-current="page"{% endif %}>
+                    <i class="fa-regular fa-calendar-check w-5 text-center text-base text-[#bd8c43]"></i> Gestionar citas
                 </a>
-                <a href="{% url 'cliente_historial_pagos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-receipt w-4 text-center text-[#c9a99b]"></i> Historial de pagos
+                <a href="{% url 'cliente_historial_pagos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-receipt w-5 text-center text-base text-[#bd8c43]"></i> Historial de pagos
                 </a>
-                <a href="{% url 'cliente_configuracion' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-xs no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_configuracion' %}border-[#c9a99b] bg-[#faf7f4] font-medium text-[#2a2320]{% else %}border-transparent text-[#7a6e6a] hover:bg-[#faf7f4] hover:text-[#2a2320]{% endif %}" {% if request.resolver_match.url_name == 'cliente_configuracion' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-gear w-4 text-center text-[#c9a99b]"></i> Configuración
+                <a href="{% url 'cliente_configuracion' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_configuracion' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_configuracion' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-gear w-5 text-center text-base text-[#bd8c43]"></i> Configuración
                 </a>
             </nav>
             <form action="{% url 'logout' %}" method="post" class="mt-auto px-5 pb-2 pt-6">
                 {% csrf_token %}
-                <button type="submit" class="flex w-full items-center gap-3 border border-[#c9a99b] bg-[#f2ece7] px-4 py-3 text-left text-xs font-medium text-[#765747] transition-colors hover:bg-[#e8e0da]">
+                <button type="submit" class="flex w-full items-center gap-3 rounded border border-[#e07a5f]/35 bg-[#e07a5f]/10 px-3 py-2.5 text-left text-sm font-semibold text-[#e07a5f] transition-colors hover:bg-[#e07a5f]/20 hover:text-[#f4a261]">
                     <i class="fa-solid fa-right-from-bracket w-4 text-center"></i> Cerrar sesión
                 </button>
             </form>
         </aside>
 
-        <section id="client-services-category-panel" class="fixed z-50 flex w-60 flex-col border border-[#e8e0da] bg-white p-3 text-[#2a2320] shadow-xl" role="dialog" aria-label="Categorías de servicios" hidden>
+        <section id="client-services-category-panel" class="fixed z-50 flex w-60 flex-col border border-[#ead7bc] bg-white p-3 text-[#281b14] shadow-xl" role="dialog" aria-label="Categorías de servicios" hidden>
             <div class="mb-2 flex items-center justify-between gap-2">
                 <h2 class="text-xs font-medium">Servicios</h2>
-                <button type="button" class="services-category-close border-0 bg-transparent px-1 text-lg leading-none text-[#7a6e6a]" aria-label="Cerrar categorías">&times;</button>
+                <button type="button" class="services-category-close border-0 bg-transparent px-1 text-lg leading-none text-[#6b5643]" aria-label="Cerrar categorías">&times;</button>
             </div>
-            <label class="mb-2 flex items-center gap-2 border border-[#ded5cf] px-2 py-1.5 text-[#7a6e6a]">
+            <label class="mb-2 flex items-center gap-2 border border-[#ead7bc] px-2 py-1.5 text-[#6b5643]">
                 <i class="fa-solid fa-magnifying-glass text-[10px]" aria-hidden="true"></i>
-                <input type="search" placeholder="Busca un servicio..." aria-label="Buscar categorías de servicios" class="w-full min-w-0 border-0 bg-transparent text-[10px] text-[#2a2320] outline-none">
+                <input type="search" placeholder="Busca un servicio..." aria-label="Buscar categorías de servicios" class="w-full min-w-0 border-0 bg-transparent text-[10px] text-[#281b14] outline-none">
             </label>
             <ul class="-mx-3 mb-1 list-none p-0">
                 {% for categoria in categorias_servicios %}
-                    <li class="border-b border-[#f0ece9] px-3 py-2 text-[11px]"><span><i class="fa-solid fa-caret-right mr-1 text-[#c9a99b]" aria-hidden="true"></i> {{ categoria.nombre }}</span></li>
+                    <li class="border-b border-[#fae9cf] px-3 py-2 text-[11px]"><span><i class="fa-solid fa-caret-right mr-1 text-[#bd8c43]" aria-hidden="true"></i> {{ categoria.nombre }}</span></li>
                 {% empty %}
                     <li class="px-3 py-2 text-[11px]">No hay categorías disponibles.</li>
                 {% endfor %}
             </ul>
-            <a href="{% url 'cliente_servicios' %}" class="py-1 text-center text-[10px] text-[#765747] no-underline hover:underline">Ver todos los servicios</a>
-            <p class="services-category-empty my-2 text-[11px] text-[#7a6e6a]" hidden>No se encontraron categorías.</p>
+            <a href="{% url 'cliente_servicios' %}" class="py-1 text-center text-[10px] text-[#5a3e27] no-underline hover:underline">Ver todos los servicios</a>
+            <p class="services-category-empty my-2 text-[11px] text-[#6b5643]" hidden>No se encontraron categorías.</p>
         </section>
 
         <main class="w-full min-w-0 px-5 py-8 md:flex-1 md:px-10">
             {% block content %}{% endblock %}
         </main>
     </div>
-    {% include 'footer.html' %}
     <script>
         window.addEventListener('pageshow', function (event) {
             if (event.persisted) {

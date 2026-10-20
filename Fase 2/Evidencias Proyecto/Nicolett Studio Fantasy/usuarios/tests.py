@@ -113,6 +113,7 @@ class RoleAccessTests(TestCase):
         )
         self.assertEqual(len(mail.outbox), 1)
         confirmation_email = mail.outbox[0]
+        self.assertEqual(confirmation_email.to, [cliente.email])
         self.assertIn('Nicolett Studio Fantasy', confirmation_email.subject)
         self.assertIn('Nicolett Studio Fantasy', confirmation_email.body)
         self.assertIn('CONFIRMAR MI CORREO', confirmation_email.alternatives[0][0])
@@ -150,8 +151,8 @@ class RoleAccessTests(TestCase):
         )
         self.assertRedirects(login_response, reverse('cliente_home'))
 
-    def test_registration_does_not_create_account_without_email_configuration(self):
-        with override_settings(EMAIL_HOST_USER='', EMAIL_HOST_PASSWORD=''):
+    def test_registration_without_email_configuration_is_rejected_outside_debug(self):
+        with override_settings(EMAIL_HOST_USER='', EMAIL_HOST_PASSWORD='', DEBUG=False):
             response = self.client.post(
                 reverse('register'),
                 {
@@ -167,7 +168,42 @@ class RoleAccessTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'EMAIL_HOST_USER y EMAIL_HOST_PASSWORD')
+        self.assertContains(response, 'el correo del salón que envía los mensajes')
+        self.assertContains(response, 'se enviará al correo que ingresaste en el formulario')
         self.assertFalse(Usuario.objects.filter(email='sin.correo@example.com').exists())
+
+    def test_local_registration_without_smtp_creates_account_and_shows_activation_link(self):
+        with override_settings(
+            DEBUG=True,
+            EMAIL_BACKEND='django.core.mail.backends.console.EmailBackend',
+            EMAIL_HOST_USER='',
+            EMAIL_HOST_PASSWORD='',
+        ):
+            response = self.client.post(
+                reverse('register'),
+                {
+                    'nombre': 'Valentina',
+                    'apellido_paterno': 'Prueba',
+                    'apellido_materno': 'Cliente',
+                    'telefono': '+56912345678',
+                    'email': 'prueba.local@example.com',
+                    'password': 'Cliente123!',
+                    'password_confirm': 'Cliente123!',
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        cliente = Usuario.objects.get(email='prueba.local@example.com')
+        self.assertFalse(cliente.is_active)
+        self.assertContains(response, 'No se envió un correo real.')
+        self.assertContains(response, 'Activar mi cuenta')
+        verification_url = response.context['verification_url_local']
+        verification_path = urlparse(verification_url).path
+        activation_response = self.client.get(verification_path)
+
+        self.assertEqual(activation_response.status_code, 200)
+        cliente.refresh_from_db()
+        self.assertTrue(cliente.is_active)
 
     def test_verified_account_stays_active_if_activation_email_cannot_be_sent(self):
         with override_settings(
@@ -320,6 +356,28 @@ class RoleAccessTests(TestCase):
         terms = self.client.get(reverse('terminos_privacidad'))
         self.assertContains(terms, 'política de privacidad')
         self.assertContains(terms, 'Datos personales que se utilizan')
+        self.assertContains(terms, 'aria-label="Índice de términos y privacidad"')
+        self.assertContains(terms, 'position: fixed')
+        self.assertContains(terms, '.topbar {\n            position: sticky;')
+        self.assertContains(terms, '.section-card ul { list-style: disc; }')
+        self.assertContains(terms, '.section-card ol { list-style: decimal; }')
+        self.assertContains(terms, 'line-height: 1.9')
+        self.assertNotContains(terms, '<header class="hero">')
+        self.assertContains(terms, 'id="servicios" data-toc-section')
+        self.assertContains(terms, 'id="derechos" data-toc-section')
+        self.assertContains(terms, 'atPageEnd')
+        self.assertContains(terms, 'position: fixed')
+        self.assertContains(terms, 'font-size: clamp(30px, 3vw, 36px)')
+        self.assertContains(terms, '<nav class="section-index"')
+        self.assertContains(terms, '.section-card h2')
+        self.assertContains(terms, '© 2026 Nicolett Studio Fantasy')
+        self.assertContains(terms, 'Todos los derechos reservados')
+        self.assertContains(terms, 'aria-label="Escribir a Nicolett Studio Fantasy por WhatsApp"')
+        self.assertContains(terms, 'mailto:nicolettstudio@gmail.com')
+        self.assertContains(terms, 'href="https://wa.me/56940322551"')
+        self.assertContains(terms, 'no procesa un cobro bancario real')
+        self.assertContains(terms, 'funcionamiento del sitio, tu cuenta u otra dificultad técnica')
+        self.assertNotContains(terms, 'Volver a Nicolett Studio Fantasy')
 
     def test_registration_brand_and_password_manager_autocomplete_are_available(self):
         response = self.client.get(reverse('login'), {'tab': 'register'})
@@ -328,6 +386,12 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'Nicolett Studio Fantasy')
         self.assertContains(response, 'id="reg-password" name="password" placeholder="Mínimo 8 caracteres" required minlength="8" autocomplete="new-password"')
         self.assertContains(response, 'id="reg-password-confirm" name="password_confirm" placeholder="Repetir contraseña" required minlength="8" autocomplete="new-password"')
+        self.assertContains(response, 'id="telefono-feedback" class="registration-feedback" role="status" aria-live="polite"')
+        self.assertContains(response, 'id="password-feedback" class="registration-feedback" role="status" aria-live="polite"')
+        self.assertContains(response, "feedback.style.backgroundColor = '#f8d7da';")
+        self.assertContains(response, "feedback.style.backgroundColor = '#d4edda';")
+        self.assertNotContains(response, 'background: #383d40 !important;')
+        self.assertNotContains(response, 'background: #fae9cf !important;')
         self.assertContains(response, 'const regex = /^(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}$/;')
 
     @override_settings(
@@ -419,8 +483,12 @@ class RoleAccessTests(TestCase):
                 self.assertContains(response, '<strong class="text-white">Cliente</strong>')
                 self.assertContains(response, 'Cerrar sesión')
                 self.assertContains(response, 'https://www.instagram.com/nicolettstudiofantasy/')
-                self.assertNotContains(response, 'text-[11px] uppercase tracking-[0.12em] text-[#d8cfca] hover:text-white">Cerrar sesión')
+                self.assertContains(response, 'https://wa.me/56982108409')
                 self.assertContains(response, 'method="post" class="mt-auto px-5 pb-2 pt-6"')
+                self.assertContains(response, 'w-[240px] shrink-0 self-start flex-col overflow-y-auto border-r border-[#ead7bc] bg-white py-7')
+                self.assertContains(response, 'px-5 py-3 text-sm no-underline transition-colors')
+                self.assertContains(response, 'w-5 text-center text-base text-[#bd8c43]')
+                self.assertContains(response, 'border border-[#e07a5f]/35 bg-[#e07a5f]/10')
                 self.assertContains(response, 'id="client-services-category-panel"')
                 for categoria in (
                     'Depilación Trilaser',
@@ -430,21 +498,17 @@ class RoleAccessTests(TestCase):
                     'Tratamientos Faciales',
                 ):
                     self.assertContains(response, categoria)
-                self.assertContains(response, f'href="{reverse(name)}"')
+                active_link_name = 'cliente_home' if name == 'cliente_sobre_nosotros' else name
+                self.assertContains(response, f'href="{reverse(active_link_name)}"')
                 self.assertContains(response, 'aria-current="page"')
                 self.assertIn('no-store', response['Cache-Control'])
-                self.assertContains(response, 'sticky top-14')
-                self.assertNotContains(response, 'fixed bottom-0 left-0 top-14')
+                self.assertContains(response, 'sticky top-16')
+                self.assertNotContains(response, 'Todos los derechos reservados')
                 self.assertContains(
                     response,
-                    f'<a href="{reverse("cliente_servicios")}" aria-label="Ir a Servicios"',
-                )
-                self.assertContains(
-                    response,
-                    f'<a href="{reverse("cliente_sobre_nosotros")}"',
+                    f'<a href="{reverse("cliente_home")}" aria-label="Ir a Nosotras"',
                 )
                 self.assertNotContains(response, '> Inicio</a>')
-                self.assertContains(response, '© 2026 Nicolett Studio Fantasy')
         self.assertNotContains(self.client.get(reverse('cliente_gestionar_citas')), 'fa-clock-rotate-left')
         legacy_history = self.client.get(reverse('cliente_historial'))
         self.assertRedirects(legacy_history, f"{reverse('cliente_gestionar_citas')}?tab=historial")
@@ -556,7 +620,7 @@ class RoleAccessTests(TestCase):
         self.assertContains(servicios, 'data-category-filter="Cabello"')
         self.assertNotContains(servicios, 'data-category-filter="Tratamientos"')
         self.assertContains(servicios, 'Añadir al carrito')
-        self.assertContains(servicios, 'border-[#e8e0da]')
+        self.assertContains(servicios, 'border-[#ead7bc]')
         self.assertContains(servicios, 'Servicio de prueba para clientes.')
         self.assertContains(servicios, 'Sin imagen disponible')
         self.assertContains(servicios, 'data-image-zoom-action="out"')
@@ -565,7 +629,7 @@ class RoleAccessTests(TestCase):
         self.assertContains(servicios, 'data-zoomable-image')
         self.assertNotContains(
             servicios,
-            'mt-auto flex items-center justify-between border-t border-[#e8e0da] pt-4 text-sm',
+            'mt-auto flex items-center justify-between border-t border-[#ead7bc] pt-4 text-sm',
         )
         self.assertContains(servicios, 'data-catalog-item')
         self.assertContains(servicios, 'card.style.display = visible ?')
@@ -575,7 +639,7 @@ class RoleAccessTests(TestCase):
         ordenados = self.client.get(reverse('cliente_servicios'), {'orden': 'precio_desc'})
         self.assertEqual(list(ordenados.context['servicios']), [servicio_caro, servicio])
         self.assertNotContains(servicios, 'Aquí podrás conocer los servicios disponibles.')
-        self.assertNotContains(servicios, 'border-b border-[#e8e0da] p-6 sm:p-8')
+        self.assertNotContains(servicios, 'border-b border-[#ead7bc] p-6 sm:p-8')
         self.assertContains(
             servicios,
             f'action="{reverse("cliente_carrito_agregar_servicio", args=[servicio.pk])}"',
@@ -587,21 +651,21 @@ class RoleAccessTests(TestCase):
         self.assertContains(productos, 'id="catalog-search"')
         self.assertContains(productos, 'data-category-filter="Cabello"')
         self.assertNotContains(productos, 'data-category-filter="Tratamientos"')
-        self.assertContains(productos, 'border-[#e8e0da]')
+        self.assertContains(productos, 'border-[#ead7bc]')
         self.assertContains(productos, 'Producto de prueba para clientes.')
         self.assertContains(productos, 'data-image-zoom-action="in"')
         self.assertContains(productos, 'data-zoomable-image')
         self.assertNotContains(
             productos,
-            'mt-auto flex items-center justify-between border-t border-[#e8e0da] pt-4 text-sm',
+            'mt-auto flex items-center justify-between border-t border-[#ead7bc] pt-4 text-sm',
         )
         self.assertContains(productos, 'data-catalog-item')
         self.assertNotContains(productos, 'Al añadir un producto, su stock se reserva')
         self.assertContains(productos, 'aria-label="Productos"')
         self.assertContains(productos, 'Nombre: Z-A')
         self.assertNotContains(productos, 'Aquí podrás revisar los productos del estudio.')
-        self.assertNotContains(productos, 'border-b border-[#e8e0da] p-6 sm:p-8')
-        self.assertNotContains(productos, 'overflow-auto bg-[#f7f3f0]')
+        self.assertNotContains(productos, 'border-b border-[#ead7bc] p-6 sm:p-8')
+        self.assertNotContains(productos, 'overflow-auto bg-[#fae9cf]')
         self.assertContains(
             productos,
             f'action="{reverse("cliente_carrito_agregar_producto", args=[producto.pk])}"',
@@ -627,26 +691,38 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(response, 'Formulario de contacto')
         self.assertNotContains(response, 'Contactar por WhatsApp')
 
-    def test_customer_home_shows_contact_and_empty_address_sections(self):
+    def test_customer_home_opens_on_about_section_without_footer(self):
         self.client.force_login(self.crear_cliente())
 
         response = self.client.get(reverse('cliente_home'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Datos de contacto')
-        self.assertContains(response, 'cliente@example.com')
-        self.assertContains(response, '+56987654321')
-        self.assertContains(response, 'Direcciones de envío')
-        self.assertContains(response, 'Direcciones de facturación')
-        self.assertContains(response, 'Aún no tienes direcciones de envío guardadas.')
-        self.assertContains(response, reverse('cliente_configuracion'))
-        self.assertContains(response, 'Esta opción estará disponible próximamente.')
+        self.assertContains(response, 'Nosotras')
+        self.assertContains(response, 'Nuestro origen')
+        self.assertContains(response, 'Nuestra misión')
+        self.assertContains(response, 'https://www.instagram.com/nicolettstudiofantasy/')
+        self.assertContains(response, 'fa-whatsapp')
+        self.assertNotContains(response, '<footer class="flex flex-col')
+
+    def test_client_navigation_has_brand_icons_and_red_logout(self):
+        self.client.force_login(self.crear_cliente())
+
+        response = self.client.get(reverse('cliente_home'))
+
+        self.assertContains(response, 'h-16')
+        self.assertContains(response, 'fa-instagram')
+        self.assertContains(response, 'https://wa.me/56982108409')
+        self.assertContains(response, 'bg-[#e07a5f]/10')
 
     def test_client_profile_fields_are_disabled_with_locked_visual_state(self):
         self.client.force_login(self.crear_cliente())
 
         response = self.client.get(reverse('cliente_configuracion'))
 
+        self.assertContains(response, 'Datos de contacto')
+        self.assertContains(response, 'Direcciones de envío')
+        self.assertContains(response, 'Direcciones de facturación')
+        self.assertContains(response, 'Aún no tienes direcciones de envío guardadas.')
         self.assertContains(response, 'disabled:cursor-not-allowed')
         self.assertContains(response, 'disabled:bg-gray-100')
         self.assertContains(response, 'field.disabled = true')
@@ -765,6 +841,33 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'grid-cols-[1fr_auto_1fr]')
         self.assertNotContains(response, '>INICIO</a>')
 
+    def test_login_header_hides_store_actions_and_registration_cta(self):
+        response = self.client.get(reverse('login'))
+
+        self.assertNotContains(response, 'aria-label="Crear cuenta de cliente"')
+        self.assertNotContains(response, '$0')
+        self.assertNotContains(response, 'fa-chevron-down')
+        self.assertNotContains(response, 'fa-bag-shopping')
+        self.assertContains(response, 'bg-[#8b5e28]')
+        self.assertContains(response, 'text-white')
+        self.assertContains(response, 'id="btn-register"')
+        self.assertContains(response, 'fa-brands fa-instagram')
+
+    def test_login_footer_shows_brand_colored_social_icons_on_dark_background(self):
+        response = self.client.get(reverse('login'))
+
+        self.assertContains(response, 'bg-[#281b14]')
+        self.assertNotContains(response, '<span>Instagram</span>')
+        self.assertNotContains(response, '<span>WhatsApp</span>')
+        self.assertContains(response, 'text-2xl')
+        self.assertContains(response, 'text-[#25D366]')
+        self.assertContains(response, 'from-[#833AB4] via-[#E4405F] to-[#FCAF45]')
+
+    def test_login_and_registration_forms_share_submit_button_style(self):
+        response = self.client.get(reverse('login'))
+
+        self.assertEqual(response.content.count(b'class="auth-submit-button"'), 2)
+
     def test_login_query_selects_registration_tab_on_initial_render(self):
         response = self.client.get(reverse('login'), {'tab': 'register'})
 
@@ -772,6 +875,7 @@ class RoleAccessTests(TestCase):
         self.assertTrue(response.context['mostrar_registro'])
         self.assertContains(response, 'id="section-login" style="display: none;"')
         self.assertContains(response, 'id="section-register" style="display: block;"')
+        self.assertContains(response, 'class="auth-form-panel is-register"')
         self.assertContains(response, 'aria-selected="true"')
 
     def test_login_page_uses_requested_salon_background_without_schedule_overlay(self):
@@ -780,6 +884,7 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'class="auth-page')
         self.assertContains(response, 'class="auth-page-layout"')
         self.assertContains(response, 'class="auth-form-panel"')
+        self.assertContains(response, 'overflow: hidden !important')
         self.assertContains(response, 'img/login-salon.jpg')
         self.assertContains(response, 'Ingresa a tu cuenta en')
         self.assertContains(response, 'id="btn-login"')
@@ -792,14 +897,13 @@ class RoleAccessTests(TestCase):
         response = self.client.get(reverse('home'))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'fa-bag-shopping')
+        self.assertContains(response, 'aria-label="Abrir carrito"')
         self.assertNotContains(
             response,
             'class="px-5 py-2.5 font-medium tracking-widest text-customDark transition hover:text-customAccent">INICIAR SESIÓN</a>',
         )
-        self.assertNotContains(
-            response,
-            'class="bg-customDark px-5 py-2.5 tracking-widest text-customBg transition hover:bg-customAccent hover:text-customDark">CREAR CUENTA</a>',
-        )
+        self.assertNotContains(response, 'fa-user-plus')
 
     def test_logout_requires_post_clears_session_and_protects_back_navigation(self):
         cliente = self.crear_cliente()
@@ -824,6 +928,7 @@ class RoleAccessTests(TestCase):
             response,
             'href="{}" class="nav-link js-services-menu-trigger active"'.format(reverse('listar_servicios')),
         )
+        self.assertContains(response, 'dashboard.css?v=20261019-4')
 
     def test_customer_can_update_account_details_and_password(self):
         cliente = self.crear_cliente()

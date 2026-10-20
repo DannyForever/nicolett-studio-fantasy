@@ -3,13 +3,13 @@
 {% block title %}Gestionar citas | Nicolett Studio Fantasy{% endblock %}
 
 {% block content %}
-    <div class="mx-auto max-w-5xl border border-[#e8e0da] bg-white p-6 shadow-sm sm:p-8">
+    <div class="mx-auto max-w-5xl border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h1 class="font-serif text-2xl">Gestionar citas</h1>
-                <p class="mt-2 text-sm leading-relaxed text-[#7a6e6a]">Administra tus próximas citas o consulta todos sus registros e historial.</p>
+                <p class="mt-2 text-sm leading-relaxed text-[#6b5643]">Administra tus próximas citas o consulta todos sus registros e historial.</p>
             </div>
-            <a href="{% url 'cliente_ficha_tecnica_pdf' %}" target="_blank" rel="noopener" class="border border-[#765747] px-4 py-2 text-sm font-medium text-[#765747] no-underline hover:bg-[#f7f3f0]">Descargar ficha técnica (PDF)</a>
+            <a href="{% url 'cliente_ficha_tecnica_pdf' %}" target="_blank" rel="noopener" class="border border-[#5a3e27] px-4 py-2 text-sm font-medium text-[#5a3e27] no-underline hover:bg-[#fae9cf]">Descargar ficha técnica (PDF)</a>
         </div>
 
         {% if messages %}
@@ -20,21 +20,21 @@
             </div>
         {% endif %}
 
-        <div class="mt-6 flex flex-wrap gap-2 border-b border-[#e8e0da]" role="tablist" aria-label="Citas">
-            <button id="tab-manage" type="button" role="tab" aria-controls="panel-manage" aria-selected="{% if active_tab == 'gestionar' %}true{% else %}false{% endif %}" class="js-bookings-tab border-b-2 px-4 py-3 text-sm {% if active_tab == 'gestionar' %}border-[#765747] font-medium text-[#765747]{% else %}border-transparent text-[#7a6e6a]{% endif %}">Gestionar citas</button>
-            <button id="tab-history" type="button" role="tab" aria-controls="panel-history" aria-selected="{% if active_tab == 'historial' %}true{% else %}false{% endif %}" class="js-bookings-tab border-b-2 px-4 py-3 text-sm {% if active_tab == 'historial' %}border-[#765747] font-medium text-[#765747]{% else %}border-transparent text-[#7a6e6a]{% endif %}">Historial de citas</button>
+        <div class="mt-6 flex flex-wrap gap-2 border-b border-[#ead7bc]" role="tablist" aria-label="Citas">
+            <button id="tab-manage" type="button" role="tab" aria-controls="panel-manage" aria-selected="{% if active_tab == 'gestionar' %}true{% else %}false{% endif %}" class="js-bookings-tab border-b-2 px-4 py-3 text-sm {% if active_tab == 'gestionar' %}border-[#5a3e27] font-medium text-[#5a3e27]{% else %}border-transparent text-[#6b5643]{% endif %}">Gestionar citas</button>
+            <button id="tab-history" type="button" role="tab" aria-controls="panel-history" aria-selected="{% if active_tab == 'historial' %}true{% else %}false{% endif %}" class="js-bookings-tab border-b-2 px-4 py-3 text-sm {% if active_tab == 'historial' %}border-[#5a3e27] font-medium text-[#5a3e27]{% else %}border-transparent text-[#6b5643]{% endif %}">Historial de citas</button>
         </div>
 
         <section id="panel-manage" role="tabpanel" aria-labelledby="tab-manage" {% if active_tab != 'gestionar' %}hidden{% endif %} class="pt-5">
             <div class="space-y-4">
                 {% for reserva in reservas_gestionables %}
-                    <article class="border border-[#e8e0da] p-5 sm:p-6">
+                    <article class="border border-[#ead7bc] p-5 sm:p-6">
                         <div class="flex flex-wrap items-start justify-between gap-4">
                             <div>
-                                <p class="mb-1 text-xs uppercase tracking-widest text-[#7a6e6a]">{{ reserva.fecha_hora|date:"d/m/Y" }} · {{ reserva.fecha_hora|date:"H:i" }}</p>
+                                <p class="mb-1 text-xs uppercase tracking-widest text-[#6b5643]">{{ reserva.fecha_hora|date:"d/m/Y" }} · {{ reserva.fecha_hora|date:"H:i" }}</p>
                                 <h2 class="font-serif text-xl">{{ reserva.servicio_nombre|default:reserva.servicio.nombre|default:"Servicio no disponible" }}</h2>
-                                <p class="mt-1 text-sm text-[#7a6e6a]">Profesional: {% if reserva.profesional %}{{ reserva.profesional.nombre }} {{ reserva.profesional.apellido_paterno }}{% else %}Sin profesional asignado{% endif %} · {{ reserva.duracion_minutos }} min</p>
-                                <p class="mt-1 text-sm text-[#7a6e6a]">{% if reserva.viene_con_acompanante %}Asistirás con acompañante{% else %}Asistirás sin acompañante{% endif %}</p>
+                                <p class="mt-1 text-sm text-[#6b5643]">Profesional: {% if reserva.profesional %}{{ reserva.profesional.nombre }} {{ reserva.profesional.apellido_paterno }}{% else %}Sin profesional asignado{% endif %} · {{ reserva.duracion_minutos }} min</p>
+                                <p class="mt-1 text-sm text-[#6b5643]">{% if reserva.viene_con_acompanante %}Asistirás con acompañante{% else %}Asistirás sin acompañante{% endif %}</p>
                             </div>
                             <span class="border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">{{ reserva.estado_cliente }}</span>
                         </div>
@@ -42,30 +42,30 @@
                             <p class="mt-4 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{{ reserva.motivo_suspension }}</p>
                         {% endif %}
                         {% if not reserva.puede_gestionar %}
-                            <p class="mt-4 border border-[#e8e0da] bg-[#fcfaf8] p-3 text-sm text-[#7a6e6a]">
+                            <p class="mt-4 border border-[#ead7bc] bg-[#ffffff] p-3 text-sm text-[#6b5643]">
                                 Esta cita está dentro de las 48 horas previas. Puedes verla aquí, pero ya no es posible cancelarla ni modificarla en línea.
                             </p>
                         {% endif %}
-                        <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-[#e8e0da] pt-4">
+                        <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-[#ead7bc] pt-4">
                             <form method="post" action="{% url 'cliente_cancelar_reserva' reserva.pk %}">
                                 {% csrf_token %}
                                 <button type="submit" {% if not reserva.puede_gestionar %}disabled title="La gestión se cierra 48 horas antes."{% endif %} class="border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50">Cancelar</button>
                             </form>
-                            <button type="button" {% if not reserva.puede_gestionar %}disabled title="La gestión se cierra 48 horas antes."{% endif %} class="js-open-edit border border-[#765747] px-4 py-2 text-sm font-medium text-[#765747] transition hover:bg-[#f7f3f0] disabled:cursor-not-allowed disabled:opacity-50" aria-expanded="false" aria-controls="edit-reserva-{{ reserva.pk }}">Modificar</button>
+                            <button type="button" {% if not reserva.puede_gestionar %}disabled title="La gestión se cierra 48 horas antes."{% endif %} class="js-open-edit border border-[#5a3e27] px-4 py-2 text-sm font-medium text-[#5a3e27] transition hover:bg-[#fae9cf] disabled:cursor-not-allowed disabled:opacity-50" aria-expanded="false" aria-controls="edit-reserva-{{ reserva.pk }}">Modificar</button>
                         </div>
-                        <div id="edit-reserva-{{ reserva.pk }}" hidden class="mt-5 border border-[#e8e0da] bg-[#fcfaf8] p-5 sm:p-6">
+                        <div id="edit-reserva-{{ reserva.pk }}" hidden class="mt-5 border border-[#ead7bc] bg-[#ffffff] p-5 sm:p-6">
                                 <div class="flex items-start justify-between gap-4">
                                     <div>
-                                        <p class="text-xs uppercase tracking-widest text-[#7a6e6a]">Modificar cita</p>
+                                        <p class="text-xs uppercase tracking-widest text-[#6b5643]">Modificar cita</p>
                                         <h2 class="mt-1 font-serif text-xl">{{ reserva.servicio_nombre|default:reserva.servicio.nombre }}</h2>
                                     </div>
                                 </div>
-                                <p class="mt-3 text-sm leading-relaxed text-[#7a6e6a]">Selecciona un servicio, fecha, profesional y hora disponibles. La cita original permanecerá en el historial como modificada.</p>
+                                <p class="mt-3 text-sm leading-relaxed text-[#6b5643]">Selecciona un servicio, fecha, profesional y hora disponibles. La cita original permanecerá en el historial como modificada.</p>
                                 <form method="post" action="{% url 'cliente_reagendar_reserva' reserva.pk %}" class="js-manage-booking mt-5 space-y-4" data-reserva="{{ reserva.pk }}" data-servicio-original="{{ reserva.servicio_id|default:'' }}" data-profesional-original="{{ reserva.profesional_id|default:'' }}" data-hora-original="{{ reserva.fecha_hora|date:'H:i' }}" data-fecha-original="{{ reserva.fecha_hora|date:'Y-m-d' }}">
                                     {% csrf_token %}
                                     <div>
                                         <label for="service-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Servicio</label>
-                                        <select id="service-{{ reserva.pk }}" name="servicio" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                        <select id="service-{{ reserva.pk }}" name="servicio" required class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm">
                                             <option value="">Selecciona un servicio...</option>
                                             {% for servicio in servicios %}
                                                 <option value="{{ servicio.pk }}" {% if reserva.servicio_id == servicio.pk %}selected{% endif %}>{{ servicio.nombre }} · {{ servicio.duracion_minutos }} min</option>
@@ -75,30 +75,30 @@
                                     <div class="grid gap-4 sm:grid-cols-3">
                                         <div>
                                             <label for="date-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Fecha</label>
-                                            <input id="date-{{ reserva.pk }}" name="fecha" type="date" min="{{ hoy }}" value="{{ reserva.fecha_hora|date:'Y-m-d' }}" required class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm">
+                                            <input id="date-{{ reserva.pk }}" name="fecha" type="date" min="{{ hoy }}" value="{{ reserva.fecha_hora|date:'Y-m-d' }}" required class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm">
                                         </div>
                                         <div>
                                             <label for="professional-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Profesional</label>
-                                            <select id="professional-{{ reserva.pk }}" name="profesional" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]"><option value="">Consultando disponibilidad...</option></select>
+                                            <select id="professional-{{ reserva.pk }}" name="profesional" required disabled class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm disabled:bg-[#fae9cf]"><option value="">Consultando disponibilidad...</option></select>
                                         </div>
                                         <div>
                                             <label for="hour-{{ reserva.pk }}" class="mb-2 block text-sm font-medium">Hora</label>
-                                            <select id="hour-{{ reserva.pk }}" name="hora" required disabled class="w-full border border-[#e8e0da] bg-white px-3 py-3 text-sm disabled:bg-[#f7f3f0]"><option value="">Selecciona profesional...</option></select>
+                                            <select id="hour-{{ reserva.pk }}" name="hora" required disabled class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm disabled:bg-[#fae9cf]"><option value="">Selecciona profesional...</option></select>
                                         </div>
                                     </div>
-                                    <p class="js-manage-status text-sm text-[#7a6e6a]" aria-live="polite">Consultando disponibilidad...</p>
-                                    <div class="flex flex-wrap justify-end gap-3 border-t border-[#e8e0da] pt-4">
-                                        <button type="button" class="js-cancel-edit border border-[#e8e0da] px-4 py-2 text-sm">Cancelar modificación</button>
-                                        <button type="submit" class="bg-[#765747] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#604536]">Aceptar</button>
+                                    <p class="js-manage-status text-sm text-[#6b5643]" aria-live="polite">Consultando disponibilidad...</p>
+                                    <div class="flex flex-wrap justify-end gap-3 border-t border-[#ead7bc] pt-4">
+                                        <button type="button" class="js-cancel-edit border border-[#ead7bc] px-4 py-2 text-sm">Cancelar modificación</button>
+                                        <button type="submit" class="bg-[#5a3e27] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#5a3e27]">Aceptar</button>
                                     </div>
                                 </form>
                         </div>
                     </article>
                 {% empty %}
-                    <div class="border border-[#e8e0da] bg-[#fcfaf8] p-8 text-center">
+                    <div class="border border-[#ead7bc] bg-[#ffffff] p-8 text-center">
                         <p class="font-serif text-lg">No tienes próximas citas agendadas.</p>
-                        <p class="mt-2 text-sm text-[#7a6e6a]">Las citas confirmadas aparecerán aquí. Su gestión en línea se cierra 48 horas antes de la atención.</p>
-                        <a href="{% url 'cliente_agendamiento' %}" class="mt-5 inline-block bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline">Agendar una cita</a>
+                        <p class="mt-2 text-sm text-[#6b5643]">Las citas confirmadas aparecerán aquí. Su gestión en línea se cierra 48 horas antes de la atención.</p>
+                        <a href="{% url 'cliente_agendamiento' %}" class="mt-5 inline-block bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white no-underline">Agendar una cita</a>
                     </div>
                 {% endfor %}
             </div>
@@ -107,24 +107,24 @@
         <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" {% if active_tab != 'historial' %}hidden{% endif %} class="pt-5">
             <div class="space-y-3">
                 {% for reserva in historial_completo %}
-                    <article class="border border-[#e8e0da] p-4 sm:p-5">
+                    <article class="border border-[#ead7bc] p-4 sm:p-5">
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div>
-                                <p class="text-xs uppercase tracking-widest text-[#7a6e6a]">{{ reserva.fecha_hora|date:"d/m/Y" }} · {{ reserva.fecha_hora|date:"H:i" }}</p>
+                                <p class="text-xs uppercase tracking-widest text-[#6b5643]">{{ reserva.fecha_hora|date:"d/m/Y" }} · {{ reserva.fecha_hora|date:"H:i" }}</p>
                                 <h3 class="mt-1 font-serif text-lg">{{ reserva.servicio_nombre }}</h3>
-                                <p class="mt-1 text-sm text-[#7a6e6a]">Profesional: {{ reserva.profesional_nombre }} · {{ reserva.duracion_minutos }} min</p>
+                                <p class="mt-1 text-sm text-[#6b5643]">Profesional: {{ reserva.profesional_nombre }} · {{ reserva.duracion_minutos }} min</p>
                             </div>
                             <span class="border px-3 py-1 text-xs font-medium {{ reserva.estado_clase }}">{{ reserva.estado_cliente }}</span>
                         </div>
                         {% if reserva.motivo %}
-                            <p class="mt-3 border-t border-[#e8e0da] pt-3 text-sm text-[#7a6e6a]">Motivo: {{ reserva.motivo }}</p>
+                            <p class="mt-3 border-t border-[#ead7bc] pt-3 text-sm text-[#6b5643]">Motivo: {{ reserva.motivo }}</p>
                         {% endif %}
                     </article>
                 {% empty %}
-                    <div class="border border-[#e8e0da] bg-[#fcfaf8] p-8 text-center">
+                    <div class="border border-[#ead7bc] bg-[#ffffff] p-8 text-center">
                         <p class="font-serif text-lg">Todavía no tienes citas registradas.</p>
-                        <p class="mt-2 text-sm text-[#7a6e6a]">Cuando solicites una cita, podrás consultar aquí su estado.</p>
-                        <a href="{% url 'cliente_agendamiento' %}" class="mt-5 inline-block bg-[#765747] px-5 py-3 text-sm font-medium text-white no-underline">Agendar una cita</a>
+                        <p class="mt-2 text-sm text-[#6b5643]">Cuando solicites una cita, podrás consultar aquí su estado.</p>
+                        <a href="{% url 'cliente_agendamiento' %}" class="mt-5 inline-block bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white no-underline">Agendar una cita</a>
                     </div>
                 {% endfor %}
             </div>
@@ -144,11 +144,11 @@
                 for (const tab of tabs) {
                     const selected = tab.id === `tab-${name}`;
                     tab.setAttribute('aria-selected', String(selected));
-                    tab.classList.toggle('border-[#765747]', selected);
+                    tab.classList.toggle('border-[#5a3e27]', selected);
                     tab.classList.toggle('font-medium', selected);
-                    tab.classList.toggle('text-[#765747]', selected);
+                    tab.classList.toggle('text-[#5a3e27]', selected);
                     tab.classList.toggle('border-transparent', !selected);
-                    tab.classList.toggle('text-[#7a6e6a]', !selected);
+                    tab.classList.toggle('text-[#6b5643]', !selected);
                 }
                 for (const [key, panel] of Object.entries(panels)) panel.hidden = key !== name;
                 if (updateUrl) {

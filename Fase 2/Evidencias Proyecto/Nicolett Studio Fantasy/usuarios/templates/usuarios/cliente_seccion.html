@@ -22,17 +22,17 @@
         </div>
     {% endif %}
     {% if titulo == 'Servicios' or titulo == 'Productos' %}
-        <section class="mx-auto max-w-6xl overflow-hidden border border-[#e8e0da] bg-white shadow-sm" aria-label="{{ titulo }}">
+        <section class="mx-auto max-w-6xl overflow-hidden border border-[#ead7bc] bg-white shadow-sm" aria-label="{{ titulo }}">
             <div class="p-4 sm:p-5">
-                <label for="catalog-search" class="mb-2 block text-xs font-medium uppercase tracking-widest text-[#7a6e6a]">Buscar {{ titulo|lower }}</label>
+                <label for="catalog-search" class="mb-2 block text-xs font-medium uppercase tracking-widest text-[#6b5643]">Buscar {{ titulo|lower }}</label>
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
                     <div class="relative w-full lg:max-w-sm">
-                        <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8d7c73]" aria-hidden="true"></i>
-                        <input id="catalog-search" type="search" placeholder="Escribe un nombre o categoría..." autocomplete="off" class="w-full border border-[#ded5cf] bg-[#faf8f6] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[#765747] focus:ring-2 focus:ring-[#765747]/15">
+                        <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6b5643]" aria-hidden="true"></i>
+                        <input id="catalog-search" type="search" placeholder="Escribe un nombre o categoría..." autocomplete="off" class="w-full border border-[#ead7bc] bg-[#fffaf5] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[#5a3e27] focus:ring-2 focus:ring-[#5a3e27]/15">
                     </div>
                     <form method="get" class="w-full lg:w-auto">
                         <label for="catalog-sort" class="sr-only">Ordenar {{ titulo|lower }}</label>
-                        <select id="catalog-sort" name="orden" onchange="this.form.submit()" class="w-full border border-[#ded5cf] bg-white px-3 py-3 text-sm text-[#66564e] lg:min-w-56">
+                        <select id="catalog-sort" name="orden" onchange="this.form.submit()" class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm text-[#6b5643] lg:min-w-56">
                             <option value="nombre_asc" {% if orden_catalogo == 'nombre_asc' %}selected{% endif %}>Nombre: A-Z</option>
                             <option value="nombre_desc" {% if orden_catalogo == 'nombre_desc' %}selected{% endif %}>Nombre: Z-A</option>
                             <option value="precio_asc" {% if orden_catalogo == 'precio_asc' %}selected{% endif %}>Precio: menor a mayor</option>
@@ -40,132 +40,132 @@
                         </select>
                     </form>
                     <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoría">
-                        <button type="button" data-category-filter="" aria-pressed="true" class="catalog-filter rounded-full border border-[#765747] bg-[#765747] px-4 py-2 text-xs font-medium text-white transition">Todo</button>
+                        <button type="button" data-category-filter="" aria-pressed="true" class="catalog-filter rounded-full border border-[#5a3e27] bg-[#5a3e27] px-4 py-2 text-xs font-medium text-white transition">Todo</button>
                         {% for filtro in filtros_categoria %}
-                            <button type="button" data-category-filter="{{ filtro }}" aria-pressed="false" class="catalog-filter rounded-full border border-[#ded5cf] bg-white px-4 py-2 text-xs font-medium text-[#66564e] transition hover:border-[#765747] hover:bg-[#f5efeb]">{{ filtro }}</button>
+                            <button type="button" data-category-filter="{{ filtro }}" aria-pressed="false" class="catalog-filter rounded-full border border-[#ead7bc] bg-white px-4 py-2 text-xs font-medium text-[#6b5643] transition hover:border-[#5a3e27] hover:bg-[#fae9cf]">{{ filtro }}</button>
                         {% endfor %}
                     </div>
                 </div>
-                <p id="catalog-results" class="mt-3 text-xs text-[#7a6e6a]" aria-live="polite"></p>
+                <p id="catalog-results" class="mt-3 text-xs text-[#6b5643]" aria-live="polite"></p>
             </div>
 
     {% if titulo == 'Servicios' %}
         <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Servicios disponibles">
             {% for servicio in servicios %}
-                <article data-catalog-item data-categories="{{ servicio.categoria.nombre }}" data-search="{{ servicio.nombre }} {{ servicio.categoria.nombre }} {{ servicio.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#e8e0da] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#c9a99b] hover:bg-[#fcfaf8] focus-within:z-10 focus-within:border-[#c9a99b]">
+                <article data-catalog-item data-categories="{{ servicio.categoria.nombre }}" data-search="{{ servicio.nombre }} {{ servicio.categoria.nombre }} {{ servicio.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#ead7bc] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#bd8c43] hover:bg-[#ffffff] focus-within:z-10 focus-within:border-[#bd8c43]">
                     {% if servicio.imagen_url %}
-                        <img src="{{ servicio.imagen_url.url }}" alt="{{ servicio.nombre }}" class="h-40 w-full bg-[#f1ece8] object-cover">
+                        <img src="{{ servicio.imagen_url.url }}" alt="{{ servicio.nombre }}" class="h-40 w-full bg-[#fae9cf] object-cover">
                     {% else %}
-                        <div class="flex h-40 items-center justify-center bg-[#f1ece8] text-4xl text-[#bca79a]" aria-hidden="true">
+                        <div class="flex h-40 items-center justify-center bg-[#fae9cf] text-4xl text-[#6b5643]" aria-hidden="true">
                             <i class="fa-solid fa-spa"></i>
                         </div>
                     {% endif %}
-                    <div class="invisible absolute inset-x-3 top-3 z-20 translate-y-1 border border-[#e8e0da] bg-white p-3 opacity-0 shadow-xl transition-all duration-200 delay-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                    <div class="invisible absolute inset-x-3 top-3 z-20 translate-y-1 border border-[#ead7bc] bg-white p-3 opacity-0 shadow-xl transition-all duration-200 delay-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
                         {% if servicio.imagen_url %}
                             <div data-image-preview>
                                 <div class="mb-2 flex items-center justify-between gap-2">
                                     <div class="flex items-center gap-1">
-                                        <button type="button" data-image-zoom-action="out" aria-label="Alejar imagen de {{ servicio.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ded5cf] text-sm text-[#66564e] transition hover:bg-[#f5efeb] disabled:cursor-not-allowed disabled:opacity-40">
+                                        <button type="button" data-image-zoom-action="out" aria-label="Alejar imagen de {{ servicio.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ead7bc] text-sm text-[#6b5643] transition hover:bg-[#fae9cf] disabled:cursor-not-allowed disabled:opacity-40">
                                             <i class="fa-solid fa-minus" aria-hidden="true"></i>
                                         </button>
-                                        <button type="button" data-image-zoom-action="in" aria-label="Acercar imagen de {{ servicio.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ded5cf] text-sm text-[#66564e] transition hover:bg-[#f5efeb] disabled:cursor-not-allowed disabled:opacity-40">
+                                        <button type="button" data-image-zoom-action="in" aria-label="Acercar imagen de {{ servicio.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ead7bc] text-sm text-[#6b5643] transition hover:bg-[#fae9cf] disabled:cursor-not-allowed disabled:opacity-40">
                                             <i class="fa-solid fa-plus" aria-hidden="true"></i>
                                         </button>
-                                        <button type="button" data-image-zoom-action="reset" class="border border-[#ded5cf] px-2 py-1.5 text-xs text-[#66564e] transition hover:bg-[#f5efeb]">Restablecer</button>
+                                        <button type="button" data-image-zoom-action="reset" class="border border-[#ead7bc] px-2 py-1.5 text-xs text-[#6b5643] transition hover:bg-[#fae9cf]">Restablecer</button>
                                     </div>
-                                    <span data-image-zoom-level class="text-xs text-[#7a6e6a]" aria-live="polite">100%</span>
+                                    <span data-image-zoom-level class="text-xs text-[#6b5643]" aria-live="polite">100%</span>
                                 </div>
-                                <div class="flex h-48 items-center justify-center overflow-hidden bg-[#f7f3f0] p-1">
+                                <div class="flex h-48 items-center justify-center overflow-hidden bg-[#fae9cf] p-1">
                                     <img src="{{ servicio.imagen_url.url }}" alt="Imagen completa de {{ servicio.nombre }}" data-zoomable-image class="h-full w-full max-w-full object-contain transition-transform duration-200">
                                 </div>
                             </div>
                         {% else %}
-                            <div class="flex h-24 items-center justify-center bg-[#f1ece8] text-sm text-[#7a6e6a]">Sin imagen disponible</div>
+                            <div class="flex h-24 items-center justify-center bg-[#fae9cf] text-sm text-[#6b5643]">Sin imagen disponible</div>
                         {% endif %}
-                        <p class="mt-3 text-sm leading-relaxed text-[#66564e]">{{ servicio.descripcion|default:"Descripción no disponible." }}</p>
+                        <p class="mt-3 text-sm leading-relaxed text-[#6b5643]">{{ servicio.descripcion|default:"Descripción no disponible." }}</p>
                     </div>
                     <div class="flex flex-1 flex-col p-5">
-                        <p class="mb-2 text-xs uppercase tracking-widest text-[#7a6e6a]">{{ servicio.categoria.nombre }}</p>
+                        <p class="mb-2 text-xs uppercase tracking-widest text-[#6b5643]">{{ servicio.categoria.nombre }}</p>
                         <h2 class="mb-2 font-serif text-xl">{{ servicio.nombre }}</h2>
                         <div class="mt-auto flex items-center justify-between text-sm">
                             <span class="font-medium">{{ servicio.precio|pesos }}</span>
-                            <span class="text-[#7a6e6a]">{{ servicio.duracion_minutos }} min</span>
+                            <span class="text-[#6b5643]">{{ servicio.duracion_minutos }} min</span>
                         </div>
                         <form method="post" action="{% url 'cliente_carrito_agregar_servicio' servicio.pk %}" class="mt-4">
                             {% csrf_token %}
-                            <button type="submit" class="w-full bg-[#765747] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#604536]">
+                            <button type="submit" class="w-full bg-[#5a3e27] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#5a3e27]">
                                 <i class="fa-solid fa-cart-plus mr-2"></i>Añadir al carrito
                             </button>
                         </form>
                     </div>
                 </article>
             {% empty %}
-                <p data-catalog-empty class="p-6 text-sm text-[#7a6e6a] sm:col-span-2 lg:col-span-3">Por el momento no hay servicios disponibles.</p>
+                <p data-catalog-empty class="p-6 text-sm text-[#6b5643] sm:col-span-2 lg:col-span-3">Por el momento no hay servicios disponibles.</p>
             {% endfor %}
         </div>
     {% elif titulo == 'Productos' %}
         <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Productos disponibles">
             {% for producto in productos %}
-                <article data-catalog-item data-categories="{{ producto.categoria.nombre }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#e8e0da] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#c9a99b] hover:bg-[#fcfaf8] focus-within:z-10 focus-within:border-[#c9a99b]">
+                <article data-catalog-item data-categories="{{ producto.categoria.nombre }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#ead7bc] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#bd8c43] hover:bg-[#ffffff] focus-within:z-10 focus-within:border-[#bd8c43]">
                     {% if producto.imagen_url %}
-                        <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" class="h-40 w-full bg-[#f1ece8] object-cover">
+                        <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" class="h-40 w-full bg-[#fae9cf] object-cover">
                     {% else %}
-                        <div class="flex h-40 items-center justify-center bg-[#f1ece8] text-4xl text-[#bca79a]" aria-hidden="true">
+                        <div class="flex h-40 items-center justify-center bg-[#fae9cf] text-4xl text-[#6b5643]" aria-hidden="true">
                             <i class="fa-solid fa-bottle-droplet"></i>
                         </div>
                     {% endif %}
-                    <div class="invisible absolute inset-x-3 top-3 z-20 translate-y-1 border border-[#e8e0da] bg-white p-3 opacity-0 shadow-xl transition-all duration-200 delay-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                    <div class="invisible absolute inset-x-3 top-3 z-20 translate-y-1 border border-[#ead7bc] bg-white p-3 opacity-0 shadow-xl transition-all duration-200 delay-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
                         {% if producto.imagen_url %}
                             <div data-image-preview>
                                 <div class="mb-2 flex items-center justify-between gap-2">
                                     <div class="flex items-center gap-1">
-                                        <button type="button" data-image-zoom-action="out" aria-label="Alejar imagen de {{ producto.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ded5cf] text-sm text-[#66564e] transition hover:bg-[#f5efeb] disabled:cursor-not-allowed disabled:opacity-40">
+                                        <button type="button" data-image-zoom-action="out" aria-label="Alejar imagen de {{ producto.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ead7bc] text-sm text-[#6b5643] transition hover:bg-[#fae9cf] disabled:cursor-not-allowed disabled:opacity-40">
                                             <i class="fa-solid fa-minus" aria-hidden="true"></i>
                                         </button>
-                                        <button type="button" data-image-zoom-action="in" aria-label="Acercar imagen de {{ producto.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ded5cf] text-sm text-[#66564e] transition hover:bg-[#f5efeb] disabled:cursor-not-allowed disabled:opacity-40">
+                                        <button type="button" data-image-zoom-action="in" aria-label="Acercar imagen de {{ producto.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ead7bc] text-sm text-[#6b5643] transition hover:bg-[#fae9cf] disabled:cursor-not-allowed disabled:opacity-40">
                                             <i class="fa-solid fa-plus" aria-hidden="true"></i>
                                         </button>
-                                        <button type="button" data-image-zoom-action="reset" class="border border-[#ded5cf] px-2 py-1.5 text-xs text-[#66564e] transition hover:bg-[#f5efeb]">Restablecer</button>
+                                        <button type="button" data-image-zoom-action="reset" class="border border-[#ead7bc] px-2 py-1.5 text-xs text-[#6b5643] transition hover:bg-[#fae9cf]">Restablecer</button>
                                     </div>
-                                    <span data-image-zoom-level class="text-xs text-[#7a6e6a]" aria-live="polite">100%</span>
+                                    <span data-image-zoom-level class="text-xs text-[#6b5643]" aria-live="polite">100%</span>
                                 </div>
-                                <div class="flex h-48 items-center justify-center overflow-hidden bg-[#f7f3f0] p-1">
+                                <div class="flex h-48 items-center justify-center overflow-hidden bg-[#fae9cf] p-1">
                                     <img src="{{ producto.imagen_url.url }}" alt="Imagen completa de {{ producto.nombre }}" data-zoomable-image class="h-full w-full max-w-full object-contain transition-transform duration-200">
                                 </div>
                             </div>
                         {% else %}
-                            <div class="flex h-24 items-center justify-center bg-[#f1ece8] text-sm text-[#7a6e6a]">Sin imagen disponible</div>
+                            <div class="flex h-24 items-center justify-center bg-[#fae9cf] text-sm text-[#6b5643]">Sin imagen disponible</div>
                         {% endif %}
-                        <p class="mt-3 text-sm leading-relaxed text-[#66564e]">{{ producto.descripcion|default:"Descripción no disponible." }}</p>
+                        <p class="mt-3 text-sm leading-relaxed text-[#6b5643]">{{ producto.descripcion|default:"Descripción no disponible." }}</p>
                     </div>
                     <div class="flex flex-1 flex-col p-5">
-                        <p class="mb-2 text-xs uppercase tracking-widest text-[#7a6e6a]">{{ producto.categoria.nombre }}</p>
+                        <p class="mb-2 text-xs uppercase tracking-widest text-[#6b5643]">{{ producto.categoria.nombre }}</p>
                         <h2 class="mb-2 font-serif text-xl">{{ producto.nombre }}</h2>
                         <div class="mt-auto flex items-center justify-between text-sm">
                             <span class="font-medium">{{ producto.precio|pesos }}</span>
-                            <span class="text-[#7a6e6a]">{% if producto.stock > 0 %}{{ producto.stock }} disponibles{% else %}Agotado{% endif %}</span>
+                            <span class="text-[#6b5643]">{% if producto.stock > 0 %}{{ producto.stock }} disponibles{% else %}Agotado{% endif %}</span>
                         </div>
                         <form method="post" action="{% url 'cliente_carrito_agregar_producto' producto.pk %}" class="mt-4 flex items-center gap-3">
                             {% csrf_token %}
                             <label for="cantidad-{{ producto.pk }}" class="sr-only">Cantidad de {{ producto.nombre }}</label>
-                            <input id="cantidad-{{ producto.pk }}" name="cantidad" type="number" min="1" max="{{ producto.stock }}" value="1" required {% if producto.stock < 1 %}disabled{% endif %} class="w-20 border border-[#e8e0da] px-3 py-3 text-sm">
-                            <button type="submit" {% if producto.stock < 1 %}disabled{% endif %} class="flex-1 bg-[#765747] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#604536] disabled:cursor-not-allowed disabled:opacity-50">
+                            <input id="cantidad-{{ producto.pk }}" name="cantidad" type="number" min="1" max="{{ producto.stock }}" value="1" required {% if producto.stock < 1 %}disabled{% endif %} class="w-20 border border-[#ead7bc] px-3 py-3 text-sm">
+                            <button type="submit" {% if producto.stock < 1 %}disabled{% endif %} class="flex-1 bg-[#5a3e27] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#5a3e27] disabled:cursor-not-allowed disabled:opacity-50">
                                 <i class="fa-solid fa-cart-plus mr-2"></i>Añadir al carrito
                             </button>
                         </form>
                     </div>
                 </article>
             {% empty %}
-                <p data-catalog-empty class="p-6 text-sm text-[#7a6e6a] sm:col-span-2 lg:col-span-3">Por el momento no hay productos disponibles.</p>
+                <p data-catalog-empty class="p-6 text-sm text-[#6b5643] sm:col-span-2 lg:col-span-3">Por el momento no hay productos disponibles.</p>
             {% endfor %}
         </div>
     {% endif %}
-        <p id="catalog-no-results" data-item-label="{{ titulo|lower }}" hidden class="mx-5 mb-6 border-t border-[#e8e0da] px-1 pt-5 text-sm text-[#7a6e6a] sm:mx-7"></p>
+        <p id="catalog-no-results" data-item-label="{{ titulo|lower }}" hidden class="mx-5 mb-6 border-t border-[#ead7bc] px-1 pt-5 text-sm text-[#6b5643] sm:mx-7"></p>
         </section>
     {% else %}
-        <section class="mx-auto max-w-4xl border border-[#e8e0da] bg-white p-8 shadow-sm">
+        <section class="mx-auto max-w-4xl border border-[#ead7bc] bg-white p-8 shadow-sm">
             <h1 class="mb-4 font-serif text-2xl">{{ titulo }}</h1>
-            <p class="text-sm leading-relaxed text-[#7a6e6a]">{{ descripcion }}</p>
+            <p class="text-sm leading-relaxed text-[#6b5643]">{{ descripcion }}</p>
         </section>
     {% endif %}
     {% if titulo == 'Servicios' or titulo == 'Productos' %}
@@ -257,12 +257,12 @@
                         for (const button of filters) {
                             const active = button === filter;
                             button.setAttribute('aria-pressed', String(active));
-                            button.classList.toggle('border-[#765747]', active);
-                            button.classList.toggle('bg-[#765747]', active);
+                            button.classList.toggle('border-[#5a3e27]', active);
+                            button.classList.toggle('bg-[#5a3e27]', active);
                             button.classList.toggle('text-white', active);
-                            button.classList.toggle('border-[#ded5cf]', !active);
+                            button.classList.toggle('border-[#ead7bc]', !active);
                             button.classList.toggle('bg-white', !active);
-                            button.classList.toggle('text-[#66564e]', !active);
+                            button.classList.toggle('text-[#6b5643]', !active);
                         }
                         updateCatalog();
                     });
