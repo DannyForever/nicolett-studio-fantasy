@@ -92,6 +92,29 @@ def dashboard_home(request):
         'productos_activos': Producto.objects.filter(activo=True).count(),
     })
 
+
+def servicios_semana_admin(request):
+    from agenda.views import servicios_con_horarios_disponibles
+    from usuarios.views import _agrupar_servicios_galeria
+
+    servicios = Servicio.objects.filter(
+        activo=True,
+        pk__in=servicios_con_horarios_disponibles(),
+    ).select_related('categoria').order_by('nombre')
+    return render(
+        request,
+        'usuarios/cliente_seccion.html',
+        {
+            'titulo': 'Servicios',
+            'descripcion': 'Aquí podrás conocer los servicios disponibles.',
+            'servicios': servicios,
+            'servicios_galeria': _agrupar_servicios_galeria(servicios),
+            'base_template': 'panel_admin/base_dashboard.html',
+            'vista_admin': True,
+        },
+    )
+
+
 def listar_servicios(request):
     servicios = Servicio.objects.select_related('categoria').all()
     from agenda.services import reservas_activas_futuras

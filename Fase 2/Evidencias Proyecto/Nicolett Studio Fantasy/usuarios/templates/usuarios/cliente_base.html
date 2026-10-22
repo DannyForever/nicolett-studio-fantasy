@@ -154,10 +154,21 @@
                             <i class="fa-solid fa-chevron-down text-xs text-[#bd8c43] transition-transform group-open:rotate-180" aria-hidden="true"></i>
                         </summary>
                         <div class="ml-5 border-l border-[#ead7bc]">
-                            <a href="{% url 'cliente_servicios' %}#servicios-semana" class="flex items-center gap-2 px-5 py-2.5 text-sm text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]" {% if request.resolver_match.url_name == 'cliente_servicios' %}aria-current="page"{% endif %}>
-                                <span class="h-1.5 w-1.5 rounded-full bg-[#bd8c43]" aria-hidden="true"></span>
-                                Lunes a sábado
-                            </a>
+                            <details class="services-category-menu" {% if request.GET.categoria %}open{% endif %}>
+                                <summary class="flex cursor-pointer list-none items-center gap-2 px-5 py-2.5 text-sm text-[#6b5643] transition-colors hover:bg-[#fffaf5] hover:text-[#281b14] [&::-webkit-details-marker]:hidden">
+                                    <span class="h-1.5 w-1.5 rounded-full bg-[#bd8c43]" aria-hidden="true"></span>
+                                    <span class="flex-1">Lunes a sábado</span>
+                                    <i class="fa-solid fa-chevron-down text-xs text-[#bd8c43]" aria-hidden="true"></i>
+                                </summary>
+                                <div class="ml-5 border-l border-[#ead7bc]">
+                                    <a href="{% url 'cliente_servicios' %}?categoria=corte#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]">Cortes de Cabello</a>
+                                    <a href="{% url 'cliente_servicios' %}?categoria=tratamientos#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]">Tratamientos Capilares</a>
+                                    <a href="{% url 'cliente_servicios' %}?categoria=manos#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]">Manos y Pies</a>
+                                    <a href="{% url 'cliente_servicios' %}?categoria=depilaciones#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]">Depilación/Facial</a>
+                                    <a href="{% url 'cliente_servicios' %}?categoria=peinados#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]">Peinados</a>
+                                    <a href="{% url 'cliente_servicios' %}#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]" {% if request.resolver_match.url_name == 'cliente_servicios' and not request.GET.categoria %}aria-current="page"{% endif %}>Ver todo</a>
+                                </div>
+                            </details>
                         </div>
                     </details>
                 </div>

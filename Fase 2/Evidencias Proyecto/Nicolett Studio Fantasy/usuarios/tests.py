@@ -491,9 +491,19 @@ class RoleAccessTests(TestCase):
                 self.assertContains(response, 'border border-[#e07a5f]/35 bg-[#e07a5f]/10')
                 self.assertNotContains(response, 'id="client-services-category-panel"')
                 self.assertContains(response, 'Lunes a sábado')
+                self.assertContains(response, 'Cortes de Cabello')
+                self.assertContains(response, 'Tratamientos Capilares')
+                self.assertContains(response, 'Manos y Pies')
+                self.assertContains(response, 'Depilación/Facial')
+                self.assertContains(response, 'Peinados')
+                self.assertContains(response, 'Ver todo')
                 self.assertNotContains(
                     response,
                     f'href="{reverse("cliente_servicios")}#catalog-grid"',
+                )
+                self.assertContains(
+                    response,
+                    f'href="{reverse("cliente_servicios")}?categoria=corte#servicios-semana"',
                 )
                 active_link_name = 'cliente_home' if name == 'cliente_sobre_nosotros' else name
                 active_link = reverse(active_link_name)
@@ -518,6 +528,31 @@ class RoleAccessTests(TestCase):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
         categoria = Categoria.objects.create(nombre='Cabello', tipo='Tratamientos')
+        categoria_depilacion, _ = Categoria.objects.get_or_create(
+            nombre='Depilación Trilaser',
+            defaults={'tipo': 'Depilación Trilaser'},
+        )
+        depilacion_facial, _ = Servicio.objects.get_or_create(
+            nombre='Depilación facial',
+            categoria=categoria_depilacion,
+            defaults={
+                'descripcion': 'Depilación facial con cera.',
+                'precio': 10000,
+                'duracion_minutos': 30,
+                'activo': True,
+            },
+        )
+        categoria_peluqueria = Categoria.objects.get(nombre='Peluquería')
+        peinado_sencillo, _ = Servicio.objects.get_or_create(
+            nombre='Peinado sencillo',
+            categoria=categoria_peluqueria,
+            defaults={
+                'descripcion': 'Peinado sencillo para una ocasión especial.',
+                'precio': 10000,
+                'duracion_minutos': 60,
+                'activo': True,
+            },
+        )
         servicio = Servicio.objects.create(
             nombre='Corte de prueba',
             categoria=categoria,
@@ -563,6 +598,14 @@ class RoleAccessTests(TestCase):
             profesional=profesional,
             categoria_id=categoria.pk,
         )
+        ProfesionalCategoria.objects.get_or_create(
+            profesional=profesional,
+            categoria_id=depilacion_facial.categoria_id,
+        )
+        ProfesionalCategoria.objects.get_or_create(
+            profesional=profesional,
+            categoria_id=peinado_sencillo.categoria_id,
+        )
         fecha = timezone.localdate() + timedelta(days=7)
         for servicio_con_horarios in (servicio, servicio_caro):
             inicio = time(10, 0)
@@ -580,6 +623,26 @@ class RoleAccessTests(TestCase):
                 fecha_especifica=fecha,
                 intervalo_minutos=servicio_con_horarios.duracion_minutos,
             )
+        Disponibilidad.objects.create(
+            dia_semana=str(fecha.weekday()),
+            hora_inicio=time(9, 0),
+            hora_fin=time(9, 30),
+            activo=True,
+            profesional=profesional,
+            servicio_id=depilacion_facial.pk,
+            fecha_especifica=fecha,
+            intervalo_minutos=30,
+        )
+        Disponibilidad.objects.create(
+            dia_semana=str(fecha.weekday()),
+            hora_inicio=time(11, 0),
+            hora_fin=time(12, 0),
+            activo=True,
+            profesional=profesional,
+            servicio_id=peinado_sencillo.pk,
+            fecha_especifica=fecha,
+            intervalo_minutos=60,
+        )
         producto = Producto.objects.create(
             nombre='Shampoo de prueba',
             categoria=categoria,
@@ -605,12 +668,11 @@ class RoleAccessTests(TestCase):
             stock=0,
             activo=True,
         )
-
         servicios = self.client.get(reverse('cliente_servicios'))
         productos = self.client.get(reverse('cliente_productos'))
         agendamiento = self.client.get(reverse('cliente_agendamiento'))
 
-        self.assertContains(servicios, 'Corte de prueba')
+        self.assertNotContains(servicios, 'Corte de prueba')
         self.assertNotContains(servicios, 'Servicio oculto')
         self.assertNotContains(servicios, 'Servicio sin horarios')
         self.assertContains(agendamiento, 'Corte de prueba')
@@ -619,67 +681,121 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(servicios, 'id="catalog-sort"')
         self.assertNotContains(servicios, 'id="catalog-results"')
         self.assertContains(servicios, 'id="servicios-semana"')
+        self.assertContains(servicios, 'data-services-intro')
+        self.assertContains(servicios, 'data-service-gallery-grid')
+        self.assertContains(servicios, 'w-full text-center')
+        self.assertContains(servicios, 'service-gallery-all lg:grid-cols-3')
+        self.assertContains(servicios, 'aspect-ratio: 1 / 1;')
+        self.assertContains(servicios, 'data-service-category-filters')
+        self.assertContains(servicios, 'aria-label="Filtrar servicios por categoría"')
+        self.assertContains(servicios, 'Todos los servicios')
+        self.assertContains(servicios, 'bg-[#5a3e27]')
+        self.assertContains(servicios, 'data-service-gallery="all tratamientos"')
+        self.assertContains(servicios, 'data-service-gallery="all manos"')
+        self.assertContains(servicios, 'data-service-gallery="all depilaciones"')
+        self.assertContains(servicios, 'src="/static/img/depilacion_facial_galeria.png"')
+        self.assertContains(servicios, 'class="h-40 w-full object-cover object-center sm:h-48"')
+        self.assertNotContains(servicios, 'Depilación facial')
+        self.assertNotContains(servicios, 'Desde $10.000')
+        self.assertContains(servicios, 'data-service-gallery="all peinados"')
+        self.assertContains(servicios, 'src="/static/img/peinados_galeria.png"')
+        self.assertNotContains(servicios, 'Peinado sencillo')
+        self.assertContains(servicios, 'data-service-gallery="all coloracion"')
+        self.assertContains(servicios, 'data-service-gallery="all podologia"')
+        self.assertNotContains(servicios, 'data-service-gallery="all corte" hidden')
         self.assertContains(servicios, 'Atención de lunes a sábado')
-        self.assertContains(servicios, 'src="/static/img/corte_personalizado.png"')
-        self.assertContains(servicios, 'src="/static/img/corte_capas.png"')
-        self.assertContains(servicios, 'src="/static/img/cortes_estilos.png"')
-        self.assertContains(servicios, 'aria-label="Dos estilos de corte de cabello"')
-        self.assertContains(
-            servicios,
-            'class="haircut-photos grid h-36 w-full grid-cols-2 overflow-hidden bg-[#fae9cf] sm:h-40"',
+        self.assertContains(servicios, 'servicesIntro.hidden = !showIntro')
+        self.assertContains(servicios, "galleryGrid.classList.toggle('sm:grid-cols-1', !showIntro)")
+        self.assertContains(servicios, 'categoryFilters.hidden = !showIntro')
+        tratamientos = self.client.get(
+            reverse('cliente_servicios'),
+            {'categoria': 'tratamientos'},
         )
+        self.assertContains(tratamientos, 'data-service-category-filters hidden')
         self.assertContains(
-            servicios,
-            'class="haircut-photos grid h-52 w-full grid-cols-3 overflow-hidden bg-[#fae9cf] sm:h-60"',
+            tratamientos,
+            'class="hidden mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"',
         )
+        self.assertContains(tratamientos, 'data-service-gallery="all tratamientos"')
+        self.assertContains(tratamientos, 'data-service-gallery="all corte" hidden')
+        cortes = self.client.get(reverse('cliente_servicios'), {'categoria': 'corte'})
+        self.assertContains(cortes, 'data-service-category-filters hidden')
+        self.assertContains(cortes, 'data-service-gallery="all corte"')
+        self.assertContains(cortes, 'class="haircut-photos h-auto w-full object-contain"')
+        self.assertContains(cortes, 'data-service-gallery="all tratamientos" hidden')
+        self.assertContains(servicios, 'src="/static/img/cortes_estilos_galeria.png"')
+        self.assertContains(servicios, 'alt="Cuatro estilos de cortes de cabello"')
+        self.assertContains(cortes, 'sm:col-span-2')
+        self.assertContains(cortes, 'class="haircut-photos h-auto w-full object-contain"')
         self.assertContains(servicios, 'class="px-2 pb-1 pt-1 text-xs leading-4 text-[#6b5643]"')
-        self.assertEqual(servicios.content.count(b'h-full w-full object-cover object-top'), 5)
         self.assertContains(
             servicios,
             'Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.',
         )
-        self.assertContains(servicios, 'class="px-2 py-3 text-sm leading-5 text-[#6b5643]"')
         self.assertEqual(
             servicios.content.count(
                 'Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.'.encode(),
             ),
-            2,
+            1,
         )
-        self.assertEqual(servicios.content.count(b'src="/static/img/depilacion_cera.png"'), 2)
+        self.assertEqual(
+            servicios.content.count(b'src="/static/img/depilacion_facial_galeria.png"'),
+            1,
+        )
         self.assertContains(servicios, 'src="/static/img/podologia_pies.png"')
+        self.assertContains(servicios, 'src="/static/img/manicure_pedicure_galeria.png"')
+        self.assertContains(servicios, 'class="h-48 w-full object-cover object-center sm:h-56"')
         self.assertNotContains(servicios, 'src="/static/img/manicure_pedicure.jpg" alt="Podología"')
         self.assertContains(servicios, 'src="/static/img/colorimetria_servicio.png"')
-        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares.png"')
+        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_galeria.png"')
         self.assertContains(servicios, '>Tratamientos capilares</h2>')
-        self.assertContains(servicios, 'src="/static/img/peinados.png"')
+        self.assertContains(servicios, 'src="/static/img/peinados_galeria.png"')
         self.assertContains(servicios, 'Peinados con estilo para realzar tu belleza en cada ocasión.')
         self.assertContains(servicios, 'Cuidado experto para consentir tus pies y mantenerlos saludables.')
-        self.assertContains(servicios, 'alt="Depilación con cera de Nicolett Studio"')
-        self.assertContains(servicios, 'Cortes y peinados')
-        self.assertContains(servicios, 'Corte de prueba')
-        self.assertContains(servicios, 'Servicio de prueba para clientes.')
-        self.assertEqual(servicios.content.count(b'Corte de prueba'), 1)
-        self.assertContains(servicios, '$15.000')
+        self.assertContains(servicios, 'alt="Depilación corporal y facial"')
+        self.assertNotContains(servicios, 'Añadir al carrito')
+        self.assertContains(cortes, 'Corte de prueba')
+        self.assertContains(cortes, 'Servicio de prueba para clientes.')
+        self.assertContains(cortes, '$15.000')
+        self.assertContains(
+            cortes,
+            f'action="{reverse("cliente_carrito_agregar_servicio", args=[servicio.pk])}"',
+        )
+        depilaciones = self.client.get(
+            reverse('cliente_servicios'),
+            {'categoria': 'depilaciones'},
+        )
+        self.assertContains(depilaciones, 'Depilación facial')
+        self.assertContains(depilaciones, 'Desde $10.000')
+        self.assertContains(
+            depilaciones,
+            f'action="{reverse("cliente_carrito_agregar_servicio", args=[depilacion_facial.pk])}"',
+        )
+        peinados = self.client.get(
+            reverse('cliente_servicios'),
+            {'categoria': 'peinados'},
+        )
+        self.assertContains(peinados, 'Peinado sencillo')
+        self.assertContains(peinados, 'Desde $10.000')
+        self.assertContains(
+            peinados,
+            f'action="{reverse("cliente_carrito_agregar_servicio", args=[peinado_sencillo.pk])}"',
+        )
         self.assertContains(servicios, 'Depilación')
-        self.assertContains(servicios, 'Todos los servicios')
-        self.assertContains(servicios, 'data-service-gallery="all"')
-        self.assertContains(servicios, 'data-service-gallery="coloracion"')
+        self.assertContains(servicios, 'data-service-gallery="all corte"')
         self.assertContains(servicios, 'Diagnóstico personalizado de color, tinte, balayage y decoloración con productos de alta gama.')
         self.assertNotContains(servicios, 'descuento')
         self.assertNotContains(servicios, 'OFF')
-        self.assertContains(servicios, 'data-category-filter=""')
-        self.assertContains(servicios, 'Cortes de cabello')
-        self.assertContains(servicios, 'Tratamientos capilares')
-        self.assertContains(servicios, 'Manos y pies')
-        self.assertContains(servicios, 'Depilaciones')
-        self.assertContains(servicios, 'Peinados')
-        self.assertContains(servicios, 'Colorimetría')
-        self.assertContains(servicios, 'Podología')
+        self.assertContains(servicios, 'data-gallery-filter="corte"')
+        self.assertContains(servicios, '>Podología</h2>')
+        self.assertContains(servicios, 'function showServiceGallery(category)')
+        self.assertContains(servicios, 'gallery.dataset.serviceGallery.split(/\\s+/).includes(')
+        self.assertContains(servicios, "showServiceGallery(initialCategory || 'todos')")
         self.assertNotContains(servicios, 'Barbería')
         self.assertContains(servicios, 'border-[#ead7bc]')
-        self.assertContains(servicios, 'Añadir al carrito')
-        self.assertEqual(servicios.content.count('Añadir al carrito'.encode()), 1)
-        self.assertContains(
+        self.assertNotContains(servicios, 'Añadir al carrito')
+        self.assertEqual(servicios.content.count('Añadir al carrito'.encode()), 0)
+        self.assertNotContains(
             servicios,
             f'action="{reverse("cliente_carrito_agregar_servicio", args=[servicio.pk])}"',
         )
@@ -688,9 +804,22 @@ class RoleAccessTests(TestCase):
             {'return_to': reverse('cliente_servicios')},
         )
         self.assertRedirects(respuesta_carrito, reverse('cliente_servicios'))
+        respuesta_carrito_depilacion = self.client.post(
+            reverse('cliente_carrito_agregar_servicio', args=[depilacion_facial.pk]),
+            {'return_to': reverse('cliente_servicios')},
+        )
+        self.assertRedirects(respuesta_carrito_depilacion, reverse('cliente_servicios'))
+        respuesta_carrito_peinado = self.client.post(
+            reverse('cliente_carrito_agregar_servicio', args=[peinado_sencillo.pk]),
+            {'return_to': reverse('cliente_servicios')},
+        )
+        self.assertRedirects(respuesta_carrito_peinado, reverse('cliente_servicios'))
         self.assertEqual(
-            self.client.session['carrito_compra']['servicios'][0]['id'],
-            servicio.pk,
+            {
+                item['id']
+                for item in self.client.session['carrito_compra']['servicios']
+            },
+            {servicio.pk, depilacion_facial.pk, peinado_sencillo.pk},
         )
         self.assertNotContains(
             servicios,
@@ -701,7 +830,16 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(servicios, 'Buscar servicios')
         self.assertNotContains(servicios, 'resultados')
         ordenados = self.client.get(reverse('cliente_servicios'), {'orden': 'precio_desc'})
-        self.assertEqual(list(ordenados.context['servicios']), [servicio_caro, servicio])
+        self.assertEqual(
+            list(ordenados.context['servicios']),
+            [
+                servicio_caro,
+                servicio,
+                servicio_sin_horarios,
+                depilacion_facial,
+                peinado_sencillo,
+            ],
+        )
         self.assertNotContains(servicios, 'Aquí podrás conocer los servicios disponibles.')
         self.assertNotContains(servicios, 'border-b border-[#ead7bc] p-6 sm:p-8')
         self.assertContains(servicios, 'href="{}#servicios-semana"'.format(reverse('cliente_servicios')))

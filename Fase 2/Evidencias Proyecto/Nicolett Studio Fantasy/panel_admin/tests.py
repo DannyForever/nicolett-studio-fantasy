@@ -3,6 +3,7 @@ import tempfile
 from datetime import datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
+from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
@@ -80,17 +81,46 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, 'Disponibilidad para clientes')
         self.assertContains(response, 'data-live-filter="#serviciosTabla"')
         self.assertContains(response, 'data-filter-row')
-        for categoria in (
-            'Depilación Trilaser',
-            'Lash &amp; Brow',
-            'Nails',
-            'Peluquería',
-            'Tratamientos Faciales',
+        self.assertContains(response, 'Lunes a sábado')
+        self.assertContains(response, reverse('admin_servicios_semana'))
+        self.assertContains(response, 'Cortes de Cabello')
+        self.assertContains(response, 'Tratamientos Capilares')
+        self.assertContains(response, 'Manos y Pies')
+        self.assertContains(response, 'Depilación/Facial')
+        self.assertContains(response, 'Peinados')
+        self.assertContains(response, 'Ver todo')
+        self.assertContains(response, '?categoria=corte#servicios-semana')
+        self.assertContains(response, '?categoria=tratamientos#servicios-semana')
+        self.assertContains(response, '?categoria=manos#servicios-semana')
+        self.assertContains(response, '?categoria=depilaciones#servicios-semana')
+        self.assertContains(response, '?categoria=peinados#servicios-semana')
+        self.assertContains(response, '?categoria=todos#servicios-semana')
+        self.assertNotContains(response, 'id="admin-services-category-panel"')
+        self.assertNotContains(response, 'Ver todos los servicios')
+
+    def test_admin_services_week_gallery_reuses_customer_photos_without_cart(self):
+        servicio = self.crear_servicio()
+
+        with patch(
+            'agenda.views.servicios_con_horarios_disponibles',
+            return_value=[servicio.pk],
         ):
-            with self.subTest(categoria=categoria):
-                self.assertContains(response, categoria)
-        self.assertContains(response, 'id="admin-services-category-panel"')
-        self.assertContains(response, 'aria-label="Buscar categorías de servicios"')
+            response = self.client.get(reverse('admin_servicios_semana'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '¡Servicios!')
+        self.assertContains(response, 'Lunes a sábado')
+        self.assertContains(response, servicio.nombre)
+        self.assertContains(response, "new URLSearchParams(window.location.search).get('categoria')")
+        self.assertContains(response, 'src="/static/img/cortes_estilos_galeria.png"')
+        self.assertContains(response, 'src="/static/img/depilacion_facial_galeria.png"')
+        self.assertContains(response, 'src="/static/img/tratamientos_capilares_galeria.png"')
+        self.assertContains(response, 'src="/static/img/peinados_galeria.png"')
+        self.assertContains(response, 'src="/static/img/podologia_pies.png"')
+        self.assertContains(response, 'Administrar servicios')
+        self.assertNotContains(response, 'Añadir al carrito')
+        self.assertNotContains(response, 'cliente_carrito_agregar_servicio')
+        self.assertNotContains(response, 'admin-services-category-panel')
 
     def test_create_service_persists_active_or_inactive_value(self):
         response = self.client.post(

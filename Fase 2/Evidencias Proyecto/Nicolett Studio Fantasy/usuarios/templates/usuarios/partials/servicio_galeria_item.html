@@ -8,11 +8,13 @@
         <span class="font-medium">{{ servicio.precio|pesos }}</span>
         <span class="text-[#6b5643]">{{ servicio.duracion_minutos }} min</span>
     </p>
-    <form method="post" action="{% url 'cliente_carrito_agregar_servicio' servicio.pk %}" class="mt-3">
-        {% csrf_token %}
-        <input type="hidden" name="return_to" value="{{ request.get_full_path }}">
-        <button type="submit" class="w-full bg-[#5a3e27] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#4b301b]">
-            <i class="fa-solid fa-cart-plus mr-2" aria-hidden="true"></i>Añadir al carrito
-        </button>
-    </form>
+    {% if not vista_admin %}
+        <form method="post" action="{% url 'cliente_carrito_agregar_servicio' servicio.pk %}" class="mt-3">
+            {% csrf_token %}
+            <input type="hidden" name="return_to" value="{{ request.get_full_path }}">
+            <button type="submit" class="w-full bg-[#5a3e27] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#4b301b]">
+                <i class="fa-solid fa-cart-plus mr-2" aria-hidden="true"></i>Añadir al carrito
+            </button>
+        </form>
+    {% endif %}
 </div>

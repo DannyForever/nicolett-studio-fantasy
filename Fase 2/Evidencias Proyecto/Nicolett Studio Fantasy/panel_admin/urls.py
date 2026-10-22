@@ -8,6 +8,7 @@ urlpatterns = [
     path('', views.dashboard_home, name='admin_dashboard'),
 
     # 1. CRUD de Servicios
+    path('servicios/semana/', views.servicios_semana_admin, name='admin_servicios_semana'),
     path('servicios/', views.listar_servicios, name='listar_servicios'),
     path('servicios/crear/', views.crear_servicio, name='crear_servicio'),
     path('servicios/editar/<int:servicio_id>/', views.editar_servicio, name='editar_servicio'),

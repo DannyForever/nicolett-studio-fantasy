@@ -1,8 +1,14 @@
-{% extends 'usuarios/cliente_base.html' %}
+{% extends base_template|default:'usuarios/cliente_base.html' %}
 {% load moneda %}
 {% load static %}
 
 {% block title %}{{ titulo }} | Nicolett Studio Fantasy{% endblock %}
+
+{% block extra_head %}
+    {% if vista_admin %}
+        <script src="https://cdn.tailwindcss.com"></script>
+    {% endif %}
+{% endblock %}
 
 {% block content %}
     <style>
@@ -13,6 +19,11 @@
         #catalog-grid { animation: catalog-appear 220ms ease-out both; }
         @media (prefers-reduced-motion: reduce) {
             #catalog-grid { animation: none; }
+        }
+        .service-gallery-all [data-service-gallery] > img {
+            aspect-ratio: 1 / 1;
+            height: auto;
+            object-fit: cover;
         }
     </style>
     {% if messages %}
@@ -25,108 +36,114 @@
     {% if titulo == 'Servicios' or titulo == 'Productos' %}
         <section class="mx-auto max-w-6xl overflow-hidden border border-[#ead7bc] bg-white shadow-sm" aria-label="{{ titulo }}">
             {% if titulo == 'Servicios' %}
-                <section id="servicios-semana" class="scroll-mt-20 bg-[#f2f2f2] p-5 sm:p-7" aria-labelledby="services-banner-title">
-                    <div class="grid gap-5 md:grid-cols-[1fr_2fr] md:items-center">
-                        <div class="px-2 py-3">
+                <section id="servicios-semana" class="scroll-mt-20 bg-[#f2f2f2] p-5 sm:p-7" aria-label="Galería de servicios">
+                    <div data-services-layout class="{% if not request.GET.categoria or request.GET.categoria == 'todos' %}flex flex-col gap-5{% else %}grid gap-5 md:grid-cols-[1fr_2fr] md:items-center{% endif %}">
+                        <div data-services-intro class="px-2 py-3 {% if not request.GET.categoria or request.GET.categoria == 'todos' %}w-full text-center{% endif %}">
                             <h1 id="services-banner-title" class="font-serif text-4xl font-bold text-[#281b14] sm:text-5xl">¡Servicios!</h1>
                             <p class="mt-3 text-sm leading-6 text-[#6b5643]">Descubre los servicios de Nicolett Studio Fantasy.</p>
                             <p class="mt-3 font-semibold uppercase tracking-wide text-[#281b14]">Atención de lunes a sábado</p>
+                            {% if vista_admin %}
+                                <a href="{% url 'listar_servicios' %}" class="mt-5 inline-block border border-[#5a3e27] px-4 py-2 text-sm font-semibold text-[#5a3e27] no-underline transition hover:bg-[#5a3e27] hover:text-white">Administrar servicios</a>
+                            {% endif %}
                         </div>
-                        <div class="grid grid-cols-2 gap-3" aria-live="polite">
-                            <article data-service-gallery="all" class="overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <div class="haircut-photos grid h-36 w-full grid-cols-2 overflow-hidden bg-[#fae9cf] sm:h-40" aria-label="Dos estilos de corte de cabello">
-                                    <img src="{% static 'img/corte_capas.png' %}" alt="Corte en capas" class="h-full w-full object-cover object-top">
-                                    <img src="{% static 'img/corte_personalizado.png' %}" alt="Corte bob en capas" class="h-full w-full object-cover object-top">
-                                </div>
-                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Cortes y peinados</h2>
-                                <p class="px-2 py-3 text-sm leading-5 text-[#6b5643]">Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.</p>
-                            </article>
-                            <article data-service-gallery="all" class="overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/depilacion_cera.png' %}" alt="Depilación con cera de Nicolett Studio" class="h-36 w-full object-cover sm:h-40">
-                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Depilación</h2>
-                                {% for servicio in servicios_galeria.depilaciones %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
-                            </article>
-                            <article data-service-gallery="corte" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <div class="haircut-photos grid h-52 w-full grid-cols-3 overflow-hidden bg-[#fae9cf] sm:h-60" aria-label="Tres estilos de corte de cabello">
-                                    <img src="{% static 'img/corte_capas.png' %}" alt="Corte en capas" class="h-full w-full object-cover object-top">
-                                    <img src="{% static 'img/cortes_estilos.png' %}" alt="Cortes de distintos estilos" class="h-full w-full object-cover object-top">
-                                    <img src="{% static 'img/corte_personalizado.png' %}" alt="Corte bob en capas" class="h-full w-full object-cover object-top">
-                                </div>
+                        <div data-service-gallery-grid class="grid grid-cols-1 gap-3 sm:grid-cols-2 {% if not request.GET.categoria or request.GET.categoria == 'todos' %}service-gallery-all lg:grid-cols-3{% endif %}" aria-live="polite">
+                            <article data-service-gallery="all corte" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'corte' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2 {% if request.GET.categoria and request.GET.categoria != 'todos' %}sm:col-span-2{% endif %}">
+                                <img src="{% static 'img/cortes_estilos_galeria.png' %}" alt="Cuatro estilos de cortes de cabello" class="haircut-photos h-auto w-full object-contain">
                                 <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Corte &amp; Estilo</h2>
                                 <p class="px-2 pb-1 pt-1 text-xs leading-4 text-[#6b5643]">Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.</p>
-                                {% for servicio in servicios_galeria.corte %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
+                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
+                                    {% for servicio in servicios_galeria.corte %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                    {% empty %}
+                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    {% endfor %}
+                                {% endif %}
                             </article>
-                            <article data-service-gallery="tratamientos" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/tratamientos_capilares.png' %}" alt="Tratamientos capilares para el cabello" class="h-36 w-full object-cover sm:h-40">
+                            <article data-service-gallery="all tratamientos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'tratamientos' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/tratamientos_capilares_galeria.png' %}" alt="Tratamientos capilares para el cabello" class="h-52 w-full object-cover sm:h-60">
                                 <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Tratamientos capilares</h2>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.</p>
-                                {% for servicio in servicios_galeria.tratamientos %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
+                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
+                                    {% for servicio in servicios_galeria.tratamientos %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                    {% empty %}
+                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    {% endfor %}
+                                {% endif %}
                             </article>
-                            <article data-service-gallery="manos" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/manicure_pedicure.jpg' %}" alt="Manicure y pedicure" class="h-36 w-full object-cover sm:h-40">
+                            <article data-service-gallery="all manos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'manos' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/manicure_pedicure_galeria.png' %}" alt="Manicure y pedicure" class="h-48 w-full object-cover object-center sm:h-56">
                                 <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Manicure &amp; Pedicure</h2>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Semipermanente, gel, nail art y spa de manos. Uñas que hablan por ti.</p>
-                                {% for servicio in servicios_galeria.manos %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
+                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
+                                    {% for servicio in servicios_galeria.manos %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                    {% empty %}
+                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    {% endfor %}
+                                {% endif %}
                             </article>
-                            <article data-service-gallery="depilaciones" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/depilacion_cera.png' %}" alt="Depilación con cera" class="h-36 w-full object-cover sm:h-40">
+                            <article data-service-gallery="all depilaciones" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'depilaciones' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2 {% if request.GET.categoria and request.GET.categoria != 'todos' %}sm:col-span-2{% endif %}">
+                                <img src="{% static 'img/depilacion_facial_galeria.png' %}" alt="Depilación corporal y facial" class="h-40 w-full object-cover object-center sm:h-48">
                                 <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Depilación</h2>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Cera caliente y fría, hilo facial y depilación con láser de diodo. Resultados duraderos.</p>
-                                {% for servicio in servicios_galeria.depilaciones %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
+                                {% if servicios_galeria.depilaciones %}
+                                    {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
+                                        <p class="px-2 pb-1 pt-1 text-sm font-semibold text-[#6b5643]">Desde {{ servicios_galeria.depilaciones.0.precio|pesos }}</p>
+                                    {% endif %}
+                                {% endif %}
+                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
+                                    {% for servicio in servicios_galeria.depilaciones %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                    {% empty %}
+                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    {% endfor %}
+                                {% endif %}
                             </article>
-                            <article data-service-gallery="peinados" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/peinados.png' %}" alt="Peinados de Nicolett Studio" class="h-36 w-full object-cover sm:h-40">
+                            <article data-service-gallery="all peinados" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'peinados' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/peinados_galeria.png' %}" alt="Peinados de Nicolett Studio" class="h-44 w-full object-cover sm:h-52">
                                 <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Peinados</h2>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Peinados con estilo para realzar tu belleza en cada ocasión.</p>
-                                {% for servicio in servicios_galeria.peinados %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
+                                {% if servicios_galeria.peinados %}
+                                    {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
+                                        <p class="px-2 pb-1 pt-1 text-sm font-semibold text-[#6b5643]">Desde {{ servicios_galeria.peinados.0.precio|pesos }}</p>
+                                    {% endif %}
+                                {% endif %}
+                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
+                                    {% for servicio in servicios_galeria.peinados %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                    {% empty %}
+                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    {% endfor %}
+                                {% endif %}
                             </article>
-                            <article data-service-gallery="coloracion" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/colorimetria_servicio.png' %}" alt="Servicio de colorimetría para el cabello" class="h-36 w-full object-cover sm:h-40">
+                            <article data-service-gallery="all coloracion" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'coloracion' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/colorimetria_servicio.png' %}" alt="Servicio de colorimetría para el cabello" class="h-28 w-full object-cover sm:h-32">
                                 <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Colorimetría</h2>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Diagnóstico personalizado de color, tinte, balayage y decoloración con productos de alta gama.</p>
-                                {% for servicio in servicios_galeria.coloracion %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
+                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
+                                    {% for servicio in servicios_galeria.coloracion %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                    {% empty %}
+                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    {% endfor %}
+                                {% endif %}
                             </article>
-                            <article data-service-gallery="podologia" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/podologia_pies.png' %}" alt="Tratamiento de pies para podología" class="h-36 w-full object-cover sm:h-40">
+                            <article data-service-gallery="all podologia" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'podologia' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/podologia_pies.png' %}" alt="Tratamiento de pies para podología" class="h-28 w-full object-cover sm:h-32">
                                 <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Podología</h2>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Cuidado experto para consentir tus pies y mantenerlos saludables.</p>
-                                {% for servicio in servicios_galeria.podologia %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
+                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
+                                    {% for servicio in servicios_galeria.podologia %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                    {% empty %}
+                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    {% endfor %}
+                                {% endif %}
                             </article>
                         </div>
                     </div>
-                    <div class="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" role="group" aria-label="Filtrar servicios por categoría">
+                    <div data-service-category-filters {% if request.GET.categoria and request.GET.categoria != 'todos' %}hidden class="hidden mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"{% else %}class="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"{% endif %} role="group" aria-label="Filtrar servicios por categoría">
                         <button type="button" data-category-filter="" aria-pressed="true" class="catalog-filter border border-[#5a3e27] bg-[#5a3e27] px-3 py-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#4b301b]"><i class="fa-solid fa-star mr-2" aria-hidden="true"></i>Todos los servicios</button>
                         <button type="button" data-category-filter="corte|estilo" data-gallery-filter="corte" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-scissors mr-2" aria-hidden="true"></i>Cortes de cabello</button>
                         <button type="button" data-category-filter="tratamiento|capilar" data-gallery-filter="tratamientos" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-spa mr-2" aria-hidden="true"></i>Tratamientos capilares</button>
@@ -274,6 +291,41 @@
                     .replace(/\s+/g, ' ')
                     .trim();
 
+                function showServiceGallery(category) {
+                    const categoryTerms = {
+                        corte: ['corte', 'estilo'],
+                        tratamientos: ['tratamiento', 'capilar'],
+                        manos: ['mano', 'pie', 'uña', 'manicure', 'pedicure', 'nail'],
+                        depilaciones: ['depilacion'],
+                        peinados: ['peinado'],
+                        coloracion: ['colorimetria', 'tinte', 'balayage'],
+                        podologia: ['podologia'],
+                    };
+                    const terms = categoryTerms[category] || [];
+                    selectedCategories = terms.map(normalize);
+                    const showIntro = terms.length === 0;
+                    const servicesLayout = document.querySelector('[data-services-layout]');
+                    const servicesIntro = document.querySelector('[data-services-intro]');
+                    const galleryGrid = document.querySelector('[data-service-gallery-grid]');
+                    if (servicesLayout && servicesIntro && galleryGrid) {
+                        servicesIntro.hidden = !showIntro;
+                        servicesLayout.classList.toggle('md:grid-cols-[1fr_2fr]', showIntro);
+                        servicesLayout.classList.toggle('md:grid-cols-1', !showIntro);
+                        galleryGrid.classList.toggle('sm:grid-cols-2', showIntro);
+                        galleryGrid.classList.toggle('sm:grid-cols-1', !showIntro);
+                    }
+                    const categoryFilters = document.querySelector('[data-service-category-filters]');
+                    if (categoryFilters) {
+                        categoryFilters.hidden = !showIntro;
+                        categoryFilters.classList.toggle('hidden', !showIntro);
+                    }
+                    for (const gallery of galleries) {
+                        gallery.hidden = !gallery.dataset.serviceGallery.split(/\s+/).includes(
+                            showIntro ? 'all' : category,
+                        );
+                    }
+                }
+
                 function updateCatalog() {
                     if (!cards.length) return;
                     const term = search ? normalize(search.value) : '';
@@ -324,19 +376,13 @@
                 }
                 for (const filter of filters) {
                     filter.addEventListener('click', () => {
+                        if (galleries.length) {
+                            showServiceGallery(filter.dataset.galleryFilter || 'todos');
+                        }
                         selectedCategories = filter.dataset.categoryFilter
                             .split('|')
                             .map(normalize)
                             .filter(Boolean);
-                        if (filter.dataset.galleryFilter) {
-                            for (const gallery of galleries) {
-                                gallery.hidden = gallery.dataset.serviceGallery !== filter.dataset.galleryFilter;
-                            }
-                        } else if (galleries.length) {
-                            for (const gallery of galleries) {
-                                gallery.hidden = gallery.dataset.serviceGallery !== 'all';
-                            }
-                        }
                         for (const button of filters) {
                             const active = button === filter;
                             button.setAttribute('aria-pressed', String(active));
@@ -349,6 +395,10 @@
                         }
                         updateCatalog();
                     });
+                }
+                if (galleries.length) {
+                    const initialCategory = new URLSearchParams(window.location.search).get('categoria');
+                    showServiceGallery(initialCategory || 'todos');
                 }
                 updateCatalog();
             })();

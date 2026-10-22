@@ -538,7 +538,6 @@ def cliente_servicios_view(request):
         orden = 'nombre_asc'
     servicios = Servicio.objects.filter(
         activo=True,
-        pk__in=servicios_con_horarios_disponibles(),
     ).select_related('categoria').order_by(*ordenes[orden])
     servicios_galeria = _agrupar_servicios_galeria(servicios)
     return _vista_cliente(
@@ -613,6 +612,8 @@ def _agrupar_servicios_galeria(servicios: QuerySet) -> dict[str, list[Servicio]]
         for categoria, terminos in categorias.items():
             if any(termino in texto for termino in terminos):
                 agrupados[categoria].append(servicio)
+    agrupados['depilaciones'].sort(key=lambda servicio: servicio.precio)
+    agrupados['peinados'].sort(key=lambda servicio: servicio.precio)
     return agrupados
 
 
