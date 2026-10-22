@@ -35,6 +35,27 @@ class LandingPageNavigationTests(TestCase):
         self.assertContains(response, 'lg:pb-64')
         self.assertContains(response, '<section id="servicios"')
 
+    def test_landing_services_keeps_the_existing_service_photos_without_promotions(self):
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, 'Nuestros servicios')
+        self.assertNotContains(response, 'Servicios hasta 30% OFF')
+        self.assertNotContains(response, 'El cupón se enviará')
+        for image_name in (
+            'colorimetria.jpg',
+            'corte_estilo.jpg',
+            'tratamientos.jpg',
+            'manicure_pedicure.jpg',
+            'maquillaje.jpg',
+            'depilacion.jpg',
+        ):
+            self.assertContains(response, image_name)
+        self.assertContains(response, 'alt="Colorimetría en Nicolett Studio"')
+        self.assertContains(response, 'src="/static/img/corte_estilo.jpg" alt="Colorimetría en Nicolett Studio"')
+        self.assertContains(response, 'src="/static/img/tratamientos.jpg" alt="Corte y estilo en Nicolett Studio"')
+        self.assertContains(response, 'src="/static/img/depilacion.jpg" alt="Tratamientos en Nicolett Studio"')
+        self.assertContains(response, 'src="/static/img/colorimetria.jpg" alt="Depilación en Nicolett Studio"')
+
     def test_highlighted_landing_sections_use_warm_white_backgrounds(self):
         response = self.client.get(reverse('home'))
 

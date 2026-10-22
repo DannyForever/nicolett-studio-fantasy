@@ -1,5 +1,6 @@
 {% extends 'usuarios/cliente_base.html' %}
 {% load moneda %}
+{% load static %}
 
 {% block title %}{{ titulo }} | Nicolett Studio Fantasy{% endblock %}
 
@@ -23,6 +24,121 @@
     {% endif %}
     {% if titulo == 'Servicios' or titulo == 'Productos' %}
         <section class="mx-auto max-w-6xl overflow-hidden border border-[#ead7bc] bg-white shadow-sm" aria-label="{{ titulo }}">
+            {% if titulo == 'Servicios' %}
+                <section id="servicios-semana" class="scroll-mt-20 bg-[#f2f2f2] p-5 sm:p-7" aria-labelledby="services-banner-title">
+                    <div class="grid gap-5 md:grid-cols-[1fr_2fr] md:items-center">
+                        <div class="px-2 py-3">
+                            <h1 id="services-banner-title" class="font-serif text-4xl font-bold text-[#281b14] sm:text-5xl">¡Servicios!</h1>
+                            <p class="mt-3 text-sm leading-6 text-[#6b5643]">Descubre los servicios de Nicolett Studio Fantasy.</p>
+                            <p class="mt-3 font-semibold uppercase tracking-wide text-[#281b14]">Atención de lunes a sábado</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3" aria-live="polite">
+                            <article data-service-gallery="all" class="overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <div class="haircut-photos grid h-36 w-full grid-cols-2 overflow-hidden bg-[#fae9cf] sm:h-40" aria-label="Dos estilos de corte de cabello">
+                                    <img src="{% static 'img/corte_capas.png' %}" alt="Corte en capas" class="h-full w-full object-cover object-top">
+                                    <img src="{% static 'img/corte_personalizado.png' %}" alt="Corte bob en capas" class="h-full w-full object-cover object-top">
+                                </div>
+                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Cortes y peinados</h2>
+                                <p class="px-2 py-3 text-sm leading-5 text-[#6b5643]">Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.</p>
+                            </article>
+                            <article data-service-gallery="all" class="overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/depilacion_cera.png' %}" alt="Depilación con cera de Nicolett Studio" class="h-36 w-full object-cover sm:h-40">
+                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Depilación</h2>
+                                {% for servicio in servicios_galeria.depilaciones %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                            <article data-service-gallery="corte" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <div class="haircut-photos grid h-52 w-full grid-cols-3 overflow-hidden bg-[#fae9cf] sm:h-60" aria-label="Tres estilos de corte de cabello">
+                                    <img src="{% static 'img/corte_capas.png' %}" alt="Corte en capas" class="h-full w-full object-cover object-top">
+                                    <img src="{% static 'img/cortes_estilos.png' %}" alt="Cortes de distintos estilos" class="h-full w-full object-cover object-top">
+                                    <img src="{% static 'img/corte_personalizado.png' %}" alt="Corte bob en capas" class="h-full w-full object-cover object-top">
+                                </div>
+                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Corte &amp; Estilo</h2>
+                                <p class="px-2 pb-1 pt-1 text-xs leading-4 text-[#6b5643]">Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.</p>
+                                {% for servicio in servicios_galeria.corte %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                            <article data-service-gallery="tratamientos" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/tratamientos_capilares.png' %}" alt="Tratamientos capilares para el cabello" class="h-36 w-full object-cover sm:h-40">
+                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Tratamientos capilares</h2>
+                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.</p>
+                                {% for servicio in servicios_galeria.tratamientos %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                            <article data-service-gallery="manos" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/manicure_pedicure.jpg' %}" alt="Manicure y pedicure" class="h-36 w-full object-cover sm:h-40">
+                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Manicure &amp; Pedicure</h2>
+                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Semipermanente, gel, nail art y spa de manos. Uñas que hablan por ti.</p>
+                                {% for servicio in servicios_galeria.manos %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                            <article data-service-gallery="depilaciones" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/depilacion_cera.png' %}" alt="Depilación con cera" class="h-36 w-full object-cover sm:h-40">
+                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Depilación</h2>
+                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Cera caliente y fría, hilo facial y depilación con láser de diodo. Resultados duraderos.</p>
+                                {% for servicio in servicios_galeria.depilaciones %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                            <article data-service-gallery="peinados" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/peinados.png' %}" alt="Peinados de Nicolett Studio" class="h-36 w-full object-cover sm:h-40">
+                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Peinados</h2>
+                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Peinados con estilo para realzar tu belleza en cada ocasión.</p>
+                                {% for servicio in servicios_galeria.peinados %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                            <article data-service-gallery="coloracion" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/colorimetria_servicio.png' %}" alt="Servicio de colorimetría para el cabello" class="h-36 w-full object-cover sm:h-40">
+                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Colorimetría</h2>
+                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Diagnóstico personalizado de color, tinte, balayage y decoloración con productos de alta gama.</p>
+                                {% for servicio in servicios_galeria.coloracion %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                            <article data-service-gallery="podologia" hidden class="col-span-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/podologia_pies.png' %}" alt="Tratamiento de pies para podología" class="h-36 w-full object-cover sm:h-40">
+                                <h2 class="px-2 pt-2 font-semibold text-[#281b14]">Podología</h2>
+                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Cuidado experto para consentir tus pies y mantenerlos saludables.</p>
+                                {% for servicio in servicios_galeria.podologia %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                        </div>
+                    </div>
+                    <div class="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" role="group" aria-label="Filtrar servicios por categoría">
+                        <button type="button" data-category-filter="" aria-pressed="true" class="catalog-filter border border-[#5a3e27] bg-[#5a3e27] px-3 py-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#4b301b]"><i class="fa-solid fa-star mr-2" aria-hidden="true"></i>Todos los servicios</button>
+                        <button type="button" data-category-filter="corte|estilo" data-gallery-filter="corte" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-scissors mr-2" aria-hidden="true"></i>Cortes de cabello</button>
+                        <button type="button" data-category-filter="tratamiento|capilar" data-gallery-filter="tratamientos" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-spa mr-2" aria-hidden="true"></i>Tratamientos capilares</button>
+                        <button type="button" data-category-filter="mano|pie|uña|manicure|pedicure|nail" data-gallery-filter="manos" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-hand-sparkles mr-2" aria-hidden="true"></i>Manos y pies</button>
+                        <button type="button" data-category-filter="depilación|depilacion" data-gallery-filter="depilaciones" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-wand-magic-sparkles mr-2" aria-hidden="true"></i>Depilaciones</button>
+                        <button type="button" data-category-filter="peinado" data-gallery-filter="peinados" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-user-tie mr-2" aria-hidden="true"></i>Peinados</button>
+                        <button type="button" data-category-filter="colorimetría|colorimetria|tinte|balayage" data-gallery-filter="coloracion" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-palette mr-2" aria-hidden="true"></i>Colorimetría</button>
+                        <button type="button" data-category-filter="podología|podologia" data-gallery-filter="podologia" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-shoe-prints mr-2" aria-hidden="true"></i>Podología</button>
+                    </div>
+                </section>
+            {% endif %}
+            {% if titulo == 'Productos' %}
             <div class="p-4 sm:p-5">
                 <label for="catalog-search" class="mb-2 block text-xs font-medium uppercase tracking-widest text-[#6b5643]">Buscar {{ titulo|lower }}</label>
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -39,71 +155,19 @@
                             <option value="precio_desc" {% if orden_catalogo == 'precio_desc' %}selected{% endif %}>Precio: mayor a menor</option>
                         </select>
                     </form>
-                    <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoría">
-                        <button type="button" data-category-filter="" aria-pressed="true" class="catalog-filter rounded-full border border-[#5a3e27] bg-[#5a3e27] px-4 py-2 text-xs font-medium text-white transition">Todo</button>
-                        {% for filtro in filtros_categoria %}
-                            <button type="button" data-category-filter="{{ filtro }}" aria-pressed="false" class="catalog-filter rounded-full border border-[#ead7bc] bg-white px-4 py-2 text-xs font-medium text-[#6b5643] transition hover:border-[#5a3e27] hover:bg-[#fae9cf]">{{ filtro }}</button>
-                        {% endfor %}
-                    </div>
-                </div>
-                <p id="catalog-results" class="mt-3 text-xs text-[#6b5643]" aria-live="polite"></p>
-            </div>
-
-    {% if titulo == 'Servicios' %}
-        <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Servicios disponibles">
-            {% for servicio in servicios %}
-                <article data-catalog-item data-categories="{{ servicio.categoria.nombre }}" data-search="{{ servicio.nombre }} {{ servicio.categoria.nombre }} {{ servicio.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#ead7bc] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#bd8c43] hover:bg-[#ffffff] focus-within:z-10 focus-within:border-[#bd8c43]">
-                    {% if servicio.imagen_url %}
-                        <img src="{{ servicio.imagen_url.url }}" alt="{{ servicio.nombre }}" class="h-40 w-full bg-[#fae9cf] object-cover">
-                    {% else %}
-                        <div class="flex h-40 items-center justify-center bg-[#fae9cf] text-4xl text-[#6b5643]" aria-hidden="true">
-                            <i class="fa-solid fa-spa"></i>
+                    {% if titulo == 'Productos' %}
+                        <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoría">
+                            <button type="button" data-category-filter="" aria-pressed="true" class="catalog-filter rounded-full border border-[#5a3e27] bg-[#5a3e27] px-4 py-2 text-xs font-medium text-white transition">Todo</button>
+                            {% for filtro in filtros_categoria %}
+                                <button type="button" data-category-filter="{{ filtro }}" aria-pressed="false" class="catalog-filter rounded-full border border-[#ead7bc] bg-white px-4 py-2 text-xs font-medium text-[#6b5643] transition hover:border-[#5a3e27] hover:bg-[#fae9cf]">{{ filtro }}</button>
+                            {% endfor %}
                         </div>
                     {% endif %}
-                    <div class="invisible absolute inset-x-3 top-3 z-20 translate-y-1 border border-[#ead7bc] bg-white p-3 opacity-0 shadow-xl transition-all duration-200 delay-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-                        {% if servicio.imagen_url %}
-                            <div data-image-preview>
-                                <div class="mb-2 flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-1">
-                                        <button type="button" data-image-zoom-action="out" aria-label="Alejar imagen de {{ servicio.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ead7bc] text-sm text-[#6b5643] transition hover:bg-[#fae9cf] disabled:cursor-not-allowed disabled:opacity-40">
-                                            <i class="fa-solid fa-minus" aria-hidden="true"></i>
-                                        </button>
-                                        <button type="button" data-image-zoom-action="in" aria-label="Acercar imagen de {{ servicio.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ead7bc] text-sm text-[#6b5643] transition hover:bg-[#fae9cf] disabled:cursor-not-allowed disabled:opacity-40">
-                                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                                        </button>
-                                        <button type="button" data-image-zoom-action="reset" class="border border-[#ead7bc] px-2 py-1.5 text-xs text-[#6b5643] transition hover:bg-[#fae9cf]">Restablecer</button>
-                                    </div>
-                                    <span data-image-zoom-level class="text-xs text-[#6b5643]" aria-live="polite">100%</span>
-                                </div>
-                                <div class="flex h-48 items-center justify-center overflow-hidden bg-[#fae9cf] p-1">
-                                    <img src="{{ servicio.imagen_url.url }}" alt="Imagen completa de {{ servicio.nombre }}" data-zoomable-image class="h-full w-full max-w-full object-contain transition-transform duration-200">
-                                </div>
-                            </div>
-                        {% else %}
-                            <div class="flex h-24 items-center justify-center bg-[#fae9cf] text-sm text-[#6b5643]">Sin imagen disponible</div>
-                        {% endif %}
-                        <p class="mt-3 text-sm leading-relaxed text-[#6b5643]">{{ servicio.descripcion|default:"Descripción no disponible." }}</p>
-                    </div>
-                    <div class="flex flex-1 flex-col p-5">
-                        <p class="mb-2 text-xs uppercase tracking-widest text-[#6b5643]">{{ servicio.categoria.nombre }}</p>
-                        <h2 class="mb-2 font-serif text-xl">{{ servicio.nombre }}</h2>
-                        <div class="mt-auto flex items-center justify-between text-sm">
-                            <span class="font-medium">{{ servicio.precio|pesos }}</span>
-                            <span class="text-[#6b5643]">{{ servicio.duracion_minutos }} min</span>
-                        </div>
-                        <form method="post" action="{% url 'cliente_carrito_agregar_servicio' servicio.pk %}" class="mt-4">
-                            {% csrf_token %}
-                            <button type="submit" class="w-full bg-[#5a3e27] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#5a3e27]">
-                                <i class="fa-solid fa-cart-plus mr-2"></i>Añadir al carrito
-                            </button>
-                        </form>
-                    </div>
-                </article>
-            {% empty %}
-                <p data-catalog-empty class="p-6 text-sm text-[#6b5643] sm:col-span-2 lg:col-span-3">Por el momento no hay servicios disponibles.</p>
-            {% endfor %}
-        </div>
-    {% elif titulo == 'Productos' %}
+                </div>
+            </div>
+            {% endif %}
+
+    {% if titulo == 'Productos' %}
         <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Productos disponibles">
             {% for producto in productos %}
                 <article data-catalog-item data-categories="{{ producto.categoria.nombre }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#ead7bc] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#bd8c43] hover:bg-[#ffffff] focus-within:z-10 focus-within:border-[#bd8c43]">
@@ -159,8 +223,8 @@
                 <p data-catalog-empty class="p-6 text-sm text-[#6b5643] sm:col-span-2 lg:col-span-3">Por el momento no hay productos disponibles.</p>
             {% endfor %}
         </div>
-    {% endif %}
         <p id="catalog-no-results" data-item-label="{{ titulo|lower }}" hidden class="mx-5 mb-6 border-t border-[#ead7bc] px-1 pt-5 text-sm text-[#6b5643] sm:mx-7"></p>
+    {% endif %}
         </section>
     {% else %}
         <section class="mx-auto max-w-4xl border border-[#ead7bc] bg-white p-8 shadow-sm">
@@ -173,13 +237,14 @@
             (() => {
                 const search = document.getElementById('catalog-search');
                 const filters = Array.from(document.querySelectorAll('[data-category-filter]'));
+                const galleries = Array.from(document.querySelectorAll('[data-service-gallery]'));
                 const cards = Array.from(document.querySelectorAll('[data-catalog-item]'));
                 const noResults = document.getElementById('catalog-no-results');
                 const results = document.getElementById('catalog-results');
                 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                let selectedCategory = '';
+                let selectedCategories = [];
                 let hasUpdatedCatalog = false;
-                const itemLabel = noResults.dataset.itemLabel;
+                const itemLabel = noResults ? noResults.dataset.itemLabel : '';
                 const itemSingular = itemLabel === 'servicios' ? 'servicio' : 'producto';
 
                 document.addEventListener('click', event => {
@@ -210,14 +275,14 @@
                     .trim();
 
                 function updateCatalog() {
-                    const term = normalize(search.value);
+                    if (!cards.length) return;
+                    const term = search ? normalize(search.value) : '';
                     let visibleCount = 0;
                     for (const card of cards) {
                         const matchesText = normalize(card.dataset.search).includes(term);
-                        const matchesCategory = !selectedCategory
-                            || card.dataset.categories.split('|').some(
-                                category => normalize(category) === selectedCategory,
-                            );
+                        const searchableContent = normalize(`${card.dataset.categories} ${card.dataset.search}`);
+                        const matchesCategory = selectedCategories.length === 0
+                            || selectedCategories.some(category => searchableContent.includes(category));
                         const visible = matchesText && matchesCategory;
                         card.style.display = visible ? '' : 'none';
                         if (visible) {
@@ -234,14 +299,18 @@
                         }
                     }
                     const showNoResults = visibleCount === 0 && cards.length > 0;
-                    noResults.style.display = showNoResults ? '' : 'none';
-                    if (showNoResults) {
+                    if (noResults) {
+                        noResults.style.display = showNoResults ? '' : 'none';
+                    }
+                    if (noResults && showNoResults) {
                         noResults.textContent = term
                             ? `No existe ningún ${itemSingular} llamado "${search.value.trim()}" en el sistema.`
                             : `No hay ${itemLabel} que coincidan con la categoría seleccionada.`;
                     }
-                    results.textContent = `${visibleCount} resultado${visibleCount === 1 ? '' : 's'}`;
-                    if (hasUpdatedCatalog && !reduceMotion) {
+                    if (results) {
+                        results.textContent = `${visibleCount} resultado${visibleCount === 1 ? '' : 's'}`;
+                    }
+                    if (results && hasUpdatedCatalog && !reduceMotion) {
                         results.animate(
                             [{opacity: 0.55}, {opacity: 1}],
                             {duration: 160, easing: 'ease-out'},
@@ -250,10 +319,24 @@
                     hasUpdatedCatalog = true;
                 }
 
-                search.addEventListener('input', updateCatalog);
+                if (search) {
+                    search.addEventListener('input', updateCatalog);
+                }
                 for (const filter of filters) {
                     filter.addEventListener('click', () => {
-                        selectedCategory = normalize(filter.dataset.categoryFilter);
+                        selectedCategories = filter.dataset.categoryFilter
+                            .split('|')
+                            .map(normalize)
+                            .filter(Boolean);
+                        if (filter.dataset.galleryFilter) {
+                            for (const gallery of galleries) {
+                                gallery.hidden = gallery.dataset.serviceGallery !== filter.dataset.galleryFilter;
+                            }
+                        } else if (galleries.length) {
+                            for (const gallery of galleries) {
+                                gallery.hidden = gallery.dataset.serviceGallery !== 'all';
+                            }
+                        }
                         for (const button of filters) {
                             const active = button === filter;
                             button.setAttribute('aria-pressed', String(active));

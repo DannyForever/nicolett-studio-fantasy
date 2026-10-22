@@ -29,13 +29,6 @@
             },
         };
     </script>
-    <style>
-        #client-services-category-panel[hidden],
-        #client-services-category-panel li[hidden],
-        #client-services-category-panel .services-category-empty[hidden] {
-            display: none;
-        }
-    </style>
 </head>
 <body class="flex min-h-screen flex-col bg-[#fffaf5] font-sans text-[#281b14] antialiased">
     <header class="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-[#60452f] bg-[#332216] px-5 text-[#ffffff] shadow-sm sm:px-8 lg:px-16">
@@ -153,9 +146,21 @@
                 <a href="{% url 'cliente_home' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-heart w-5 text-center text-base text-[#bd8c43]"></i> Nosotras
                 </a>
-                <a href="{% url 'cliente_servicios' %}" class="js-services-menu-trigger flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" aria-haspopup="dialog" aria-expanded="false" {% if request.resolver_match.url_name == 'cliente_servicios' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-spa w-5 text-center text-base text-[#bd8c43]"></i> Servicios
-                </a>
+                <div>
+                    <details class="group" {% if request.resolver_match.url_name == 'cliente_servicios' %}open{% endif %}>
+                        <summary class="flex cursor-pointer list-none items-center gap-3.5 border-l-4 px-5 py-3 text-sm transition-colors [&::-webkit-details-marker]:hidden {% if request.resolver_match.url_name == 'cliente_servicios' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}">
+                            <i class="fa-solid fa-spa w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i>
+                            <span class="flex-1">Servicios</span>
+                            <i class="fa-solid fa-chevron-down text-xs text-[#bd8c43] transition-transform group-open:rotate-180" aria-hidden="true"></i>
+                        </summary>
+                        <div class="ml-5 border-l border-[#ead7bc]">
+                            <a href="{% url 'cliente_servicios' %}#servicios-semana" class="flex items-center gap-2 px-5 py-2.5 text-sm text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]" {% if request.resolver_match.url_name == 'cliente_servicios' %}aria-current="page"{% endif %}>
+                                <span class="h-1.5 w-1.5 rounded-full bg-[#bd8c43]" aria-hidden="true"></span>
+                                Lunes a sábado
+                            </a>
+                        </div>
+                    </details>
+                </div>
                 <a href="{% url 'cliente_productos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]"></i> Productos
                 </a>
@@ -180,26 +185,6 @@
             </form>
         </aside>
 
-        <section id="client-services-category-panel" class="fixed z-50 flex w-60 flex-col border border-[#ead7bc] bg-white p-3 text-[#281b14] shadow-xl" role="dialog" aria-label="Categorías de servicios" hidden>
-            <div class="mb-2 flex items-center justify-between gap-2">
-                <h2 class="text-xs font-medium">Servicios</h2>
-                <button type="button" class="services-category-close border-0 bg-transparent px-1 text-lg leading-none text-[#6b5643]" aria-label="Cerrar categorías">&times;</button>
-            </div>
-            <label class="mb-2 flex items-center gap-2 border border-[#ead7bc] px-2 py-1.5 text-[#6b5643]">
-                <i class="fa-solid fa-magnifying-glass text-[10px]" aria-hidden="true"></i>
-                <input type="search" placeholder="Busca un servicio..." aria-label="Buscar categorías de servicios" class="w-full min-w-0 border-0 bg-transparent text-[10px] text-[#281b14] outline-none">
-            </label>
-            <ul class="-mx-3 mb-1 list-none p-0">
-                {% for categoria in categorias_servicios %}
-                    <li class="border-b border-[#fae9cf] px-3 py-2 text-[11px]"><span><i class="fa-solid fa-caret-right mr-1 text-[#bd8c43]" aria-hidden="true"></i> {{ categoria.nombre }}</span></li>
-                {% empty %}
-                    <li class="px-3 py-2 text-[11px]">No hay categorías disponibles.</li>
-                {% endfor %}
-            </ul>
-            <a href="{% url 'cliente_servicios' %}" class="py-1 text-center text-[10px] text-[#5a3e27] no-underline hover:underline">Ver todos los servicios</a>
-            <p class="services-category-empty my-2 text-[11px] text-[#6b5643]" hidden>No se encontraron categorías.</p>
-        </section>
-
         <main class="w-full min-w-0 px-5 py-8 md:flex-1 md:px-10">
             {% block content %}{% endblock %}
         </main>
@@ -211,63 +196,6 @@
             }
         });
         (() => {
-            const trigger = document.querySelector('.js-services-menu-trigger');
-            const servicesPanel = document.getElementById('client-services-category-panel');
-            if (trigger && servicesPanel) {
-                const search = servicesPanel.querySelector('input[type="search"]');
-                const items = Array.from(servicesPanel.querySelectorAll('li'));
-                const empty = servicesPanel.querySelector('.services-category-empty');
-                const closeButton = servicesPanel.querySelector('.services-category-close');
-
-                function positionServicesPanel() {
-                    const triggerRect = trigger.getBoundingClientRect();
-                    const panelRect = servicesPanel.getBoundingClientRect();
-                    const left = Math.min(triggerRect.right, window.innerWidth - panelRect.width - 8);
-                    const top = Math.max(8, Math.min(triggerRect.top, window.innerHeight - panelRect.height - 8));
-                    servicesPanel.style.left = `${Math.max(8, left)}px`;
-                    servicesPanel.style.top = `${top}px`;
-                }
-
-                function setServicesPanelOpen(open) {
-                    servicesPanel.hidden = !open;
-                    trigger.setAttribute('aria-expanded', String(open));
-                    if (open) {
-                        positionServicesPanel();
-                        search.focus();
-                    }
-                }
-
-                trigger.addEventListener('click', event => {
-                    event.preventDefault();
-                    setServicesPanelOpen(servicesPanel.hidden);
-                });
-                closeButton.addEventListener('click', () => setServicesPanelOpen(false));
-                search.addEventListener('input', () => {
-                    const phrase = search.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
-                    let visibleItems = 0;
-                    items.forEach(item => {
-                        const matches = item.textContent.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(phrase);
-                        item.hidden = !matches;
-                        if (matches) visibleItems += 1;
-                    });
-                    empty.hidden = visibleItems > 0;
-                });
-                document.addEventListener('click', event => {
-                    if (!servicesPanel.hidden && !servicesPanel.contains(event.target) && !trigger.contains(event.target)) {
-                        setServicesPanelOpen(false);
-                    }
-                });
-                document.addEventListener('keydown', event => {
-                    if (event.key === 'Escape' && !servicesPanel.hidden) {
-                        setServicesPanelOpen(false);
-                        trigger.focus();
-                    }
-                });
-                window.addEventListener('resize', () => {
-                    if (!servicesPanel.hidden) positionServicesPanel();
-                });
-            }
-
             const toggle = document.getElementById('cart-summary-toggle');
             const panel = document.getElementById('cart-summary-panel');
             const close = document.getElementById('cart-summary-close');

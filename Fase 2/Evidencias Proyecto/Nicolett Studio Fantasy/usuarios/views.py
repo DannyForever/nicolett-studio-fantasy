@@ -3,6 +3,7 @@ import binascii
 import logging
 import re
 import smtplib
+import unicodedata
 from urllib.parse import quote
 
 from django.conf import settings
@@ -539,6 +540,7 @@ def cliente_servicios_view(request):
         activo=True,
         pk__in=servicios_con_horarios_disponibles(),
     ).select_related('categoria').order_by(*ordenes[orden])
+    servicios_galeria = _agrupar_servicios_galeria(servicios)
     return _vista_cliente(
         request,
         'usuarios/cliente_seccion.html',
@@ -546,6 +548,7 @@ def cliente_servicios_view(request):
             'titulo': 'Servicios',
             'descripcion': 'Aquí podrás conocer los servicios disponibles.',
             'servicios': servicios,
+            'servicios_galeria': servicios_galeria,
             'filtros_categoria': _filtros_catalogo(servicios),
             'orden_catalogo': orden,
         },
@@ -587,6 +590,30 @@ def _filtros_catalogo(items: QuerySet) -> list[str]:
         if nombre and nombre.strip()
     }
     return sorted(filtros.values(), key=str.casefold)
+
+
+def _agrupar_servicios_galeria(servicios: QuerySet) -> dict[str, list[Servicio]]:
+    categorias = {
+        'corte': ('corte', 'estilo'),
+        'tratamientos': ('tratamiento', 'capilar', 'keratina'),
+        'manos': ('manicure', 'pedicure', 'uña', 'nail'),
+        'depilaciones': ('depilacion',),
+        'peinados': ('peinado',),
+        'coloracion': ('colorimetria', 'coloracion', 'tinte', 'balayage'),
+        'podologia': ('podologia',),
+    }
+    agrupados = {categoria: [] for categoria in categorias}
+    for servicio in servicios:
+        texto = unicodedata.normalize(
+            'NFKD',
+            f'{servicio.nombre} {servicio.categoria.nombre}',
+        )
+        texto = ''.join(caracter for caracter in texto if not unicodedata.combining(caracter))
+        texto = texto.casefold()
+        for categoria, terminos in categorias.items():
+            if any(termino in texto for termino in terminos):
+                agrupados[categoria].append(servicio)
+    return agrupados
 
 
 @never_cache
