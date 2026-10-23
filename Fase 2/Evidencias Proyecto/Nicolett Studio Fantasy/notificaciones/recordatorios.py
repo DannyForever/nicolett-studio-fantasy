@@ -132,7 +132,8 @@ def construir_mensaje_recordatorio(reserva, tipo):
             f'🕒 Hora de atención: {fecha_cita:%H:%M}\n'
             f'👩‍🎨 Profesional: {profesional}\n'
             f'👭 ¿Viniste con acompañante?: {"Sí" if reserva.viene_con_acompanante else "No"}\n\n'
-            'Cuando quieras, estaremos felices de ayudarte a agendar tu próxima atención 💖'
+            '¿Te gustaría agendar nuevamente este servicio o continuar con tu atención? '
+            'Escríbenos y con gusto coordinamos tu próxima visita 💖'
         )
     raise ValueError('El tipo de recordatorio no es válido.')
 

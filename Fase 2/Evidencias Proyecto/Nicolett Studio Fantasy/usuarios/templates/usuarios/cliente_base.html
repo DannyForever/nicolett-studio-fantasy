@@ -9,6 +9,71 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @media (max-width: 1023.98px) {
+            .client-sidebar[data-open="true"] {
+                display: flex;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .client-sidebar[data-collapsed="true"] {
+                width: 76px;
+            }
+
+            .client-sidebar[data-collapsed="true"] .client-sidebar-label,
+            .client-sidebar[data-collapsed="true"] .client-sidebar-submenu,
+            .client-sidebar[data-collapsed="true"] .client-sidebar-chevron {
+                display: none;
+            }
+
+            .client-sidebar[data-collapsed="true"] nav > a,
+            .client-sidebar[data-collapsed="true"] nav > div > details > summary {
+                justify-content: center;
+                padding-right: 0;
+                padding-left: 0;
+            }
+
+            .client-sidebar[data-collapsed="true"] .client-sidebar-home-row > a {
+                justify-content: center;
+                padding-right: 0;
+                padding-left: 0;
+            }
+
+            .client-sidebar[data-collapsed="true"] .client-sidebar-home-row {
+                gap: 0;
+            }
+
+            .client-sidebar[data-collapsed="true"] .client-sidebar-home-row > a {
+                flex: 1;
+            }
+
+            .client-sidebar[data-collapsed="true"] .client-sidebar-home-row > button {
+                width: 32px;
+                flex: 0 0 32px;
+            }
+
+            .client-sidebar[data-collapsed="true"] nav > a {
+                border-left-width: 0;
+            }
+
+            .client-sidebar[data-collapsed="true"] nav > a > i,
+            .client-sidebar[data-collapsed="true"] nav > div > details > summary > i:first-child {
+                margin: 0;
+            }
+
+            .client-sidebar[data-collapsed="true"] form {
+                padding-right: 8px;
+                padding-left: 8px;
+            }
+
+            .client-sidebar[data-collapsed="true"] form button {
+                justify-content: center;
+                padding-right: 8px;
+                padding-left: 8px;
+            }
+        }
+    </style>
     <script>
         tailwind.config = {
             theme: {
@@ -31,12 +96,15 @@
     </script>
 </head>
 <body class="flex min-h-screen flex-col bg-[#fffaf5] font-sans text-[#281b14] antialiased">
-    <header class="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-[#60452f] bg-[#332216] px-5 text-[#ffffff] shadow-sm sm:px-8 lg:px-16">
-        <a href="{% url 'cliente_home' %}" aria-label="Ir a Nosotras" class="flex items-baseline gap-2 text-[#ffffff] no-underline">
+    <header class="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#60452f] bg-[#332216] px-3 text-[#ffffff] shadow-sm sm:px-8 lg:px-16">
+        <button type="button" id="clientMenuToggle" class="flex h-10 w-10 shrink-0 items-center justify-center border border-[#ead7bc]/50 bg-transparent text-lg text-white lg:hidden" aria-label="Abrir menú" aria-expanded="false" aria-controls="clientSidebar">
+            <i class="fa-solid fa-bars" aria-hidden="true"></i>
+        </button>
+        <a href="{% url 'cliente_home' %}" aria-label="Ir a Nosotras" class="flex min-w-0 items-baseline gap-2 text-[#ffffff] no-underline">
             <span class="font-serif text-xl font-bold">Nicolett</span>
             <span class="text-[10px] uppercase tracking-[0.2em] text-[#e0bd7c]">Studio</span>
         </a>
-        <div class="flex items-center gap-5 text-sm">
+        <div class="flex shrink-0 items-center gap-3 text-sm sm:gap-5">
             <span class="hidden text-[#e0bd7c] sm:inline">Hola, <strong class="text-white">{{ request.user.nombre }}</strong></span>
             <div class="relative">
                 <button id="cart-summary-toggle" type="button" aria-label="Abrir resumen de compra" aria-expanded="false" aria-controls="cart-summary-panel" class="relative border-0 bg-transparent text-lg text-[#fae9cf] transition hover:text-white">
@@ -134,26 +202,32 @@
             <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram de Nicolett Studio Fantasy" title="Instagram" class="text-xl transition hover:scale-110">
                 <i class="fa-brands fa-instagram bg-gradient-to-br from-[#833AB4] via-[#E4405F] to-[#FCAF45] bg-clip-text text-transparent" aria-hidden="true"></i>
             </a>
-            <a href="https://wa.me/56982108409" target="_blank" rel="noopener noreferrer" aria-label="Escribir a Nicolett Studio Fantasy por WhatsApp" title="WhatsApp" class="text-xl text-[#25D366] transition hover:scale-110">
+            <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="Escribir a Nicolett Studio Fantasy por WhatsApp" title="WhatsApp" class="text-xl text-[#25D366] transition hover:scale-110">
                 <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
             </a>
         </div>
     </header>
 
+    <button type="button" id="clientMenuBackdrop" class="fixed inset-0 z-30 hidden border-0 bg-black/40" style="top: 4rem;" aria-label="Cerrar menú" hidden></button>
     <div class="flex flex-1">
-        <aside class="sticky top-16 hidden h-[calc(100vh-4rem)] w-[240px] shrink-0 self-start flex-col overflow-y-auto border-r border-[#ead7bc] bg-white py-7 md:flex">
+        <aside id="clientSidebar" data-collapsed="false" class="client-sidebar fixed inset-y-16 left-0 z-40 hidden w-[min(82vw,280px)] shrink-0 flex-col overflow-y-auto border-r border-[#ead7bc] bg-white py-7 shadow-xl transition-[width] duration-200 lg:sticky lg:top-16 lg:z-auto lg:flex lg:h-[calc(100vh-4rem)] lg:w-[240px] lg:self-start lg:shadow-none">
             <nav class="flex flex-col gap-1" aria-label="Menú de cliente">
-                <a href="{% url 'cliente_home' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-heart w-5 text-center text-base text-[#bd8c43]"></i> Nosotras
-                </a>
+                <div class="client-sidebar-home-row flex items-center gap-1">
+                    <a href="{% url 'cliente_home' %}" title="Nosotras" class="flex min-w-0 flex-1 items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
+                        <i class="fa-solid fa-heart w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Nosotras</span>
+                    </a>
+                    <button type="button" id="clientSidebarCollapseToggle" class="hidden h-9 w-9 shrink-0 items-center justify-center border border-[#ead7bc] bg-white text-[#5a3e27] transition hover:bg-[#fae9cf] lg:flex" aria-label="Contraer menú" aria-expanded="true" aria-controls="clientSidebar" title="Contraer menú">
+                        <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
+                    </button>
+                </div>
                 <div>
                     <details class="group" {% if request.resolver_match.url_name == 'cliente_servicios' %}open{% endif %}>
                         <summary class="flex cursor-pointer list-none items-center gap-3.5 border-l-4 px-5 py-3 text-sm transition-colors [&::-webkit-details-marker]:hidden {% if request.resolver_match.url_name == 'cliente_servicios' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}">
                             <i class="fa-solid fa-spa w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i>
-                            <span class="flex-1">Servicios</span>
-                            <i class="fa-solid fa-chevron-down text-xs text-[#bd8c43] transition-transform group-open:rotate-180" aria-hidden="true"></i>
+                            <span class="client-sidebar-label flex-1">Servicios</span>
+                            <i class="client-sidebar-chevron fa-solid fa-chevron-down text-xs text-[#bd8c43] transition-transform group-open:rotate-180" aria-hidden="true"></i>
                         </summary>
-                        <div class="ml-5 border-l border-[#ead7bc]">
+                        <div class="client-sidebar-submenu ml-5 border-l border-[#ead7bc]">
                             <details class="services-category-menu" {% if request.GET.categoria %}open{% endif %}>
                                 <summary class="flex cursor-pointer list-none items-center gap-2 px-5 py-2.5 text-sm text-[#6b5643] transition-colors hover:bg-[#fffaf5] hover:text-[#281b14] [&::-webkit-details-marker]:hidden">
                                     <span class="h-1.5 w-1.5 rounded-full bg-[#bd8c43]" aria-hidden="true"></span>
@@ -172,35 +246,76 @@
                         </div>
                     </details>
                 </div>
-                <a href="{% url 'cliente_productos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]"></i> Productos
+                <a href="{% url 'cliente_productos' %}" title="Productos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Productos</span>
                 </a>
-                <a href="{% url 'cliente_agendamiento' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
-                    <i class="fa-regular fa-calendar-plus w-5 text-center text-base text-[#bd8c43]"></i> Agendar citas
+                <a href="{% url 'cliente_agendamiento' %}" title="Agendar citas" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
+                    <i class="fa-regular fa-calendar-plus w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Agendar citas</span>
                 </a>
-                <a href="{% url 'cliente_gestionar_citas' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}aria-current="page"{% endif %}>
-                    <i class="fa-regular fa-calendar-check w-5 text-center text-base text-[#bd8c43]"></i> Gestionar citas
+                <a href="{% url 'cliente_gestionar_citas' %}" title="Gestionar citas" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}aria-current="page"{% endif %}>
+                    <i class="fa-regular fa-calendar-check w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Gestionar citas</span>
                 </a>
-                <a href="{% url 'cliente_historial_pagos' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-receipt w-5 text-center text-base text-[#bd8c43]"></i> Historial de pagos
+                <a href="{% url 'cliente_historial_pagos' %}" title="Historial de pagos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-receipt w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Historial de pagos</span>
                 </a>
-                <a href="{% url 'cliente_configuracion' %}" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_configuracion' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_configuracion' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-gear w-5 text-center text-base text-[#bd8c43]"></i> Configuración
+                <a href="{% url 'cliente_configuracion' %}" title="Configuración" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_configuracion' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_configuracion' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-gear w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Configuración</span>
                 </a>
             </nav>
             <form action="{% url 'logout' %}" method="post" class="mt-auto px-5 pb-2 pt-6">
                 {% csrf_token %}
-                <button type="submit" class="flex w-full items-center gap-3 rounded border border-[#e07a5f]/35 bg-[#e07a5f]/10 px-3 py-2.5 text-left text-sm font-semibold text-[#e07a5f] transition-colors hover:bg-[#e07a5f]/20 hover:text-[#f4a261]">
-                    <i class="fa-solid fa-right-from-bracket w-4 text-center"></i> Cerrar sesión
+                <button type="submit" title="Cerrar sesión" class="flex w-full items-center gap-3 rounded border border-[#e07a5f]/35 bg-[#e07a5f]/10 px-3 py-2.5 text-left text-sm font-semibold text-[#e07a5f] transition-colors hover:bg-[#e07a5f]/20 hover:text-[#f4a261]">
+                    <i class="fa-solid fa-right-from-bracket w-4 shrink-0 text-center" aria-hidden="true"></i><span class="client-sidebar-label">Cerrar sesión</span>
                 </button>
             </form>
         </aside>
 
-        <main class="w-full min-w-0 px-5 py-8 md:flex-1 md:px-10">
+        <main class="w-full min-w-0 px-5 py-8 lg:flex-1 lg:px-10">
             {% block content %}{% endblock %}
         </main>
     </div>
     <script>
+        (() => {
+            const sidebar = document.getElementById('clientSidebar');
+            const toggle = document.getElementById('clientMenuToggle');
+            const collapseToggle = document.getElementById('clientSidebarCollapseToggle');
+            const backdrop = document.getElementById('clientMenuBackdrop');
+            if (!sidebar || !toggle || !collapseToggle || !backdrop) return;
+            const desktop = window.matchMedia('(min-width: 1024px)');
+
+            const setMobileOpen = (open) => {
+                sidebar.dataset.open = String(open);
+                toggle.setAttribute('aria-expanded', String(open));
+                toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+                toggle.innerHTML = `<i class="fa-solid fa-${open ? 'xmark' : 'bars'}" aria-hidden="true"></i>`;
+                backdrop.hidden = !open;
+                backdrop.classList.toggle('hidden', !open);
+                document.body.classList.toggle('overflow-hidden', open);
+            };
+
+            const setCollapsed = (collapsed) => {
+                sidebar.dataset.collapsed = String(collapsed);
+                collapseToggle.setAttribute('aria-expanded', String(!collapsed));
+                collapseToggle.setAttribute('aria-label', collapsed ? 'Expandir menú' : 'Contraer menú');
+                collapseToggle.title = collapsed ? 'Expandir menú' : 'Contraer menú';
+                collapseToggle.innerHTML = `<i class="fa-solid fa-angles-${collapsed ? 'right' : 'left'}" aria-hidden="true"></i>`;
+            };
+
+            setCollapsed(false);
+            toggle.addEventListener('click', () => setMobileOpen(sidebar.dataset.open !== 'true'));
+            collapseToggle.addEventListener('click', () => setCollapsed(sidebar.dataset.collapsed !== 'true'));
+            backdrop.addEventListener('click', () => setMobileOpen(false));
+            sidebar.querySelectorAll('a').forEach((link) => {
+                link.addEventListener('click', () => setMobileOpen(false));
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') setMobileOpen(false);
+            });
+            desktop.addEventListener('change', () => {
+                setMobileOpen(false);
+            });
+        })();
+
         window.addEventListener('pageshow', function (event) {
             if (event.persisted) {
                 window.location.reload();

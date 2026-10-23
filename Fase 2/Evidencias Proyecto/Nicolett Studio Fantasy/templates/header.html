@@ -1,4 +1,4 @@
-    <header class="sticky top-0 z-50 grid grid-cols-[1fr_auto_1fr] items-center border-b border-customBorder bg-white px-8 py-5 font-sans text-xs leading-normal text-customDark antialiased lg:px-16">
+    <header class="sticky top-0 z-50 grid grid-cols-[1fr_auto] items-center border-b border-customBorder bg-white px-4 py-4 font-sans text-xs leading-normal text-customDark antialiased sm:px-8 sm:py-5 lg:grid-cols-[1fr_auto_1fr] lg:px-16">
         {% if request.user.is_authenticated and request.user.rol.nombre == 'Cliente' %}
         <a href="{% url 'cliente_servicios' %}" aria-label="Ir a Servicios" class="block justify-self-start text-customDark no-underline">
         {% else %}
@@ -20,26 +20,61 @@
                 </a>
             </div>
         </nav>
-        <div class="flex items-center justify-self-end gap-3">
+        <div class="flex items-center justify-self-end gap-2 sm:gap-3">
+            <button type="button" id="publicMenuToggle" class="flex h-10 w-10 items-center justify-center border border-customBorder text-lg text-customDark lg:hidden" aria-label="Abrir menú" aria-expanded="false" aria-controls="publicMobileNav">
+                <i class="fa-solid fa-bars" aria-hidden="true"></i>
+            </button>
             {% if request.user.is_authenticated and request.user.rol.nombre == 'Cliente' %}
-            <a href="{% url 'cliente_home' %}" aria-label="Ir a mi cuenta de cliente" class="flex h-11 w-40 items-center justify-center gap-2 bg-[#8b5e28] px-3 font-medium tracking-wider text-white transition hover:bg-[#73491f]">
+            <a href="{% url 'cliente_home' %}" aria-label="Ir a mi cuenta de cliente" class="flex h-10 w-10 items-center justify-center gap-2 bg-[#8b5e28] px-2 font-medium tracking-wider text-white transition hover:bg-[#73491f] sm:h-11 sm:w-40 sm:px-3">
                 <i class="fa-regular fa-user text-base text-white" aria-hidden="true"></i>
-                <span>CLIENTES</span>
+                <span class="hidden sm:inline">CLIENTES</span>
             </a>
             <a href="{% url 'cliente_carrito' %}" aria-label="Abrir carrito" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
                 <i class="fa-solid fa-bag-shopping text-base" aria-hidden="true"></i>
                 {% if cantidad_articulos_carrito %}<span>{{ cantidad_articulos_carrito }}</span>{% endif %}
             </a>
             {% else %}
-            <a href="{% url 'login' %}" aria-label="Ingresar a clientes" class="flex h-11 w-40 items-center justify-center gap-2 bg-[#8b5e28] px-3 font-medium tracking-wider text-white transition hover:bg-[#73491f]">
+            <a href="{% url 'login' %}" aria-label="Ingresar a clientes" class="flex h-10 w-10 items-center justify-center gap-2 bg-[#8b5e28] px-2 font-medium tracking-wider text-white transition hover:bg-[#73491f] sm:h-11 sm:w-40 sm:px-3">
                 <i class="fa-regular fa-user text-base text-white" aria-hidden="true"></i>
-                <span>CLIENTES</span>
+                <span class="hidden sm:inline">CLIENTES</span>
             </a>
             {% endif %}
         </div>
-        <nav class="col-span-3 flex items-center justify-end gap-5 border-t border-customBorder pt-3 text-xs font-medium tracking-wider lg:hidden" aria-label="Contacto y redes sociales">
+        <nav id="publicMobileNav" class="col-span-2 hidden grid-cols-2 gap-x-4 gap-y-3 border-t border-customBorder pt-3 text-xs font-medium tracking-wider lg:col-span-3 lg:hidden" aria-label="Navegación móvil">
+            <a href="{% url 'home' %}#servicios" class="text-customDark transition hover:text-customAccent">Servicios</a>
+            <a href="{% url 'home' %}#nosotras" class="text-customDark transition hover:text-customAccent">Nosotras</a>
+            <a href="{% url 'home' %}#galeria" class="text-customDark transition hover:text-customAccent">Galería</a>
+            <a href="{% url 'home' %}#resenas" class="text-customDark transition hover:text-customAccent">Reseñas</a>
             <a href="{% url 'home' %}#contacto" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
                 Contáctanos
             </a>
         </nav>
     </header>
+    <script>
+        (() => {
+            const toggle = document.getElementById('publicMenuToggle');
+            const menu = document.getElementById('publicMobileNav');
+            if (!toggle || !menu) return;
+
+            const setOpen = (open) => {
+                menu.classList.toggle('hidden', !open);
+                menu.classList.toggle('grid', open);
+                toggle.setAttribute('aria-expanded', String(open));
+                toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+                toggle.innerHTML = `<i class="fa-solid fa-${open ? 'xmark' : 'bars'}" aria-hidden="true"></i>`;
+            };
+
+            toggle.addEventListener('click', () => {
+                setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+            });
+            menu.querySelectorAll('a').forEach((link) => {
+                link.addEventListener('click', () => setOpen(false));
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') setOpen(false);
+            });
+            window.matchMedia('(min-width: 1024px)').addEventListener('change', () => {
+                setOpen(false);
+            });
+        })();
+    </script>

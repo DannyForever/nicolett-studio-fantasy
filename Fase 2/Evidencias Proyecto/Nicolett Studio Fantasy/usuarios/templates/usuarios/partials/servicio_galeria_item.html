@@ -1,6 +1,13 @@
 {% load moneda %}
 <div class="mx-2 mb-2 mt-3 border-t border-[#ead7bc] pt-3">
-    <p class="font-semibold text-[#281b14]">{{ servicio.nombre }}</p>
+    <div class="flex items-center justify-between gap-2">
+        <p class="font-semibold text-[#281b14]">{{ servicio.nombre }}</p>
+        {% if not vista_admin %}
+            <a href="{{ servicio.whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre {{ servicio.nombre }}" title="Consultar por WhatsApp" class="shrink-0 text-lg text-[#25D366]">
+                <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+            </a>
+        {% endif %}
+    </div>
     {% if servicio.descripcion %}
         <p class="mt-1 text-sm leading-5 text-[#6b5643]">{{ servicio.descripcion }}</p>
     {% endif %}

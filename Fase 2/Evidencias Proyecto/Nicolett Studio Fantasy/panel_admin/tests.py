@@ -71,6 +71,17 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, 'action="/panel_admin/categorias/crear/"')
         self.assertContains(response, 'Administrar categorías')
         self.assertContains(response, 'id="btnAdministrarCategoriasServicios"')
+        self.assertContains(response, 'id="adminSidebarToggle"')
+        self.assertContains(response, 'id="adminSidebarCollapseToggle"')
+        self.assertContains(response, 'id="adminSidebarBackdrop"')
+        self.assertContains(response, 'id="adminSidebar"')
+        self.assertContains(response, 'class="sidebar-brand-row"')
+        self.assertContains(response, 'admin-sidebar-collapsed')
+        self.assertContains(response, 'admin-sidebar-open')
+        self.assertContains(
+            response,
+            f'href="{reverse("listar_servicios")}" title="Servicios" aria-label="Servicios" class="nav-link active"',
+        )
         self.assertContains(response, 'id="buscarCategoriaServicio"')
         self.assertContains(response, 'No hay categorías que coincidan con la búsqueda.')
         self.assertNotContains(response, 'class="category-manager"')
@@ -81,20 +92,7 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, 'Disponibilidad para clientes')
         self.assertContains(response, 'data-live-filter="#serviciosTabla"')
         self.assertContains(response, 'data-filter-row')
-        self.assertContains(response, 'Lunes a sábado')
-        self.assertContains(response, reverse('admin_servicios_semana'))
-        self.assertContains(response, 'Cortes de Cabello')
-        self.assertContains(response, 'Tratamientos Capilares')
-        self.assertContains(response, 'Manos y Pies')
-        self.assertContains(response, 'Depilación/Facial')
-        self.assertContains(response, 'Peinados')
-        self.assertContains(response, 'Ver todo')
-        self.assertContains(response, '?categoria=corte#servicios-semana')
-        self.assertContains(response, '?categoria=tratamientos#servicios-semana')
-        self.assertContains(response, '?categoria=manos#servicios-semana')
-        self.assertContains(response, '?categoria=depilaciones#servicios-semana')
-        self.assertContains(response, '?categoria=peinados#servicios-semana')
-        self.assertContains(response, '?categoria=todos#servicios-semana')
+        self.assertNotContains(response, 'Ver galerías semanales')
         self.assertNotContains(response, 'id="admin-services-category-panel"')
         self.assertNotContains(response, 'Ver todos los servicios')
 
@@ -109,7 +107,7 @@ class ServiciosPageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '¡Servicios!')
-        self.assertContains(response, 'Lunes a sábado')
+        self.assertContains(response, 'Atención de lunes a sábado')
         self.assertContains(response, servicio.nombre)
         self.assertContains(response, "new URLSearchParams(window.location.search).get('categoria')")
         self.assertContains(response, 'src="/static/img/cortes_estilos_galeria.png"')
@@ -120,6 +118,7 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, 'Administrar servicios')
         self.assertNotContains(response, 'Añadir al carrito')
         self.assertNotContains(response, 'cliente_carrito_agregar_servicio')
+        self.assertNotContains(response, 'Consultar por WhatsApp sobre')
         self.assertNotContains(response, 'admin-services-category-panel')
 
     def test_create_service_persists_active_or_inactive_value(self):
@@ -1662,6 +1661,11 @@ class SalesAndReminderPageTests(TestCase):
         self.assertIn('Uñas soft gel diseños', mensaje_seguimiento)
         self.assertIn('¿Viniste con acompañante?: Sí', mensaje_seguimiento)
         self.assertIn('Valentina Prueba Soto', mensaje_seguimiento)
+        self.assertIn(
+            '¿Te gustaría agendar nuevamente este servicio o continuar con tu atención?',
+            mensaje_seguimiento,
+        )
+        self.assertContains(response, 'target="_blank" rel="noopener noreferrer"')
         self.assertFalse(tarea_seguimiento['usar_whatsapp'])
         self.assertEqual(
             mensaje_seguimiento,

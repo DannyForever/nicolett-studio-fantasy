@@ -49,6 +49,37 @@ class RoleAccessTests(TestCase):
             rol=self.client_role,
         )
 
+    @override_settings(
+        DEBUG=True,
+        EMAIL_HOST_USER='',
+        EMAIL_HOST_PASSWORD='',
+        EMAIL_BACKEND='django.core.mail.backends.console.EmailBackend',
+    )
+    def test_inactive_local_customer_login_shows_activation_link(self):
+        cliente = self.crear_cliente()
+        cliente.is_active = False
+        cliente.save(update_fields=['is_active'])
+
+        response = self.client.post(
+            reverse('login'),
+            {'email': cliente.email, 'password': 'Cliente123!'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'no se envía un correo real')
+        self.assertContains(response, 'Prueba local')
+        self.assertContains(response, 'Activar mi cuenta')
+        self.assertNotContains(response, 'Te hemos enviado un correo')
+        self.assertFalse('_auth_user_id' in self.client.session)
+
+        verification_url = response.context['verification_url_local']
+        verification_path = urlparse(verification_url).path
+        verified = self.client.get(verification_path)
+        self.assertEqual(verified.status_code, 200)
+        self.assertContains(verified, 'Tu correo fue confirmado')
+        cliente.refresh_from_db()
+        self.assertTrue(cliente.is_active)
+
     def test_peso_formatter_uses_periods_as_thousands_separators(self):
         self.assertEqual(
             [
@@ -374,7 +405,11 @@ class RoleAccessTests(TestCase):
         self.assertContains(terms, 'Todos los derechos reservados')
         self.assertContains(terms, 'aria-label="Escribir a Nicolett Studio Fantasy por WhatsApp"')
         self.assertContains(terms, 'mailto:nicolettstudio@gmail.com')
-        self.assertContains(terms, 'href="https://wa.me/56940322551"')
+        self.assertContains(terms, 'href="https://wa.me/56940322551?text=')
+        self.assertIn(
+            'consulta sobre Nicolett Studio Fantasy',
+            parse_qs(urlparse(terms.context['whatsapp_legal_url']).query)['text'][0],
+        )
         self.assertContains(terms, 'no procesa un cobro bancario real')
         self.assertContains(terms, 'funcionamiento del sitio, tu cuenta u otra dificultad técnica')
         self.assertNotContains(terms, 'Volver a Nicolett Studio Fantasy')
@@ -485,7 +520,9 @@ class RoleAccessTests(TestCase):
                 self.assertContains(response, 'https://www.instagram.com/nicolettstudiofantasy/')
                 self.assertContains(response, 'https://wa.me/56982108409')
                 self.assertContains(response, 'method="post" class="mt-auto px-5 pb-2 pt-6"')
-                self.assertContains(response, 'w-[240px] shrink-0 self-start flex-col overflow-y-auto border-r border-[#ead7bc] bg-white py-7')
+                self.assertContains(response, 'w-[min(82vw,280px)]')
+                self.assertContains(response, 'lg:w-[240px]')
+                self.assertContains(response, 'transition-[width] duration-200')
                 self.assertContains(response, 'px-5 py-3 text-sm no-underline transition-colors')
                 self.assertContains(response, 'w-5 text-center text-base text-[#bd8c43]')
                 self.assertContains(response, 'border border-[#e07a5f]/35 bg-[#e07a5f]/10')
@@ -512,7 +549,7 @@ class RoleAccessTests(TestCase):
                 self.assertContains(response, f'href="{active_link}"')
                 self.assertContains(response, 'aria-current="page"')
                 self.assertIn('no-store', response['Cache-Control'])
-                self.assertContains(response, 'sticky top-16')
+                self.assertContains(response, 'lg:sticky lg:top-16')
                 self.assertNotContains(response, 'Todos los derechos reservados')
                 self.assertContains(
                     response,
@@ -748,7 +785,7 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(servicios, 'src="/static/img/manicure_pedicure.jpg" alt="Podología"')
         self.assertContains(servicios, 'src="/static/img/colorimetria_servicio.png"')
         self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_galeria.png"')
-        self.assertContains(servicios, '>Tratamientos capilares</h2>')
+        self.assertContains(servicios, 'Tratamientos capilares</h2>')
         self.assertContains(servicios, 'src="/static/img/peinados_galeria.png"')
         self.assertContains(servicios, 'Peinados con estilo para realzar tu belleza en cada ocasión.')
         self.assertContains(servicios, 'Cuidado experto para consentir tus pies y mantenerlos saludables.')
@@ -761,6 +798,18 @@ class RoleAccessTests(TestCase):
             cortes,
             f'action="{reverse("cliente_carrito_agregar_servicio", args=[servicio.pk])}"',
         )
+        servicio_catalogo = next(
+            item for item in cortes.context['servicios'] if item.pk == servicio.pk
+        )
+        self.assertContains(
+            cortes,
+            f'href="{servicio_catalogo.whatsapp_url}" target="_blank" rel="noopener noreferrer"',
+        )
+        mensaje_servicio = parse_qs(
+            urlparse(servicio_catalogo.whatsapp_url).query,
+        )['text'][0]
+        self.assertIn('Hola, soy CLIENTE PRUEBA PRUEBA.', mensaje_servicio)
+        self.assertIn('CORTE DE PRUEBA', mensaje_servicio)
         depilaciones = self.client.get(
             reverse('cliente_servicios'),
             {'categoria': 'depilaciones'},
@@ -787,7 +836,7 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(servicios, 'descuento')
         self.assertNotContains(servicios, 'OFF')
         self.assertContains(servicios, 'data-gallery-filter="corte"')
-        self.assertContains(servicios, '>Podología</h2>')
+        self.assertContains(servicios, 'Podología</h2>')
         self.assertContains(servicios, 'function showServiceGallery(category)')
         self.assertContains(servicios, 'gallery.dataset.serviceGallery.split(/\\s+/).includes(')
         self.assertContains(servicios, "showServiceGallery(initialCategory || 'todos')")
@@ -869,6 +918,16 @@ class RoleAccessTests(TestCase):
             productos,
             f'action="{reverse("cliente_carrito_agregar_producto", args=[producto.pk])}"',
         )
+        producto_catalogo = productos.context['productos'][0]
+        self.assertContains(
+            productos,
+            f'href="{producto_catalogo.whatsapp_url}" target="_blank" rel="noopener noreferrer"',
+        )
+        mensaje_producto = parse_qs(
+            urlparse(producto_catalogo.whatsapp_url).query,
+        )['text'][0]
+        self.assertIn('Hola, soy CLIENTE PRUEBA PRUEBA.', mensaje_producto)
+        self.assertIn('SHAMPOO DE PRUEBA', mensaje_producto)
 
     def test_client_about_page_shows_brand_story_and_verified_contact_options(self):
         self.client.force_login(self.crear_cliente())
@@ -890,6 +949,67 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(response, 'Formulario de contacto')
         self.assertNotContains(response, 'Contactar por WhatsApp')
 
+    def test_client_whatsapp_links_include_logged_in_name_and_service_categories(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+
+        response = self.client.get(reverse('cliente_servicios'))
+
+        mensaje_general = parse_qs(urlparse(response.context['whatsapp_url']).query)['text'][0]
+        self.assertIn('Hola, soy CLIENTE PRUEBA PRUEBA.', mensaje_general)
+        self.assertIn('servicios y productos', mensaje_general)
+        categorias = response.context['whatsapp_categoria_urls']
+        self.assertEqual(
+            set(categorias),
+            {
+                'corte',
+                'tratamientos',
+                'manos',
+                'depilaciones',
+                'peinados',
+                'coloracion',
+                'podologia',
+            },
+        )
+        for categoria, nombre in (
+            ('corte', 'Corte y Estilo'),
+            ('tratamientos', 'Tratamientos capilares'),
+            ('manos', 'Manicure y Pedicure'),
+            ('depilaciones', 'Depilación'),
+            ('peinados', 'Peinados'),
+            ('coloracion', 'Colorimetría'),
+            ('podologia', 'Podología'),
+        ):
+            mensaje_categoria = parse_qs(
+                urlparse(categorias[categoria]).query,
+            )['text'][0]
+            self.assertIn(nombre.upper(), mensaje_categoria)
+            self.assertIn('Hola, soy CLIENTE PRUEBA PRUEBA.', mensaje_categoria)
+            self.assertContains(
+                response,
+                f'href="{categorias[categoria]}" target="_blank" rel="noopener noreferrer"',
+            )
+        for label in (
+            'Corte y Estilo',
+            'Tratamientos capilares',
+            'Manicure y Pedicure',
+            'Depilación',
+            'Peinados',
+            'Colorimetría',
+            'Podología',
+        ):
+            self.assertContains(
+                response,
+                f'aria-label="Consultar por WhatsApp sobre {label}"',
+            )
+
+        productos = self.client.get(reverse('cliente_productos'))
+        mensaje_productos = parse_qs(
+            urlparse(productos.context['whatsapp_url']).query,
+        )['text'][0]
+        self.assertIn('Hola, soy CLIENTE PRUEBA PRUEBA.', mensaje_productos)
+        self.assertIn('servicios y productos', mensaje_productos)
+
     def test_customer_home_opens_on_about_section_without_footer(self):
         self.client.force_login(self.crear_cliente())
 
@@ -909,6 +1029,14 @@ class RoleAccessTests(TestCase):
         response = self.client.get(reverse('cliente_home'))
 
         self.assertContains(response, 'h-16')
+        self.assertContains(response, 'id="clientMenuToggle"')
+        self.assertContains(response, 'aria-controls="clientSidebar"')
+        self.assertContains(response, 'id="clientMenuBackdrop"')
+        self.assertContains(response, 'id="clientSidebarCollapseToggle"')
+        self.assertContains(response, 'client-sidebar-home-row')
+        self.assertContains(response, 'data-collapsed="false"')
+        self.assertContains(response, 'client-sidebar-label')
+        self.assertContains(response, 'client-sidebar[data-open="true"]')
         self.assertContains(response, 'fa-instagram')
         self.assertContains(response, 'https://wa.me/56982108409')
         self.assertContains(response, 'bg-[#e07a5f]/10')
@@ -1125,9 +1253,9 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'aria-current="page"')
         self.assertContains(
             response,
-            'href="{}" class="nav-link js-services-menu-trigger active"'.format(reverse('listar_servicios')),
+            'href="{}" title="Servicios" aria-label="Servicios" class="nav-link active"'.format(reverse('listar_servicios')),
         )
-        self.assertContains(response, 'dashboard.css?v=20261019-4')
+        self.assertContains(response, 'dashboard.css?v=20261022-1')
 
     def test_customer_can_update_account_details_and_password(self):
         cliente = self.crear_cliente()

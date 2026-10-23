@@ -71,16 +71,35 @@ def login_view(request):
                 and usuario_pendiente.check_password(password)
                 and es_cliente(usuario_pendiente)
             ):
+                correo_smtp_configurado = bool(
+                    settings.EMAIL_HOST_USER and settings.EMAIL_HOST_PASSWORD
+                )
+                verification_url_local = ''
+                if settings.DEBUG and not correo_smtp_configurado:
+                    uid = urlsafe_base64_encode(force_bytes(usuario_pendiente.pk))
+                    token = default_token_generator.make_token(usuario_pendiente)
+                    verification_url_local = request.build_absolute_uri(
+                        reverse('verify_email', kwargs={'uidb64': uid, 'token': token})
+                    )
                 return render(
                     request,
                     'usuarios/login.html',
                     {
                         'email': usuario_pendiente.email,
                         'exito': (
-                            'Por favor, verifica tu cuenta. Te hemos enviado un correo '
-                            'electrónico para confirmar tu cuenta.'
+                            (
+                                'Tu cuenta aún no está activada. En esta prueba local no se '
+                                'envía un correo real; usa el enlace de activación que aparece '
+                                'a continuación.'
+                            )
+                            if verification_url_local
+                            else (
+                                'Por favor, verifica tu cuenta. Revisa el correo de '
+                                'confirmación que te enviamos al registrarte.'
+                            )
                         ),
                         'verification_pending': True,
+                        'verification_url_local': verification_url_local,
                     },
                 )
             return render(
@@ -480,8 +499,53 @@ def restablecer_contrasena(request, uidb64, token):
     )
 
 
+def _nombre_completo_whatsapp(usuario):
+    return ' '.join(
+        parte.strip()
+        for parte in (
+            usuario.nombre,
+            usuario.segundo_nombre,
+            usuario.apellido_paterno,
+            usuario.apellido_materno,
+        )
+        if parte and parte.strip()
+    ).upper()
+
+
+def _mensaje_consulta_cliente(usuario, tema):
+    nombre = _nombre_completo_whatsapp(usuario)
+    return (
+        f'Hola, soy {nombre}. Quisiera consultar por {tema.upper()} en '
+        'Nicolett Studio Fantasy. ¿Me pueden orientar sobre precios, disponibilidad '
+        'o detalles?'
+    )
+
+
 def terminos_privacidad_view(request):
-    return render(request, 'usuarios/terminos_privacidad.html')
+    nombre = (
+        _nombre_completo_whatsapp(request.user)
+        if request.user.is_authenticated
+        else ''
+    )
+    saludo = f'Hola, soy {nombre}. ' if nombre else 'Hola. '
+    mensaje = (
+        f'{saludo}tengo una consulta sobre Nicolett Studio Fantasy relacionada con '
+        'sus servicios, productos o el uso de mi cuenta. ¿Me podrían orientar?'
+    )
+    return render(
+        request,
+        'usuarios/terminos_privacidad.html',
+        {
+            'whatsapp_legal_url': (
+                'https://wa.me/56940322551?text='
+                f'{quote(mensaje, safe="")}'
+            ),
+        },
+    )
+
+
+def _url_whatsapp(numero, mensaje):
+    return f'https://wa.me/{numero}?text={quote(mensaje, safe="")}'
 
 
 def _vista_cliente(request, template, context=None):
@@ -501,6 +565,42 @@ def _vista_cliente(request, template, context=None):
     contexto['cantidad_articulos_carrito'] = sum(
         item['cantidad'] for item in contexto['resumen_carrito']
     )
+    nombre_cliente = _nombre_completo_whatsapp(request.user)
+    mensaje_cliente = (
+        f'Hola, soy {nombre_cliente}. Estoy revisando los servicios y productos de '
+        'Nicolett Studio Fantasy y quisiera consultar sobre precios, disponibilidad '
+        'o una atención. ¿Me pueden orientar?'
+    )
+    contexto['whatsapp_url'] = _url_whatsapp('56982108409', mensaje_cliente)
+    contexto['whatsapp_contacto_url'] = _url_whatsapp('56940322551', mensaje_cliente)
+    categorias_whatsapp = {
+        'corte': 'Corte y Estilo',
+        'tratamientos': 'Tratamientos capilares',
+        'manos': 'Manicure y Pedicure',
+        'depilaciones': 'Depilación',
+        'peinados': 'Peinados',
+        'coloracion': 'Colorimetría',
+        'podologia': 'Podología',
+    }
+    contexto['whatsapp_categoria_urls'] = {
+        categoria: _url_whatsapp('56982108409', _mensaje_consulta_cliente(
+            request.user,
+            nombre_servicio,
+        ))
+        for categoria, nombre_servicio in categorias_whatsapp.items()
+    }
+    if 'servicios' in contexto:
+        for servicio in contexto['servicios']:
+            servicio.whatsapp_url = _url_whatsapp(
+                '56982108409',
+                _mensaje_consulta_cliente(request.user, servicio.nombre),
+            )
+    if 'productos' in contexto:
+        for producto in contexto['productos']:
+            producto.whatsapp_url = _url_whatsapp(
+                '56982108409',
+                _mensaje_consulta_cliente(request.user, producto.nombre),
+            )
     return render(request, template, contexto)
 
 

@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs, urlparse
+
 from django.test import TestCase
 from django.urls import reverse
 
@@ -90,7 +92,7 @@ class LandingPageNavigationTests(TestCase):
         self.assertNotContains(response, 'fa-user-plus')
         self.assertContains(response, 'bg-[#8b5e28]')
         self.assertContains(response, 'text-white')
-        self.assertEqual(response.content.count(b'h-11 w-40'), 1)
+        self.assertEqual(response.content.count(b'sm:h-11 sm:w-40'), 1)
         self.assertNotContains(response, '$0')
         self.assertNotContains(response, 'fa-bag-shopping')
         self.assertContains(response, 'Contáctanos')
@@ -104,7 +106,20 @@ class LandingPageNavigationTests(TestCase):
         self.assertContains(login_response, 'id="btn-login"')
         self.assertContains(login_response, 'id="btn-register"')
 
-    def test_footer_social_links_use_icons_and_whatsapp_prefills_welcome_message(self):
+    def test_shared_header_has_accessible_mobile_navigation_toggle(self):
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, 'id="publicMenuToggle"')
+        self.assertContains(response, 'aria-controls="publicMobileNav"')
+        self.assertContains(response, 'id="publicMobileNav"')
+        self.assertContains(response, 'aria-label="Navegación móvil"')
+        self.assertContains(response, 'grid-cols-[1fr_auto]')
+        self.assertContains(response, 'w-10 items-center justify-center gap-2 bg-[#8b5e28]')
+        self.assertContains(response, 'hidden sm:inline">CLIENTES</span>')
+        for section in ('Servicios', 'Nosotras', 'Galería', 'Reseñas', 'Contáctanos'):
+            self.assertContains(response, section)
+
+    def test_footer_social_links_use_icons_and_whatsapp_prefills_general_message(self):
         response = self.client.get(reverse('home'))
 
         self.assertEqual(response.status_code, 200)
@@ -113,8 +128,11 @@ class LandingPageNavigationTests(TestCase):
         self.assertContains(response, 'aria-label="Escribir a Nicolett Studio Fantasy por WhatsApp"')
         self.assertContains(response, 'fa-brands fa-whatsapp')
         self.assertContains(response, 'href="https://wa.me/56982108409?text=')
-        self.assertContains(response, 'Bienvenida%20a%20Nicolett%20Studio%20Fantasy')
-        self.assertContains(response, 'Te%20responderemos%20lo%20antes%20posible')
+        self.assertContains(response, 'target="_blank"')
+        mensaje = parse_qs(urlparse(response.context['whatsapp_url']).query)['text'][0]
+        self.assertIn('consulta general sobre Nicolett Studio Fantasy', mensaje)
+        self.assertIn('servicios, productos, horarios o disponibilidad', mensaje)
+        self.assertIn('Mi consulta es:', mensaje)
         self.assertNotContains(response, '<span>Instagram</span>')
         self.assertNotContains(response, '<span>WhatsApp</span>')
         self.assertContains(response, 'text-2xl')

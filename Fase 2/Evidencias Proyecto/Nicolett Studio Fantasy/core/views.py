@@ -1,4 +1,5 @@
 import smtplib
+from urllib.parse import quote
 
 from django.shortcuts import render, redirect
 from django.core.mail import send_mail
@@ -43,7 +44,20 @@ def home_view(request):
 
         return redirect('home')
 
-    return render(request, 'core/landing.html')
+    whatsapp_message = (
+        'Hola, quisiera hacer una consulta general sobre Nicolett Studio Fantasy. '
+        'Me interesa conocer información sobre sus servicios, productos, horarios o '
+        'disponibilidad. ¿Me podrían orientar? Mi consulta es:'
+    )
+    whatsapp_url = (
+        'https://wa.me/56982108409?text='
+        f'{quote(whatsapp_message, safe="")}'
+    )
+    return render(
+        request,
+        'core/landing.html',
+        {'whatsapp_url': whatsapp_url},
+    )
 
 # Importa tu modelo de usuario si lo necesitas aquí, o maneja la lógica:
 def login_view(request):

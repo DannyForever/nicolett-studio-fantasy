@@ -12,59 +12,50 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <!-- Nuestro archivo CSS externo y profesional -->
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261019-4">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261022-2">
     {% block extra_head %}{% endblock %}
 </head>
 
 <body>
 
+    <button type="button" class="admin-sidebar-toggle" id="adminSidebarToggle"
+            aria-label="Contraer menú" aria-expanded="true" aria-controls="adminSidebar">
+        <i class="fas fa-angles-left" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="admin-sidebar-backdrop" id="adminSidebarBackdrop"
+            aria-label="Cerrar menú" hidden></button>
+
     <!-- Menú lateral -->
-    <nav class="sidebar-container">
+    <nav class="sidebar-container" id="adminSidebar" aria-label="Menú de administración">
         <div>
             <div class="sidebar-header">
-                <h3 class="text-white">Nicolett</h3>
-                <span>Gestión del salón</span>
+                <div class="sidebar-brand-row">
+                    <div class="sidebar-brand">
+                        <h3 class="text-white">Nicolett</h3>
+                        <span class="sidebar-subtitle">Gestión del salón</span>
+                    </div>
+                    <button type="button" class="admin-sidebar-collapse-toggle" id="adminSidebarCollapseToggle"
+                            aria-label="Contraer menú" aria-expanded="true" aria-controls="adminSidebar" title="Contraer menú">
+                        <i class="fas fa-angles-left" aria-hidden="true"></i>
+                    </button>
+                </div>
             </div>
             <ul class="sidebar-menu">
-                <li class="nav-item"><a href="{% url 'admin_dashboard' %}" class="nav-link{% if request.resolver_match.url_name == 'admin_dashboard' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_dashboard' %} aria-current="page"{% endif %}><i class="fas fa-home me-2"></i> Dashboard</a></li>
-                <li class="nav-item">
-                    <details class="services-nav-details" {% if request.resolver_match.url_name in 'admin_servicios_semana listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %}open{% endif %}>
-                        <summary class="nav-link{% if request.resolver_match.url_name in 'admin_servicios_semana listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} active{% endif %}">
-                            <i class="fas fa-spa me-2"></i>
-                            <span>Servicios</span>
-                            <i class="fas fa-chevron-down services-nav-chevron" aria-hidden="true"></i>
-                        </summary>
-                        <div class="services-nav-submenu">
-                            <details class="services-nav-category-details" {% if request.resolver_match.url_name == 'admin_servicios_semana' %}open{% endif %}>
-                                <summary class="services-nav-category-summary">
-                                    <span>Lunes a sábado</span>
-                                    <i class="fas fa-chevron-down services-nav-chevron" aria-hidden="true"></i>
-                                </summary>
-                                <div class="services-nav-category-list">
-                                    <a href="{% url 'admin_servicios_semana' %}?categoria=corte#servicios-semana">Cortes de Cabello</a>
-                                    <a href="{% url 'admin_servicios_semana' %}?categoria=tratamientos#servicios-semana">Tratamientos Capilares</a>
-                                    <a href="{% url 'admin_servicios_semana' %}?categoria=manos#servicios-semana">Manos y Pies</a>
-                                    <a href="{% url 'admin_servicios_semana' %}?categoria=depilaciones#servicios-semana">Depilación/Facial</a>
-                                    <a href="{% url 'admin_servicios_semana' %}?categoria=peinados#servicios-semana">Peinados</a>
-                                    <a href="{% url 'admin_servicios_semana' %}?categoria=todos#servicios-semana">Ver todo</a>
-                                </div>
-                            </details>
-                        </div>
-                    </details>
-                </li>
-                <li class="nav-item"><a href="{% url 'admin_productos' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} aria-current="page"{% endif %}><i class="fas fa-box me-2"></i> Productos</a></li>
-                <li class="nav-item"><a href="{% url 'admin_agenda' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio crear_reserva_manual guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia reagendar_cita cancelar_cita responder_suspension guardar_respuesta_suspension' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio crear_reserva_manual guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia reagendar_cita cancelar_cita responder_suspension guardar_respuesta_suspension' %} aria-current="page"{% endif %}><i class="fas fa-calendar-alt me-2"></i> Agendamientos</a></li>
-                <li class="nav-item"><a href="{% url 'admin_ventas' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_ventas admin_detalle_venta' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_ventas admin_detalle_venta' %} aria-current="page"{% endif %}><i class="fas fa-cash-register me-2"></i> Ventas y pagos</a></li>
-                <li class="nav-item"><a href="{% url 'admin_recordatorios' %}" class="nav-link{% if request.resolver_match.url_name == 'admin_recordatorios' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_recordatorios' %} aria-current="page"{% endif %}><i class="fas fa-bell me-2"></i> Recordatorios</a></li>
-                <li class="nav-item"><a href="{% url 'admin_personal' %}" class="nav-link{% if request.resolver_match.url_name in 'admin_personal crear_personal editar_personal eliminar_personal desactivar_personal' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_personal crear_personal editar_personal eliminar_personal desactivar_personal' %} aria-current="page"{% endif %}><i class="fas fa-users-cog me-2"></i> Personal</a></li>
-                <li class="nav-item"><a href="{% url 'admin_configuracion' %}" class="nav-link{% if request.resolver_match.url_name == 'admin_configuracion' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_configuracion' %} aria-current="page"{% endif %}><i class="fas fa-user-cog me-2"></i> Configuración</a></li>
+                <li class="nav-item"><a href="{% url 'admin_dashboard' %}" title="Dashboard" aria-label="Dashboard" class="nav-link{% if request.resolver_match.url_name == 'admin_dashboard' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_dashboard' %} aria-current="page"{% endif %}><i class="fas fa-home me-2"></i><span class="nav-label">Dashboard</span></a></li>
+                <li class="nav-item"><a href="{% url 'listar_servicios' %}" title="Servicios" aria-label="Servicios" class="nav-link{% if request.resolver_match.url_name in 'admin_servicios_semana listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_servicios_semana listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} aria-current="page"{% endif %}><i class="fas fa-spa me-2"></i><span class="nav-label">Servicios</span></a></li>
+                <li class="nav-item"><a href="{% url 'admin_productos' %}" title="Productos" aria-label="Productos" class="nav-link{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} aria-current="page"{% endif %}><i class="fas fa-box me-2"></i><span class="nav-label">Productos</span></a></li>
+                <li class="nav-item"><a href="{% url 'admin_agenda' %}" title="Agendamientos" aria-label="Agendamientos" class="nav-link{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio crear_reserva_manual guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia reagendar_cita cancelar_cita responder_suspension guardar_respuesta_suspension' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio crear_reserva_manual guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia reagendar_cita cancelar_cita responder_suspension guardar_respuesta_suspension' %} aria-current="page"{% endif %}><i class="fas fa-calendar-alt me-2"></i><span class="nav-label">Agendamientos</span></a></li>
+                <li class="nav-item"><a href="{% url 'admin_ventas' %}" title="Ventas y pagos" aria-label="Ventas y pagos" class="nav-link{% if request.resolver_match.url_name in 'admin_ventas admin_detalle_venta' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_ventas admin_detalle_venta' %} aria-current="page"{% endif %}><i class="fas fa-cash-register me-2"></i><span class="nav-label">Ventas y pagos</span></a></li>
+                <li class="nav-item"><a href="{% url 'admin_recordatorios' %}" title="Recordatorios" aria-label="Recordatorios" class="nav-link{% if request.resolver_match.url_name == 'admin_recordatorios' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_recordatorios' %} aria-current="page"{% endif %}><i class="fas fa-bell me-2"></i><span class="nav-label">Recordatorios</span></a></li>
+                <li class="nav-item"><a href="{% url 'admin_personal' %}" title="Personal" aria-label="Personal" class="nav-link{% if request.resolver_match.url_name in 'admin_personal crear_personal editar_personal eliminar_personal desactivar_personal' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_personal crear_personal editar_personal eliminar_personal desactivar_personal' %} aria-current="page"{% endif %}><i class="fas fa-users-cog me-2"></i><span class="nav-label">Personal</span></a></li>
+                <li class="nav-item"><a href="{% url 'admin_configuracion' %}" title="Configuración" aria-label="Configuración" class="nav-link{% if request.resolver_match.url_name == 'admin_configuracion' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_configuracion' %} aria-current="page"{% endif %}><i class="fas fa-user-cog me-2"></i><span class="nav-label">Configuración</span></a></li>
             </ul>
         </div>
 
         <!-- Parte inferior del menú: Sesión activa y botón salir -->
         <div class="sidebar-footer">
-            <span class="user-label">Sesión activa</span>
-            <span class="user-email">
+            <span class="user-label sidebar-user-label">Sesión activa</span>
+            <span class="user-email sidebar-user-email">
                 {% if request.user.email %}
                     {{ request.user.email }}
                 {% else %}
@@ -76,7 +67,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="next" value="/">
                 <button type="submit" class="btn-logout">
-                    <i class="fas fa-sign-out-alt me-1"></i> Cerrar sesión
+                    <i class="fas fa-sign-out-alt me-1"></i><span class="nav-label">Cerrar sesión</span>
                 </button>
             </form>
         </div>
@@ -91,6 +82,52 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        (() => {
+            const sidebar = document.getElementById('adminSidebar');
+            const toggle = document.getElementById('adminSidebarToggle');
+            const collapseToggle = document.getElementById('adminSidebarCollapseToggle');
+            const backdrop = document.getElementById('adminSidebarBackdrop');
+            if (!sidebar || !toggle || !collapseToggle || !backdrop) return;
+
+            const desktop = window.matchMedia('(min-width: 1024px)');
+            const setCollapsed = (collapsed) => {
+                document.body.classList.toggle('admin-sidebar-collapsed', collapsed);
+                collapseToggle.setAttribute('aria-expanded', String(!collapsed));
+                collapseToggle.setAttribute('aria-label', collapsed ? 'Expandir menú' : 'Contraer menú');
+                collapseToggle.title = collapsed ? 'Expandir menú' : 'Contraer menú';
+                collapseToggle.innerHTML = `<i class="fas fa-angles-${collapsed ? 'right' : 'left'}" aria-hidden="true"></i>`;
+            };
+            const setMobileOpen = (open) => {
+                document.body.classList.toggle('admin-sidebar-open', open);
+                toggle.setAttribute('aria-expanded', String(open));
+                toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+                toggle.innerHTML = `<i class="fas fa-${open ? 'xmark' : 'bars'}" aria-hidden="true"></i>`;
+                backdrop.hidden = !open;
+            };
+
+            if (desktop.matches) setCollapsed(false);
+            toggle.addEventListener('click', () => setMobileOpen(!document.body.classList.contains('admin-sidebar-open')));
+            collapseToggle.addEventListener('click', () => {
+                setCollapsed(!document.body.classList.contains('admin-sidebar-collapsed'));
+            });
+            backdrop.addEventListener('click', () => setMobileOpen(false));
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') setMobileOpen(false);
+            });
+            desktop.addEventListener('change', (event) => {
+                document.body.classList.remove('admin-sidebar-open');
+                backdrop.hidden = true;
+                if (event.matches) {
+                    setCollapsed(false);
+                } else {
+                    document.body.classList.remove('admin-sidebar-collapsed');
+                    toggle.setAttribute('aria-expanded', 'false');
+                    toggle.setAttribute('aria-label', 'Abrir menú');
+                    toggle.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i>';
+                }
+            });
+        })();
+
         document.querySelectorAll('[data-live-filter]').forEach((filters) => {
             const table = document.querySelector(filters.dataset.liveFilter);
             if (!table) return;

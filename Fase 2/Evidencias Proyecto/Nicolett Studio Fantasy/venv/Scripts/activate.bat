@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\danie\Documents\Instituciones\Duoc UC\Asignaturas\Capstone\nicolett-studio-fantasy\Fase 2\Evidencias Proyecto\Nicolett Studio Fantasy\venv
+set VIRTUAL_ENV=C:\Users\Alejandra\Desktop\Proyecto Capstone\nicolett-studio-fantasy\Fase 2\Evidencias Proyecto\Nicolett Studio Fantasy\venv
 
 if not defined PROMPT set PROMPT=$P$G
 
