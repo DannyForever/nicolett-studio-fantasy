@@ -20,10 +20,31 @@
         @media (prefers-reduced-motion: reduce) {
             #catalog-grid { animation: none; }
         }
-        .service-gallery-all [data-service-gallery] > img {
-            aspect-ratio: 1 / 1;
+        .service-gallery-compact > img {
+            display: block;
+            width: 82%;
+            max-width: 100%;
             height: auto;
+            margin-inline: auto;
+            object-fit: contain;
+        }
+        .treatment-gallery-crop {
+            width: 82%;
+            max-width: 100%;
+            aspect-ratio: 1.9 / 1;
+            margin-inline: auto;
+            overflow: hidden;
+        }
+        .treatment-gallery-crop > img {
+            display: block;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
+            object-position: center bottom;
+        }
+        .nail-care-gallery-image {
+            width: 82%;
+            margin-inline: auto;
         }
     </style>
     {% if messages %}
@@ -46,133 +67,126 @@
                                 <a href="{% url 'listar_servicios' %}" class="mt-5 inline-block border border-[#5a3e27] px-4 py-2 text-sm font-semibold text-[#5a3e27] no-underline transition hover:bg-[#5a3e27] hover:text-white">Administrar servicios</a>
                             {% endif %}
                         </div>
-                        <div data-service-gallery-grid class="grid grid-cols-1 gap-3 sm:grid-cols-2 {% if not request.GET.categoria or request.GET.categoria == 'todos' %}service-gallery-all lg:grid-cols-3{% endif %}" aria-live="polite">
-                            <article data-service-gallery="all corte" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'corte' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2 {% if request.GET.categoria and request.GET.categoria != 'todos' %}sm:col-span-2{% endif %}">
-                                <img src="{% static 'img/cortes_estilos_galeria.png' %}" alt="Cuatro estilos de cortes de cabello" class="haircut-photos h-auto w-full object-contain">
+                        <div data-service-gallery-grid class="grid grid-cols-1 gap-3" aria-live="polite">
+                            <article data-service-gallery="all corte" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'corte' %}hidden{% endif %} class="service-gallery-compact order-1 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/cortes_estilos_galeria_brand.png' %}" alt="Cuatro estilos de cortes de cabello con logo Nicolett Studio Fantasy" class="haircut-photos h-auto w-full object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
-                                    <h2 class="font-semibold text-[#281b14]">Corte &amp; Estilo</h2>
+                                    <h2 class="font-semibold text-[#281b14]">Cortes y servicios</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.corte }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Corte y Estilo" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
                                 </div>
                                 <p class="px-2 pb-1 pt-1 text-xs leading-4 text-[#6b5643]">Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.</p>
-                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
-                                    {% for servicio in servicios_galeria.corte %}
-                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                    {% empty %}
-                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                    {% endfor %}
-                                {% endif %}
+                                {% for servicio in servicios_galeria.corte %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Corte & Estilo' booking_cta=True %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
                             </article>
-                            <article data-service-gallery="all tratamientos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'tratamientos' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/tratamientos_capilares_galeria.png' %}" alt="Tratamientos capilares para el cabello" class="h-52 w-full object-cover sm:h-60">
+                            <article data-service-gallery="all tratamientos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'tratamientos' and request.GET.categoria != 'corte' %}hidden{% endif %} class="service-gallery-compact order-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <div class="treatment-gallery-crop">
+                                    <img src="{% static 'img/tratamientos_capilares_galeria_brand.png' %}" alt="Tratamientos capilares con logo Nicolett Studio Fantasy">
+                                </div>
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Tratamientos capilares</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.tratamientos }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Tratamientos capilares" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
                                 </div>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.</p>
-                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
-                                    {% for servicio in servicios_galeria.tratamientos %}
-                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                    {% empty %}
-                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                    {% endfor %}
-                                {% endif %}
+                                {% for servicio in servicios_galeria.tratamientos %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Tratamiento capilar de prueba' hide_service_description=True booking_cta=True %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
                             </article>
-                            <article data-service-gallery="all manos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'manos' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/manicure_pedicure_galeria.png' %}" alt="Manicure y pedicure" class="h-48 w-full object-cover object-center sm:h-56">
+                            <article data-service-gallery="all manos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'manos' and request.GET.categoria != 'corte' %}hidden{% endif %} class="order-3 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/nail_care_beauty_brand.png' %}" alt="Nail Care & Beauty con logo Nicolett Studio Fantasy" class="nail-care-gallery-image block h-auto object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
-                                    <h2 class="font-semibold text-[#281b14]">Manicure &amp; Pedicure</h2>
+                                    <h2 class="font-semibold text-[#281b14]">Nail Care &amp; Beauty</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.manos }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Manicure y Pedicure" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
                                 </div>
-                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Semipermanente, gel, nail art y spa de manos. Uñas que hablan por ti.</p>
-                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
-                                    {% for servicio in servicios_galeria.manos %}
+                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Semipermanente, gel, nail art y spa de manos. Uñas que hablan por ti. Valor final según el diseño de uñas.</p>
+                                {% for servicio in servicios_galeria.manos %}
+                                    {% if servicio.nombre == 'Manicure clásica de prueba' %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Manicure clásica de prueba' hide_service_description=True hide_service_whatsapp=True booking_cta=True booking_cta_label='Agendar citas' service_price_prefix='Desde' %}
+                                    {% else %}
                                         {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                    {% empty %}
-                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                    {% endfor %}
-                                {% endif %}
+                                    {% endif %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
                             </article>
-                            <article data-service-gallery="all depilaciones" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'depilaciones' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2 {% if request.GET.categoria and request.GET.categoria != 'todos' %}sm:col-span-2{% endif %}">
-                                <img src="{% static 'img/depilacion_facial_galeria.png' %}" alt="Depilación corporal y facial" class="h-40 w-full object-cover object-center sm:h-48">
+                            <article data-service-gallery="all depilaciones" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'depilaciones' and request.GET.categoria != 'corte' %}hidden{% endif %} class="order-4 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/depilacion_facial_galeria_brand.png' %}" alt="Depilación corporal y facial con logo Nicolett Studio Fantasy" class="h-auto w-full object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Depilación</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.depilaciones }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Depilación" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
                                 </div>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Cera caliente y fría, hilo facial y depilación con láser de diodo. Resultados duraderos.</p>
-                                {% if servicios_galeria.depilaciones %}
-                                    {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
-                                        <p class="px-2 pb-1 pt-1 text-sm font-semibold text-[#6b5643]">Desde {{ servicios_galeria.depilaciones.0.precio|pesos }}</p>
-                                    {% endif %}
-                                {% endif %}
-                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
-                                    {% for servicio in servicios_galeria.depilaciones %}
+                                {% for servicio in servicios_galeria.depilaciones %}
+                                    {% if servicio.nombre == 'Depilación facial' %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Depilación facial' hide_service_description=True hide_service_whatsapp=True %}
+                                    {% else %}
                                         {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                    {% empty %}
-                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                    {% endfor %}
-                                {% endif %}
+                                    {% endif %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
                             </article>
-                            <article data-service-gallery="all peinados" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'peinados' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/peinados_galeria.png' %}" alt="Peinados de Nicolett Studio" class="h-44 w-full object-cover sm:h-52">
+                            <article data-service-gallery="all peinados" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'peinados' and request.GET.categoria != 'corte' %}hidden{% endif %} class="order-5 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/peinados_galeria_brand.png' %}" alt="Peinados de Nicolett Studio con logo Nicolett Studio Fantasy" class="h-auto w-full object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Peinados</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.peinados }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Peinados" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
                                 </div>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Peinados con estilo para realzar tu belleza en cada ocasión.</p>
-                                {% if servicios_galeria.peinados %}
-                                    {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
-                                        <p class="px-2 pb-1 pt-1 text-sm font-semibold text-[#6b5643]">Desde {{ servicios_galeria.peinados.0.precio|pesos }}</p>
-                                    {% endif %}
-                                {% endif %}
-                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
-                                    {% for servicio in servicios_galeria.peinados %}
+                                {% for servicio in servicios_galeria.peinados %}
+                                    {% if servicio.nombre == 'Peinado sencillo' %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Peinado sencillo' hide_service_description=True hide_service_whatsapp=True booking_cta=True booking_cta_label='AGENDAR CITA' %}
+                                    {% else %}
                                         {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                    {% empty %}
-                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                    {% endfor %}
-                                {% endif %}
+                                    {% endif %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
                             </article>
-                            <article data-service-gallery="all coloracion" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'coloracion' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/colorimetria_servicio.png' %}" alt="Servicio de colorimetría para el cabello" class="h-28 w-full object-cover sm:h-32">
+                            <article data-service-gallery="all coloracion" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'coloracion' %}hidden{% endif %} class="order-6 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/colorimetria_galeria_brand.png' %}" alt="Tres servicios de colorimetría para el cabello con logo Nicolett Studio Fantasy" class="h-auto w-full object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Colorimetría</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.coloracion }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Colorimetría" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
                                 </div>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Diagnóstico personalizado de color, tinte, balayage y decoloración con productos de alta gama.</p>
-                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
-                                    {% for servicio in servicios_galeria.coloracion %}
-                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                    {% empty %}
-                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                    {% endfor %}
-                                {% endif %}
+                                {% for servicio in servicios_galeria.coloracion %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Colorimetría' hide_service_description=True booking_cta=True booking_cta_label='AGENDAR CITAS' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
                             </article>
-                            <article data-service-gallery="all podologia" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'podologia' %}hidden{% endif %} class="overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/podologia_pies.png' %}" alt="Tratamiento de pies para podología" class="h-28 w-full object-cover sm:h-32">
+                            <article data-service-gallery="all podologia" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'podologia' %}hidden{% endif %} class="order-7 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/podologia_galeria_brand.png' %}" alt="Tres imágenes de tratamientos de podología con el logo de Nicolett Studio Fantasy en el panel izquierdo" class="h-auto w-full object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Podología</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.podologia }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Podología" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
                                 </div>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Cuidado experto para consentir tus pies y mantenerlos saludables.</p>
-                                {% if vista_admin or request.GET.categoria and request.GET.categoria != 'todos' %}
-                                    {% for servicio in servicios_galeria.podologia %}
-                                        {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                    {% empty %}
-                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                    {% endfor %}
-                                {% endif %}
+                                {% for servicio in servicios_galeria.podologia %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Podología' hide_service_description=True booking_cta=True booking_cta_label='AGENDAR CITAS' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                            <article data-service-gallery="all lash_brow" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'lash_brow' %}hidden{% endif %} class="service-gallery-compact order-8 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <img src="{% static 'img/lash_brow_galeria_brand.png' %}" alt="Diseño de cejas y lifting de pestañas con logo Nicolett Studio Fantasy" class="h-auto w-full object-contain">
+                                <div class="flex items-center justify-between px-2 pt-2">
+                                    <h2 class="font-semibold text-[#281b14]">Lash &amp; Brow</h2>
+                                    {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.lash_brow }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Lash &amp; Brow" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
+                                </div>
+                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Diseño y perfilado de cejas, lifting de pestañas y mirada definida.</p>
+                                {% for servicio in servicios_galeria.lash_brow %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Lash & Brow' hide_service_description=True booking_cta=True booking_cta_label='AGENDAR CITAS' service_duration_label='2 horas' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                {% endfor %}
                             </article>
                         </div>
-                    </div>
-                    <div data-service-category-filters {% if request.GET.categoria and request.GET.categoria != 'todos' %}hidden class="hidden mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"{% else %}class="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"{% endif %} role="group" aria-label="Filtrar servicios por categoría">
-                        <button type="button" data-category-filter="" aria-pressed="true" class="catalog-filter border border-[#5a3e27] bg-[#5a3e27] px-3 py-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#4b301b]"><i class="fa-solid fa-star mr-2" aria-hidden="true"></i>Todos los servicios</button>
-                        <button type="button" data-category-filter="corte|estilo" data-gallery-filter="corte" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-scissors mr-2" aria-hidden="true"></i>Cortes de cabello</button>
-                        <button type="button" data-category-filter="tratamiento|capilar" data-gallery-filter="tratamientos" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-spa mr-2" aria-hidden="true"></i>Tratamientos capilares</button>
-                        <button type="button" data-category-filter="mano|pie|uña|manicure|pedicure|nail" data-gallery-filter="manos" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-hand-sparkles mr-2" aria-hidden="true"></i>Manos y pies</button>
-                        <button type="button" data-category-filter="depilación|depilacion" data-gallery-filter="depilaciones" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-wand-magic-sparkles mr-2" aria-hidden="true"></i>Depilaciones</button>
-                        <button type="button" data-category-filter="peinado" data-gallery-filter="peinados" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-user-tie mr-2" aria-hidden="true"></i>Peinados</button>
-                        <button type="button" data-category-filter="colorimetría|colorimetria|tinte|balayage" data-gallery-filter="coloracion" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-palette mr-2" aria-hidden="true"></i>Colorimetría</button>
-                        <button type="button" data-category-filter="podología|podologia" data-gallery-filter="podologia" aria-pressed="false" class="catalog-filter border border-[#ead7bc] bg-white px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[#6b5643] transition hover:bg-[#fae9cf]"><i class="fa-solid fa-shoe-prints mr-2" aria-hidden="true"></i>Podología</button>
                     </div>
                 </section>
             {% endif %}
@@ -326,7 +340,15 @@
                         peinados: ['peinado'],
                         coloracion: ['colorimetria', 'tinte', 'balayage'],
                         podologia: ['podologia'],
+                        lash_brow: ['lash', 'brow'],
                     };
+                    const haircutRelatedGalleries = [
+                        'corte',
+                        'tratamientos',
+                        'manos',
+                        'depilaciones',
+                        'peinados',
+                    ];
                     const terms = categoryTerms[category] || [];
                     selectedCategories = terms.map(normalize);
                     const showIntro = terms.length === 0;
@@ -337,18 +359,13 @@
                         servicesIntro.hidden = !showIntro;
                         servicesLayout.classList.toggle('md:grid-cols-[1fr_2fr]', showIntro);
                         servicesLayout.classList.toggle('md:grid-cols-1', !showIntro);
-                        galleryGrid.classList.toggle('sm:grid-cols-2', showIntro);
-                        galleryGrid.classList.toggle('sm:grid-cols-1', !showIntro);
-                    }
-                    const categoryFilters = document.querySelector('[data-service-category-filters]');
-                    if (categoryFilters) {
-                        categoryFilters.hidden = !showIntro;
-                        categoryFilters.classList.toggle('hidden', !showIntro);
                     }
                     for (const gallery of galleries) {
-                        gallery.hidden = !gallery.dataset.serviceGallery.split(/\s+/).includes(
-                            showIntro ? 'all' : category,
-                        );
+                        const galleryCategories = gallery.dataset.serviceGallery.split(/\s+/);
+                        const isHaircutRelated = category === 'corte'
+                            && haircutRelatedGalleries.some(item => galleryCategories.includes(item));
+                        gallery.hidden = !galleryCategories.includes(showIntro ? 'all' : category)
+                            && !isHaircutRelated;
                     }
                 }
 

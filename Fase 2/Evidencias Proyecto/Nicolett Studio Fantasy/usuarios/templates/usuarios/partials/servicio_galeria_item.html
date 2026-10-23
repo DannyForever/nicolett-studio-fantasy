@@ -1,27 +1,35 @@
 {% load moneda %}
 <div class="mx-2 mb-2 mt-3 border-t border-[#ead7bc] pt-3">
-    <div class="flex items-center justify-between gap-2">
-        <p class="font-semibold text-[#281b14]">{{ servicio.nombre }}</p>
-        {% if not vista_admin %}
-            <a href="{{ servicio.whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre {{ servicio.nombre }}" title="Consultar por WhatsApp" class="shrink-0 text-lg text-[#25D366]">
-                <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
-            </a>
-        {% endif %}
-    </div>
-    {% if servicio.descripcion %}
+    {% if servicio.nombre != hide_service_heading %}
+        <div class="flex items-center justify-between gap-2">
+            <p class="font-semibold text-[#281b14]">{{ servicio.nombre }}</p>
+            {% if not vista_admin and not hide_service_whatsapp %}
+                <a href="{{ servicio.whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre {{ servicio.nombre }}" title="Consultar por WhatsApp" class="shrink-0 text-lg text-[#25D366]">
+                    <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+    {% if servicio.descripcion and not hide_service_description %}
         <p class="mt-1 text-sm leading-5 text-[#6b5643]">{{ servicio.descripcion }}</p>
     {% endif %}
     <p class="mt-1 flex items-center justify-between text-sm">
-        <span class="font-medium">{{ servicio.precio|pesos }}</span>
-        <span class="text-[#6b5643]">{{ servicio.duracion_minutos }} min</span>
+        <span class="font-medium">{% if service_price_prefix %}{{ service_price_prefix }} {% endif %}{{ servicio.precio|pesos }}</span>
+        <span class="text-[#6b5643]">{% if service_duration_label %}{{ service_duration_label }}{% else %}{{ servicio.duracion_minutos }} min{% endif %}</span>
     </p>
     {% if not vista_admin %}
-        <form method="post" action="{% url 'cliente_carrito_agregar_servicio' servicio.pk %}" class="mt-3">
-            {% csrf_token %}
-            <input type="hidden" name="return_to" value="{{ request.get_full_path }}">
-            <button type="submit" class="w-full bg-[#5a3e27] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#4b301b]">
-                <i class="fa-solid fa-cart-plus mr-2" aria-hidden="true"></i>Añadir al carrito
-            </button>
-        </form>
+        {% if booking_cta %}
+            <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="mt-3 block w-full bg-[#5a3e27] px-4 py-2.5 text-center text-sm font-medium text-white no-underline transition hover:bg-[#4b301b]">
+                {{ booking_cta_label|default:'TOMAR CITAS' }}
+            </a>
+        {% else %}
+            <form method="post" action="{% url 'cliente_carrito_agregar_servicio' servicio.pk %}" class="mt-3">
+                {% csrf_token %}
+                <input type="hidden" name="return_to" value="{{ request.get_full_path }}">
+                <button type="submit" class="w-full bg-[#5a3e27] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#4b301b]">
+                    <i class="fa-solid fa-cart-plus mr-2" aria-hidden="true"></i>Añadir al carrito
+                </button>
+            </form>
+        {% endif %}
     {% endif %}
 </div>

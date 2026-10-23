@@ -581,6 +581,7 @@ def _vista_cliente(request, template, context=None):
         'peinados': 'Peinados',
         'coloracion': 'Colorimetría',
         'podologia': 'Podología',
+        'lash_brow': 'Lash & Brow',
     }
     contexto['whatsapp_categoria_urls'] = {
         categoria: _url_whatsapp('56982108409', _mensaje_consulta_cliente(
@@ -700,6 +701,7 @@ def _agrupar_servicios_galeria(servicios: QuerySet) -> dict[str, list[Servicio]]
         'peinados': ('peinado',),
         'coloracion': ('colorimetria', 'coloracion', 'tinte', 'balayage'),
         'podologia': ('podologia',),
+        'lash_brow': ('lash', 'brow'),
     }
     agrupados = {categoria: [] for categoria in categorias}
     for servicio in servicios:

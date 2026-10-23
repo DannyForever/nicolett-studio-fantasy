@@ -44,7 +44,7 @@
                             <select id="bookingService" name="servicio" required class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm">
                                 <option value="">Selecciona un servicio...</option>
                                 {% for servicio in servicios %}
-                                    <option value="{{ servicio.pk }}">{{ servicio.nombre }} · {{ servicio.precio|pesos }} · {{ servicio.duracion_minutos }} min</option>
+                                    <option value="{{ servicio.pk }}" {% if request.GET.servicio == servicio.pk|stringformat:'s' %}selected{% endif %}>{{ servicio.nombre }} · {{ servicio.precio|pesos }} · {{ servicio.duracion_minutos }} min</option>
                                 {% endfor %}
                             </select>
                             {% if not servicios %}<p class="mt-2 text-sm text-[#6b5643]">No hay servicios activos disponibles para agendar.</p>{% endif %}
@@ -253,7 +253,11 @@
                 month = addMonth(month, 1);
                 loadCalendar();
             });
-            loadCalendar();
+            loadCalendar().then(() => {
+                if (service.value) return loadProfessionals();
+            }).catch(error => {
+                status.textContent = error.message || 'No se pudo consultar la disponibilidad. Intenta nuevamente.';
+            });
         })();
     </script>
 {% endblock %}

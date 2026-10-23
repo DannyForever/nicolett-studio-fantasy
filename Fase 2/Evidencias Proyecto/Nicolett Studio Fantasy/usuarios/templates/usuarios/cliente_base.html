@@ -21,14 +21,11 @@
                 width: 76px;
             }
 
-            .client-sidebar[data-collapsed="true"] .client-sidebar-label,
-            .client-sidebar[data-collapsed="true"] .client-sidebar-submenu,
-            .client-sidebar[data-collapsed="true"] .client-sidebar-chevron {
+            .client-sidebar[data-collapsed="true"] .client-sidebar-label {
                 display: none;
             }
 
-            .client-sidebar[data-collapsed="true"] nav > a,
-            .client-sidebar[data-collapsed="true"] nav > div > details > summary {
+            .client-sidebar[data-collapsed="true"] nav > a {
                 justify-content: center;
                 padding-right: 0;
                 padding-left: 0;
@@ -57,8 +54,7 @@
                 border-left-width: 0;
             }
 
-            .client-sidebar[data-collapsed="true"] nav > a > i,
-            .client-sidebar[data-collapsed="true"] nav > div > details > summary > i:first-child {
+            .client-sidebar[data-collapsed="true"] nav > a > i {
                 margin: 0;
             }
 
@@ -220,37 +216,11 @@
                         <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
                     </button>
                 </div>
-                <div>
-                    <details class="group" {% if request.resolver_match.url_name == 'cliente_servicios' %}open{% endif %}>
-                        <summary class="flex cursor-pointer list-none items-center gap-3.5 border-l-4 px-5 py-3 text-sm transition-colors [&::-webkit-details-marker]:hidden {% if request.resolver_match.url_name == 'cliente_servicios' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}">
-                            <i class="fa-solid fa-spa w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i>
-                            <span class="client-sidebar-label flex-1">Servicios</span>
-                            <i class="client-sidebar-chevron fa-solid fa-chevron-down text-xs text-[#bd8c43] transition-transform group-open:rotate-180" aria-hidden="true"></i>
-                        </summary>
-                        <div class="client-sidebar-submenu ml-5 border-l border-[#ead7bc]">
-                            <details class="services-category-menu" {% if request.GET.categoria %}open{% endif %}>
-                                <summary class="flex cursor-pointer list-none items-center gap-2 px-5 py-2.5 text-sm text-[#6b5643] transition-colors hover:bg-[#fffaf5] hover:text-[#281b14] [&::-webkit-details-marker]:hidden">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-[#bd8c43]" aria-hidden="true"></span>
-                                    <span class="flex-1">Lunes a sábado</span>
-                                    <i class="fa-solid fa-chevron-down text-xs text-[#bd8c43]" aria-hidden="true"></i>
-                                </summary>
-                                <div class="ml-5 border-l border-[#ead7bc]">
-                                    <a href="{% url 'cliente_servicios' %}?categoria=corte#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]">Cortes de Cabello</a>
-                                    <a href="{% url 'cliente_servicios' %}?categoria=tratamientos#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]">Tratamientos Capilares</a>
-                                    <a href="{% url 'cliente_servicios' %}?categoria=manos#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]">Manos y Pies</a>
-                                    <a href="{% url 'cliente_servicios' %}?categoria=depilaciones#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]">Depilación/Facial</a>
-                                    <a href="{% url 'cliente_servicios' %}?categoria=peinados#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]">Peinados</a>
-                                    <a href="{% url 'cliente_servicios' %}#servicios-semana" class="block px-5 py-2 text-xs text-[#6b5643] no-underline transition-colors hover:bg-[#fffaf5] hover:text-[#281b14]" {% if request.resolver_match.url_name == 'cliente_servicios' and not request.GET.categoria %}aria-current="page"{% endif %}>Ver todo</a>
-                                </div>
-                            </details>
-                        </div>
-                    </details>
-                </div>
+                <a href="{% url 'cliente_servicios' %}#servicios-semana" title="Servicios y citas" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' or request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_servicios' or request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-spa w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Servicios y citas</span>
+                </a>
                 <a href="{% url 'cliente_productos' %}" title="Productos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Productos</span>
-                </a>
-                <a href="{% url 'cliente_agendamiento' %}" title="Agendar citas" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
-                    <i class="fa-regular fa-calendar-plus w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Agendar citas</span>
                 </a>
                 <a href="{% url 'cliente_gestionar_citas' %}" title="Gestionar citas" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}aria-current="page"{% endif %}>
                     <i class="fa-regular fa-calendar-check w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Gestionar citas</span>
