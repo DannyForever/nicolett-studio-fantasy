@@ -72,10 +72,12 @@ class Command(BaseCommand):
 
         profesionales = {}
         for indice, categoria_key in enumerate(('unas', 'facial', 'pestanas'), start=1):
-            email = f'demo.profesional{indice}@example.com'
+            correo_contacto = f'demo.profesional{indice}@example.com'
+            email = f'demo.profesional{indice}@nicolettstudio.cl'
             profesional, creado = Usuario.objects.get_or_create(
-                email=email,
+                correo_contacto=correo_contacto,
                 defaults={
+                    'email': email,
                     'nombre': f'Profesional Demo {indice}',
                     'segundo_nombre': '',
                     'apellido_paterno': 'Prueba',
@@ -83,7 +85,7 @@ class Command(BaseCommand):
                     'telefono': f'+5690000000{indice}',
                     'rol': rol_colaborador,
                     'is_active': True,
-                    'is_staff': True,
+                    'is_staff': False,
                     'is_superuser': False,
                 },
             )
@@ -94,6 +96,9 @@ class Command(BaseCommand):
             if creado:
                 profesional.set_unusable_password()
                 profesional.save(update_fields=['password'])
+            elif profesional.is_staff:
+                profesional.is_staff = False
+                profesional.save(update_fields=['is_staff'])
             profesionales[categoria_key] = profesional
             ProfesionalCategoria.objects.get_or_create(
                 profesional=profesional,

@@ -580,13 +580,24 @@ class PersonalTests(TestCase):
             'apellido_paterno': 'Pérez',
             'apellido_materno': 'Soto',
             'telefono': '+56912345678',
-            'email': 'juan.perez@example.com',
+            'correo_contacto': 'juan.perez@example.com',
+            'email': '',
+            'password': 'Colaborador123!Test',
+            'confirmar_password': 'Colaborador123!Test',
         }
         data.update(overrides)
         return data
 
     def crear_personal(self, **overrides):
-        usuario = Usuario(**self.datos_personal(**overrides), rol=self.rol_colaborador)
+        data = self.datos_personal(**overrides)
+        if 'email' in overrides and '@' in overrides['email']:
+            data['correo_contacto'] = overrides.get('correo_contacto', overrides['email'])
+            data['email'] = f"{overrides['email'].split('@', 1)[0]}@nicolettstudio.cl"
+        elif not data['email']:
+            data['email'] = 'jp.soto@nicolettstudio.cl'
+        data.pop('password')
+        data.pop('confirmar_password')
+        usuario = Usuario(**data, rol=self.rol_colaborador)
         usuario.set_unusable_password()
         usuario.save()
         return usuario
@@ -609,10 +620,28 @@ class PersonalTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Añadir personal')
         self.assertContains(response, 'juan.perez@example.com')
+        self.assertContains(response, 'jp.soto@nicolettstudio.cl')
+        self.assertContains(response, 'CONTRASEÑA')
+        self.assertNotContains(response, 'Colaborador123!Test')
+        self.assertNotContains(response, 'Las contraseñas se almacenan cifradas')
+        self.assertContains(
+            response,
+            'title="El correo electrónico y el teléfono son datos de contacto. '
+            'El correo de acceso es solo un identificador para iniciar sesión."',
+        )
+        self.assertContains(
+            response,
+            'title="La contraseña se guardará de forma segura y no podrá consultarse después."',
+        )
+        self.assertContains(response, 'class="field-help"')
         self.assertNotContains(response, 'cliente@example.com')
-        self.assertContains(response, 'Colaborador')
+        self.assertContains(response, 'Cambiar vista')
         self.assertContains(response, 'data-live-filter="#personalTabla"')
         self.assertContains(response, 'data-filter-row')
+        body = response.content.decode()
+        self.assertLess(body.index('Confirmar contraseña'), body.index('Categorías de especialización'))
+        self.assertLess(body.index('CUENTA DE ADMINISTRADOR'), body.index('Cambiar vista'))
+        self.assertLess(body.index('Cambiar vista'), body.index('Cerrar sesión'))
         self.assertTrue(Usuario.objects.filter(pk=colaborador.pk, rol_id=5).exists())
 
     def test_deleting_unused_specialty_category_unlinks_it_from_collaborators(self):
@@ -639,7 +668,7 @@ class PersonalTests(TestCase):
         )
         self.assertTrue(Usuario.objects.filter(pk=colaborador.pk).exists())
 
-    def test_create_personnel_sets_collaborator_role_and_no_login_password(self):
+    def test_create_personnel_sets_login_credentials_and_collaborator_role(self):
         response = self.client.post(
             reverse('crear_personal'),
             {
@@ -649,13 +678,15 @@ class PersonalTests(TestCase):
         )
 
         self.assertRedirects(response, reverse('admin_personal'))
-        usuario = Usuario.objects.get(email='juan.perez@example.com')
+        usuario = Usuario.objects.get(email='jp.soto@nicolettstudio.cl')
         self.assertEqual(usuario.rol_id, 5)
         self.assertTrue(usuario.is_active)
-        self.assertTrue(usuario.is_staff)
+        self.assertFalse(usuario.is_staff)
         self.assertIsNotNone(usuario.acepta_terminos_at)
         self.assertFalse(usuario.is_superuser)
-        self.assertFalse(usuario.has_usable_password())
+        self.assertTrue(usuario.has_usable_password())
+        self.assertTrue(usuario.check_password('Colaborador123!Test'))
+        self.assertEqual(usuario.correo_contacto, 'juan.perez@example.com')
         self.assertEqual(
             list(usuario.especialidades.values_list('categoria__nombre', flat=True)),
             ['Uñas'],
@@ -664,10 +695,183 @@ class PersonalTests(TestCase):
         cliente_login = Client()
         login_response = cliente_login.post(
             reverse('login'),
-            {'email': usuario.email, 'password': 'cualquier-clave'},
+            {'email': usuario.email, 'password': 'Colaborador123!Test'},
         )
-        self.assertNotEqual(login_response.status_code, 302)
-        self.assertNotIn('_auth_user_id', cliente_login.session)
+        self.assertRedirects(login_response, reverse('colaborador_mi_agenda'))
+        self.assertIn('_auth_user_id', cliente_login.session)
+
+    def test_create_personnel_requires_a_password(self):
+        datos = self.datos_personal()
+        datos.pop('password')
+        datos.pop('confirmar_password')
+        response = self.client.post(
+            reverse('crear_personal'),
+            {**datos, 'especializaciones': [str(self.categoria_unas.pk)]},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['personal_form'].errors['password'])
+        self.assertFalse(Usuario.objects.filter(email='jp.soto@nicolettstudio.cl').exists())
+
+    def test_generated_access_login_gets_a_suffix_when_the_name_is_already_taken(self):
+        self.client.post(
+            reverse('crear_personal'),
+            {
+                **self.datos_personal(),
+                'especializaciones': [str(self.categoria_unas.pk)],
+            },
+        )
+        response = self.client.post(
+            reverse('crear_personal'),
+            {
+                **self.datos_personal(
+                    correo_contacto='otra.persona@example.com',
+                ),
+                'especializaciones': [str(self.categoria_unas.pk)],
+            },
+        )
+
+        self.assertRedirects(response, reverse('admin_personal'))
+        self.assertTrue(Usuario.objects.filter(email='jp.soto2@nicolettstudio.cl').exists())
+
+    def test_admin_can_reset_collaborator_password(self):
+        colaborador = self.crear_personal()
+        response = self.client.post(
+            reverse('restablecer_contrasena_personal', args=[colaborador.pk]),
+            {
+                'password': 'NuevaClave-Fuerte-86!',
+                'confirmar_password': 'NuevaClave-Fuerte-86!',
+            },
+        )
+
+        self.assertRedirects(response, reverse('admin_personal'))
+        colaborador.refresh_from_db()
+        self.assertTrue(colaborador.check_password('NuevaClave-Fuerte-86!'))
+
+    def test_collaborator_can_only_open_their_read_only_agenda(self):
+        from agenda.models import Disponibilidad, ProfesionalCategoria, Reserva
+
+        colaborador = self.crear_personal()
+        otro_colaborador = self.crear_personal(
+            nombre='Ana',
+            email='ana@example.com',
+        )
+        fecha = timezone.now() + timedelta(days=3)
+        Reserva.objects.create(
+            fecha_hora=fecha,
+            profesional=colaborador,
+            cliente_nombre='Cliente de esta agenda',
+            servicio_nombre='Manicure',
+        )
+        Reserva.objects.create(
+            fecha_hora=fecha,
+            profesional=otro_colaborador,
+            cliente_nombre='Cliente de otra agenda',
+            servicio_nombre='Pedicure',
+        )
+        servicio = Servicio.objects.create(
+            nombre='Manicure asignado',
+            categoria=self.categoria_unas,
+            duracion_minutos=60,
+            precio='12000',
+        )
+        ProfesionalCategoria.objects.create(
+            profesional=colaborador,
+            categoria_id=self.categoria_unas.pk,
+        )
+        fecha_disponible = timezone.localdate() + timedelta(days=10)
+        Disponibilidad.objects.create(
+            dia_semana=str(fecha_disponible.weekday()),
+            hora_inicio=datetime.strptime('09:00', '%H:%M').time(),
+            hora_fin=datetime.strptime('10:00', '%H:%M').time(),
+            activo=True,
+            profesional=colaborador,
+            servicio_id=servicio.pk,
+            fecha_especifica=fecha_disponible,
+        )
+        colaborador_client = Client()
+        colaborador_client.force_login(colaborador)
+
+        agenda_response = colaborador_client.get(
+            reverse('colaborador_mi_agenda'),
+            {'mes': fecha_disponible.strftime('%Y-%m')},
+        )
+        admin_response = colaborador_client.get(reverse('admin_dashboard'))
+        personal_response = colaborador_client.get(reverse('admin_personal'))
+
+        self.assertEqual(agenda_response.status_code, 200)
+        self.assertContains(agenda_response, 'Cliente de esta agenda')
+        self.assertNotContains(agenda_response, 'Cliente de otra agenda')
+        self.assertContains(agenda_response, 'Servicios habilitados: Manicure asignado')
+        self.assertEqual(admin_response.status_code, 403)
+        self.assertEqual(personal_response.status_code, 403)
+
+    def test_collaborator_can_update_own_profile_from_configuration(self):
+        colaborador = self.crear_personal()
+        colaborador_client = Client()
+        colaborador_client.force_login(colaborador)
+        config_url = reverse('colaborador_configuracion')
+
+        page = colaborador_client.get(config_url)
+        response = colaborador_client.post(
+            config_url,
+            {
+                'form_type': 'profile',
+                'profile_edit': '1',
+                'nombre': 'Daniela',
+                'segundo_nombre': 'Alejandra',
+                'apellido_paterno': 'Huaiquilñir',
+                'apellido_materno': 'Cordero',
+                'correo_contacto': 'daniela@example.com',
+                'email': 'dh.cordero',
+            },
+        )
+
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'cuenta de colaborador')
+        self.assertRedirects(response, config_url)
+        colaborador.refresh_from_db()
+        self.assertEqual(colaborador.nombre, 'Daniela')
+        self.assertEqual(colaborador.correo_contacto, 'daniela@example.com')
+        self.assertEqual(colaborador.email, 'dh.cordero@nicolettstudio.cl')
+        admin_personal = self.client.get(reverse('admin_personal'))
+        self.assertContains(admin_personal, 'Daniela')
+        self.assertContains(admin_personal, 'daniela@example.com')
+        self.assertContains(admin_personal, 'dh.cordero@nicolettstudio.cl')
+
+    def test_collaborator_reminders_are_limited_to_their_appointments(self):
+        from agenda.models import Reserva
+
+        colaborador = self.crear_personal()
+        otra_colaboradora = self.crear_personal(
+            nombre='Ana',
+            email='ana@example.com',
+        )
+        fecha = timezone.now() + timedelta(days=5)
+        Reserva.objects.create(
+            fecha_hora=fecha,
+            profesional=colaborador,
+            cliente_nombre='Cliente de Daniela',
+            cliente_email='daniela.cliente@example.com',
+            servicio_nombre='Manicure',
+            estado='confirmada',
+        )
+        Reserva.objects.create(
+            fecha_hora=fecha,
+            profesional=otra_colaboradora,
+            cliente_nombre='Cliente de Ana',
+            cliente_email='ana.cliente@example.com',
+            servicio_nombre='Pedicure',
+            estado='confirmada',
+        )
+        colaborador_client = Client()
+        colaborador_client.force_login(colaborador)
+
+        response = colaborador_client.get(reverse('admin_recordatorios'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Cliente de Daniela')
+        self.assertNotContains(response, 'Cliente de Ana')
 
     def test_create_personnel_rejects_duplicate_email(self):
         self.crear_personal()
@@ -675,14 +879,14 @@ class PersonalTests(TestCase):
         response = self.client.post(
             reverse('crear_personal'),
             {
-                **self.datos_personal(nombre='Otro'),
+                **self.datos_personal(email='jp.soto', nombre='Otro'),
                 'especializaciones': [str(self.categoria_unas.pk)],
             },
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['personal_form'].errors['email'])
-        self.assertEqual(Usuario.objects.filter(email='juan.perez@example.com').count(), 1)
+        self.assertEqual(Usuario.objects.filter(email='jp.soto@nicolettstudio.cl').count(), 1)
 
     def test_create_personnel_requires_specialization_and_keeps_form_errors_visible(self):
         response = self.client.post(
@@ -693,7 +897,7 @@ class PersonalTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-server-errors="true"')
         self.assertTrue(response.context['personal_form'].errors['especializaciones'])
-        self.assertFalse(Usuario.objects.filter(email='juan.perez@example.com').exists())
+        self.assertFalse(Usuario.objects.filter(email='jp.soto@nicolettstudio.cl').exists())
 
     def test_specialization_choices_list_categories_registered_in_database(self):
         from panel_admin.forms import PersonalForm
@@ -727,7 +931,7 @@ class PersonalTests(TestCase):
         )
 
         self.assertRedirects(response, reverse('admin_personal'))
-        usuario = Usuario.objects.get(email='juan.perez@example.com')
+        usuario = Usuario.objects.get(email='jp.soto@nicolettstudio.cl')
         self.assertEqual(
             set(usuario.especialidades.values_list('categoria_id', flat=True)),
             {self.categoria_unas.pk, self.categoria_cabello.pk},
@@ -767,14 +971,14 @@ class PersonalTests(TestCase):
         response = self.client.post(
             reverse('crear_personal'),
             {
-                **self.datos_personal(email='correo-invalido'),
+                **self.datos_personal(correo_contacto='correo-invalido'),
                 'especializaciones': [str(self.categoria_unas.pk)],
             },
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Introduzca una dirección de correo electrónico válida.')
-        self.assertFalse(Usuario.objects.filter(email='correo-invalido').exists())
+        self.assertFalse(Usuario.objects.filter(email='jp.soto@nicolettstudio.cl').exists())
 
     def test_invalid_personnel_edit_renders_errors_with_edit_action(self):
         usuario = self.crear_personal()
@@ -807,7 +1011,11 @@ class PersonalTests(TestCase):
         response = self.client.post(
             reverse('editar_personal', args=[usuario.pk]),
             {
-                **self.datos_personal(telefono='+56987654321', email='nuevo@example.com'),
+                **self.datos_personal(
+                    telefono='+56987654321',
+                    correo_contacto='nuevo@example.com',
+                    email='nuevo',
+                ),
                 'especializaciones': [str(self.categoria_cabello.pk)],
             },
         )
@@ -815,7 +1023,8 @@ class PersonalTests(TestCase):
         self.assertRedirects(response, reverse('admin_personal'))
         usuario.refresh_from_db()
         self.assertEqual(usuario.telefono, '+56987654321')
-        self.assertEqual(usuario.email, 'nuevo@example.com')
+        self.assertEqual(usuario.email, 'nuevo@nicolettstudio.cl')
+        self.assertEqual(usuario.correo_contacto, 'nuevo@example.com')
         self.assertEqual(usuario.rol_id, 5)
         self.assertEqual(
             list(usuario.especialidades.values_list('categoria__nombre', flat=True)),
@@ -1301,8 +1510,25 @@ class AdminConfigurationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Segundo nombre (opcional)')
         self.assertContains(response, 'Contraseña actual')
+        self.assertContains(response, 'Correo de acceso')
+        self.assertContains(response, 'input-group-text admin-access-domain')
+        self.assertContains(response, 'Modificar')
+        self.assertContains(response, 'readonly')
         self.assertContains(response, 'no permite eliminar la cuenta administradora')
         self.assertNotContains(response, 'Eliminar cuenta')
+
+    def test_new_admin_gets_generated_access_email_and_keeps_personal_email(self):
+        admin = Usuario.objects.create_superuser(
+            email='alejandra.garrido@example.com',
+            password='Admin123!Test',
+            nombre='Alejandra',
+            apellido_paterno='Garrido',
+            apellido_materno='Fuentes',
+            telefono='+56912345677',
+        )
+
+        self.assertEqual(admin.email, 'ag.fuentes@nicolettstudio.cl')
+        self.assertEqual(admin.correo_contacto, 'alejandra.garrido@example.com')
 
     def test_profile_form_updates_the_current_administrator_only(self):
         response = self.client.post(
@@ -1313,17 +1539,44 @@ class AdminConfigurationTests(TestCase):
                 'segundo_nombre': 'María',
                 'apellido_paterno': 'Ejemplo',
                 'apellido_materno': 'Prueba',
-                'email': 'daniela.admin@example.com',
+                'correo_contacto': 'daniela.admin@example.com',
+                'email': 'daniela.admin',
+                'profile_edit': '1',
             },
         )
 
+        self.assertEqual(
+            response.status_code,
+            302,
+            response.context['perfil_form'].errors if response.context else '',
+        )
         self.assertRedirects(response, reverse('admin_configuracion'))
         self.admin.refresh_from_db()
         self.assertEqual(self.admin.nombre, 'Daniela')
         self.assertEqual(self.admin.segundo_nombre, 'María')
         self.assertEqual(self.admin.apellido_paterno, 'Ejemplo')
         self.assertEqual(self.admin.apellido_materno, 'Prueba')
-        self.assertEqual(self.admin.email, 'daniela.admin@example.com')
+        self.assertEqual(self.admin.email, 'daniela.admin@nicolettstudio.cl')
+        self.assertEqual(self.admin.correo_contacto, 'daniela.admin@example.com')
+
+    def test_profile_cannot_be_changed_without_enabling_editing(self):
+        response = self.client.post(
+            reverse('admin_configuracion'),
+            {
+                'form_type': 'profile',
+                'profile_edit': '0',
+                'nombre': 'No autorizado',
+                'segundo_nombre': '',
+                'apellido_paterno': 'Cambio',
+                'apellido_materno': 'Prueba',
+                'correo_contacto': 'otra@example.com',
+                'email': 'otro',
+            },
+        )
+
+        self.assertRedirects(response, reverse('admin_configuracion'))
+        self.admin.refresh_from_db()
+        self.assertEqual(self.admin.nombre, 'Admin')
 
     def test_password_change_requires_current_password_and_keeps_admin_logged_in(self):
         response = self.client.post(

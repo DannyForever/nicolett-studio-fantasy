@@ -3,7 +3,7 @@
 {% block title %}Personal | Nicolett Studio{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-0">
+<div class="container-fluid px-0 personal-page">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <h1 class="h3 mb-1 text-dark">Personal del salón</h1>
@@ -25,8 +25,8 @@
         </div>
     {% endif %}
 
-    <div class="row g-3 align-items-start">
-        <aside class="col-xl-3 col-md-4">
+    <div class="row g-2 align-items-start">
+        <aside class="col-xl-2 col-md-3">
             <div class="card-stat mb-3">
                 <div class="title">Total de personal</div>
                 <div class="value">{{ total_personal }}</div>
@@ -40,7 +40,7 @@
                 <div class="value">{{ total_inactivos }}</div>
             </div>
         </aside>
-        <div class="col-xl-9 col-md-8">
+        <div class="col-xl-10 col-md-9">
             <div class="card-stat mb-3">
                 <div class="row g-2" data-live-filter="#personalTabla">
                     <div class="col-lg-6">
@@ -73,6 +73,8 @@
                     <tr>
                         <th>NOMBRE</th>
                         <th>CONTACTO</th>
+                        <th>CORREO DE ACCESO</th>
+                        <th>CONTRASEÑA</th>
                         <th>ESPECIALIZACIÓN</th>
                         <th>ESTADO</th>
                         <th class="text-end">ACCIONES</th>
@@ -80,14 +82,31 @@
                 </thead>
                 <tbody>
                     {% for colaborador in personal %}
-                        <tr data-filter-row data-status="{{ colaborador.is_active|yesno:'activo,inactivo' }}" data-category="{{ colaborador.especializacion_ids|join:',' }}" data-search="{{ colaborador.nombre }} {{ colaborador.segundo_nombre }} {{ colaborador.apellido_paterno }} {{ colaborador.apellido_materno }} {{ colaborador.email }} {{ colaborador.telefono }}">
+                        <tr data-filter-row data-status="{{ colaborador.is_active|yesno:'activo,inactivo' }}" data-category="{{ colaborador.especializacion_ids|join:',' }}" data-search="{{ colaborador.nombre }} {{ colaborador.segundo_nombre }} {{ colaborador.apellido_paterno }} {{ colaborador.apellido_materno }} {{ colaborador.correo_contacto }} {{ colaborador.email }} {{ colaborador.telefono }}">
                             <td class="fw-semibold text-dark">
                                 {{ colaborador.nombre }}{% if colaborador.segundo_nombre %} {{ colaborador.segundo_nombre }}{% endif %}
                                 {{ colaborador.apellido_paterno }} {{ colaborador.apellido_materno }}
                             </td>
                             <td>
-                                <a class="d-block text-decoration-none text-dark" href="mailto:{{ colaborador.email }}">{{ colaborador.email }}</a>
+                                <a class="d-block text-decoration-none text-dark" href="mailto:{{ colaborador.correo_contacto }}">{{ colaborador.correo_contacto }}</a>
                                 <span class="small text-muted">{{ colaborador.telefono }}</span>
+                            </td>
+                            <td class="text-nowrap">{{ colaborador.email }}</td>
+                            <td>
+                                {% if colaborador.has_usable_password %}
+                                    <span class="service-status is-active">Configurada</span>
+                                {% else %}
+                                    <span class="service-status is-inactive">Sin contraseña</span>
+                                {% endif %}
+                                <button
+                                    type="button"
+                                    class="btn btn-sm salon-btn-outline ms-1"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalContrasenaPersonal"
+                                    data-url="{% url 'restablecer_contrasena_personal' colaborador.pk %}"
+                                    data-nombre="{{ colaborador.nombre }} {{ colaborador.apellido_paterno }}">
+                                    Restablecer
+                                </button>
                             </td>
                             <td>
                                 {% for especialidad in colaborador.especialidades.all %}
@@ -116,7 +135,8 @@
                                     data-apellido-paterno="{{ colaborador.apellido_paterno }}"
                                     data-apellido-materno="{{ colaborador.apellido_materno }}"
                                     data-telefono="{{ colaborador.telefono }}"
-                                    data-email="{{ colaborador.email }}"
+                                    data-email="{{ colaborador.correo_contacto }}"
+                                    data-access-email="{{ colaborador.email|cut:'@nicolettstudio.cl' }}"
                                     data-especializaciones="{{ colaborador.especializacion_ids|join:',' }}">
                                     Editar
                                 </button>
@@ -139,18 +159,15 @@
                             </td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="5" class="text-center py-5 text-muted">Aún no hay personal registrado.</td></tr>
+                        <tr><td colspan="7" class="text-center py-5 text-muted">Aún no hay personal registrado.</td></tr>
                     {% endfor %}
-                    <tr data-filter-empty hidden><td colspan="5" class="text-center py-4 text-muted">No hay colaboradores que coincidan con los filtros.</td></tr>
+                    <tr data-filter-empty hidden><td colspan="7" class="text-center py-4 text-muted">No hay colaboradores que coincidan con los filtros.</td></tr>
                 </tbody>
             </table>
         </div>
             </div>
         </div>
     </div>
-    <p class="small text-muted mt-3">
-        Los colaboradores se guardan con el rol Colaborador y no reciben contraseña ni acceso a una vista de inicio de sesión.
-    </p>
 </div>
 
 <div class="modal fade salon-modal" id="modalPersonal" tabindex="-1" aria-labelledby="tituloModalPersonal" aria-hidden="true">
@@ -199,21 +216,68 @@
                                 <div class="col-md-6">
                                     <label class="form-label" for="{{ field.id_for_label }}">
                                         {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
+                                        {% if field.name == 'telefono' %}
+                                            <span class="field-help" tabindex="0" role="img" aria-label="El correo electrónico y el teléfono son datos de contacto. El correo de acceso es solo un identificador para iniciar sesión." title="El correo electrónico y el teléfono son datos de contacto. El correo de acceso es solo un identificador para iniciar sesión.">?</span>
+                                        {% elif field.name == 'correo_contacto' %}
+                                            <span class="field-help" tabindex="0" role="img" aria-label="El correo electrónico y el teléfono son datos de contacto. El correo de acceso es solo un identificador para iniciar sesión." title="El correo electrónico y el teléfono son datos de contacto. El correo de acceso es solo un identificador para iniciar sesión.">?</span>
+                                        {% elif field.name == 'email' %}
+                                            <span class="field-help" tabindex="0" role="img" aria-label="El correo de acceso es solo un identificador para iniciar sesión." title="El correo de acceso es solo un identificador para iniciar sesión.">?</span>
+                                        {% elif field.name == 'password' %}
+                                            <span class="field-help" tabindex="0" role="img" aria-label="La contraseña se guardará de forma segura y no podrá consultarse después." title="La contraseña se guardará de forma segura y no podrá consultarse después.">?</span>
+                                        {% endif %}
                                     </label>
-                                    {{ field }}
-                                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                    {% if field.name == 'email' %}
+                                        <div class="input-group">
+                                            {{ field }}
+                                            <span class="input-group-text access-email-domain">@nicolettstudio.cl</span>
+                                        </div>
+                                    {% else %}
+                                        {{ field }}
+                                    {% endif %}
                                     {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                                 </div>
                             {% endif %}
                         {% endfor %}
                     </div>
-                    <div class="form-text mt-3">El teléfono y el correo se usarán para contactar a la persona. Este registro no permite iniciar sesión.</div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn salon-btn-primary" id="btnGuardarPersonal">
                         {% if form_is_edit %}Guardar cambios{% else %}Guardar colaborador{% endif %}
                     </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade salon-modal" id="modalContrasenaPersonal" tabindex="-1" aria-labelledby="tituloModalContrasenaPersonal" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formContrasenaPersonal" method="post" action="{% if password_reset_target %}{% url 'restablecer_contrasena_personal' password_reset_target.pk %}{% endif %}" data-server-errors="{% if password_reset_target %}true{% else %}false{% endif %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <div>
+                        <h2 class="modal-title h5" id="tituloModalContrasenaPersonal">Restablecer contraseña</h2>
+                        <p class="small text-muted mb-0" id="detalleModalContrasenaPersonal">
+                            {% if password_reset_target %}Nueva contraseña para {{ password_reset_target.nombre }}.{% else %}Establece una nueva contraseña de acceso.{% endif %}
+                        </p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    {% for error in password_reset_form.non_field_errors %}<div class="text-danger small mb-2">{{ error }}</div>{% endfor %}
+                    {% for field in password_reset_form %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn salon-btn-primary">Guardar contraseña</button>
                 </div>
             </form>
         </div>
@@ -268,16 +332,45 @@ document.addEventListener('DOMContentLoaded', () => {
         apellido_paterno: document.getElementById('id_apellido_paterno'),
         apellido_materno: document.getElementById('id_apellido_materno'),
         telefono: document.getElementById('id_telefono'),
-        email: document.getElementById('id_email')
+        correo_contacto: document.getElementById('id_correo_contacto'),
+        email: document.getElementById('id_email'),
     };
     const saveButton = document.getElementById('btnGuardarPersonal');
     const specialties = form.querySelectorAll('input[name="especializaciones"]');
+    let accessEmailCustomized = false;
+
+    function suggestAccessEmail() {
+        const normalize = (value) => (value || '')
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '');
+        const firstName = normalize(inputs.nombre.value.trim().split(/\s+/)[0]);
+        const firstSurname = normalize(inputs.apellido_paterno.value.trim().split(/\s+/)[0]);
+        const secondSurname = normalize(inputs.apellido_materno.value.trim());
+        if (firstName && firstSurname && secondSurname) {
+            inputs.email.value = `${firstName[0]}${firstSurname[0]}.${secondSurname}`;
+        } else {
+            inputs.email.value = '';
+        }
+    }
+
+    [inputs.nombre, inputs.apellido_paterno, inputs.apellido_materno].forEach((input) => {
+        input.addEventListener('input', () => {
+            if (!accessEmailCustomized) suggestAccessEmail();
+        });
+    });
+    inputs.email.addEventListener('input', () => {
+        accessEmailCustomized = Boolean(inputs.email.value.trim());
+        if (!accessEmailCustomized) suggestAccessEmail();
+    });
 
     modal.addEventListener('show.bs.modal', (event) => {
         const trigger = event.relatedTarget;
         if (!trigger && hasServerErrors) return;
         const isEdit = trigger && trigger.dataset.mode === 'edit';
         form.reset();
+        accessEmailCustomized = false;
         form.action = isEdit ? trigger.dataset.url : createUrl;
         document.getElementById('tituloModalPersonal').textContent = isEdit ? 'Editar colaborador' : 'Añadir colaborador';
         saveButton.textContent = isEdit ? 'Guardar cambios' : 'Guardar colaborador';
@@ -287,14 +380,30 @@ document.addEventListener('DOMContentLoaded', () => {
             inputs.apellido_paterno.value = trigger.dataset.apellidoPaterno;
             inputs.apellido_materno.value = trigger.dataset.apellidoMaterno;
             inputs.telefono.value = trigger.dataset.telefono;
-            inputs.email.value = trigger.dataset.email;
+            inputs.correo_contacto.value = trigger.dataset.email;
+            inputs.email.value = trigger.dataset.accessEmail;
+            accessEmailCustomized = true;
             const selectedCategories = new Set(
                 (trigger.dataset.especializaciones || '').split(',').filter(Boolean),
             );
             specialties.forEach((specialty) => {
                 specialty.checked = selectedCategories.has(specialty.value);
             });
+        } else {
+            suggestAccessEmail();
         }
+    });
+
+    const passwordModal = document.getElementById('modalContrasenaPersonal');
+    const passwordForm = document.getElementById('formContrasenaPersonal');
+    passwordModal.addEventListener('show.bs.modal', (event) => {
+        const trigger = event.relatedTarget;
+        if (!trigger && passwordForm.dataset.serverErrors === 'true') return;
+        passwordForm.reset();
+        passwordForm.dataset.serverErrors = 'false';
+        passwordForm.action = trigger.dataset.url;
+        document.getElementById('detalleModalContrasenaPersonal').textContent =
+            `Establece una nueva contraseña para ${trigger.dataset.nombre}.`;
     });
 
     const deleteModal = document.getElementById('modalEliminarPersonal');
@@ -355,6 +464,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     });
     if (hasServerErrors) bootstrap.Modal.getOrCreateInstance(modal).show();
+    if (passwordForm.dataset.serverErrors === 'true') {
+        bootstrap.Modal.getOrCreateInstance(passwordModal).show();
+    }
 });
 </script>
 {% endblock %}

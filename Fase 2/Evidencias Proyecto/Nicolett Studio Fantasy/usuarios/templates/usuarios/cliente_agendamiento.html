@@ -119,26 +119,27 @@
                         button.type = 'button';
                         button.textContent = day.day;
                         button.dataset.date = day.date;
+                        button.title = day.tooltip;
                         button.className = 'relative min-h-10 border text-sm transition';
                         if (!day.in_month) {
                             button.disabled = true;
                             button.classList.add('invisible');
                         } else if (day.past) {
                             button.classList.add('border-transparent', 'text-[#ead7bc]', 'line-through', 'decoration-2');
-                            button.setAttribute('aria-label', `${day.date}, fecha pasada`);
+                            button.setAttribute('aria-label', `${day.date}, ${day.tooltip}`);
                         } else if (day.closed) {
                             button.classList.add('border-red-200', 'bg-[#fae9e6]', 'text-[#a84a3f]', 'line-through', 'decoration-2');
-                            button.setAttribute('aria-label', `${day.date}, día bloqueado`);
+                            button.setAttribute('aria-label', `${day.date}, ${day.tooltip}`);
                         } else if (day.available) {
                             button.classList.add('border-[#d9e9d4]', 'bg-[#edf5e9]', 'font-medium', 'text-[#4e7d45]', 'hover:bg-[#e0edd9]');
                             const dot = document.createElement('span');
                             dot.className = 'absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#6b9b5b]';
                             dot.setAttribute('aria-hidden', 'true');
                             button.append(dot);
-                            button.setAttribute('aria-label', `${day.date}, horas disponibles`);
+                            button.setAttribute('aria-label', `${day.date}, ${day.tooltip}`);
                         } else {
                             button.classList.add('border-[#ead7bc]', 'bg-gray-100', 'text-[#6b5643]');
-                            button.setAttribute('aria-label', `${day.date}, no disponible`);
+                            button.setAttribute('aria-label', `${day.date}, ${day.tooltip}`);
                         }
                         if (day.date === dateInput.value && day.in_month) {
                             button.classList.add('ring-2', 'ring-[#5a3e27]', 'ring-offset-1');

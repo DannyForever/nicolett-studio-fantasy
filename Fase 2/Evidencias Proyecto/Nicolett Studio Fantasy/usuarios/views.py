@@ -16,6 +16,7 @@ from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.db.models import QuerySet
 from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.template.loader import render_to_string
@@ -23,7 +24,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from agenda.models import HistorialReserva, Reserva
 from agenda.views import servicios_con_horarios_disponibles
@@ -32,7 +33,7 @@ from panel_admin.models import Producto, Servicio
 
 from .forms import ClienteCambiarContrasenaForm, ClienteConfiguracionForm
 from .models import Rol, Usuario
-from .permissions import es_administrador, es_cliente
+from .permissions import es_administrador, es_cliente, es_colaborador
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +115,8 @@ def login_view(request):
         if es_cliente(usuario):
             enviar_aviso_inicio_sesion(request, usuario)
             return redirect('cliente_home')
+        if es_colaborador(usuario):
+            return redirect('colaborador_mi_agenda')
         return render(
             request,
             'usuarios/acceso_denegado.html',
@@ -548,23 +551,64 @@ def _url_whatsapp(numero, mensaje):
     return f'https://wa.me/{numero}?text={quote(mensaje, safe="")}'
 
 
+def _admin_en_vista_cliente(request):
+    return (
+        request.user.is_authenticated
+        and request.user.is_active
+        and es_administrador(request.user)
+        and request.session.get('admin_vista_cliente') is True
+    )
+
+
+def _colaborador_en_vista_cliente(request):
+    return (
+        request.user.is_authenticated
+        and request.user.is_active
+        and es_colaborador(request.user)
+        and request.session.get('colaborador_vista_cliente') is True
+    )
+
+
+def _usuario_en_vista_cliente(request):
+    return _admin_en_vista_cliente(request) or _colaborador_en_vista_cliente(request)
+
+
 def _vista_cliente(request, template, context=None):
     if not request.user.is_authenticated:
         return redirect('login')
-    if not request.user.is_active or not es_cliente(request.user):
+    contexto = context.copy() if context else {}
+    vista_previa = _usuario_en_vista_cliente(request)
+    vista_admin_existente = contexto.get('vista_admin', False)
+    paginas_previsualizables = {
+        'cliente_home',
+        'cliente_sobre_nosotros',
+        'cliente_servicios',
+        'cliente_productos',
+    }
+    if vista_previa and getattr(request.resolver_match, 'url_name', '') not in paginas_previsualizables:
+        return render(request, 'usuarios/acceso_denegado.html', status=403)
+    if not request.user.is_active or not (
+        es_cliente(request.user) or vista_previa or vista_admin_existente
+    ):
         return render(
             request,
             'usuarios/acceso_denegado.html',
             status=403,
         )
-    from carrito.views import _liberar_reservas_vencidas, resumen_carrito
+    if vista_previa:
+        contexto['vista_previa_admin'] = True
+        contexto['vista_previa_colaborador'] = _colaborador_en_vista_cliente(request)
+        contexto['resumen_carrito'] = []
+        contexto['total_resumen_carrito'] = 0
+        contexto['cantidad_articulos_carrito'] = 0
+    elif es_cliente(request.user):
+        from carrito.views import _liberar_reservas_vencidas, resumen_carrito
 
-    _liberar_reservas_vencidas(request)
-    contexto = context.copy() if context else {}
-    contexto['resumen_carrito'], contexto['total_resumen_carrito'] = resumen_carrito(request)
-    contexto['cantidad_articulos_carrito'] = sum(
-        item['cantidad'] for item in contexto['resumen_carrito']
-    )
+        _liberar_reservas_vencidas(request)
+        contexto['resumen_carrito'], contexto['total_resumen_carrito'] = resumen_carrito(request)
+        contexto['cantidad_articulos_carrito'] = sum(
+            item['cantidad'] for item in contexto['resumen_carrito']
+        )
     nombre_cliente = _nombre_completo_whatsapp(request.user)
     mensaje_cliente = (
         f'Hola, soy {nombre_cliente}. Estoy revisando los servicios y productos de '
@@ -609,13 +653,131 @@ def _vista_cliente(request, template, context=None):
 def cliente_home_view(request):
     if not request.user.is_authenticated:
         return redirect('login')
-    if not request.user.is_active or not es_cliente(request.user):
+    if not request.user.is_active or not (
+        es_cliente(request.user) or _usuario_en_vista_cliente(request)
+    ):
         return render(
             request,
             'usuarios/acceso_denegado.html',
             status=403,
         )
     return _vista_cliente(request, 'usuarios/cliente_sobre_nosotros.html')
+
+
+@never_cache
+def iniciar_vista_cliente_admin(request):
+    if not request.user.is_authenticated or not (
+        es_administrador(request.user) or es_colaborador(request.user)
+    ):
+        return render(request, 'usuarios/acceso_denegado.html', status=403)
+    if es_colaborador(request.user):
+        request.session['colaborador_vista_cliente'] = True
+    else:
+        request.session['admin_vista_cliente'] = True
+    return redirect('cliente_home')
+
+
+@never_cache
+def salir_vista_cliente_admin(request):
+    if not request.user.is_authenticated or not (
+        es_administrador(request.user) or es_colaborador(request.user)
+    ):
+        return render(request, 'usuarios/acceso_denegado.html', status=403)
+    if es_colaborador(request.user):
+        request.session.pop('colaborador_vista_cliente', None)
+        return redirect('colaborador_mi_agenda')
+    request.session.pop('admin_vista_cliente', None)
+    return redirect('admin_dashboard')
+
+
+def _normalizar_busqueda(texto):
+    texto = unicodedata.normalize('NFD', texto)
+    return ''.join(
+        caracter for caracter in texto
+        if not unicodedata.combining(caracter)
+    ).casefold()
+
+
+@require_GET
+def sugerencias_busqueda_cliente(request):
+    permitido = (
+        request.user.is_authenticated
+        and request.user.is_active
+        and (es_cliente(request.user) or _usuario_en_vista_cliente(request))
+    )
+    if not permitido:
+        return JsonResponse({'results': [], 'error': 'Debes iniciar sesión para buscar.'}, status=403)
+
+    query = request.GET.get('q', '').strip()[:100]
+    if len(query) < 2:
+        return JsonResponse({'results': []})
+    query_normalizada = _normalizar_busqueda(query)
+    terminos = query_normalizada.split()
+    resultados = []
+
+    secciones = [
+        ('Nosotras', 'Conoce Nicolett Studio Fantasy', reverse('cliente_home'), 'seccion'),
+        ('Servicios y citas', 'Explora los servicios disponibles', reverse('cliente_servicios'), 'seccion'),
+        ('Productos', 'Revisa productos disponibles', reverse('cliente_productos'), 'seccion'),
+        ('Mis citas', 'Consulta tus próximas citas e historial', reverse('cliente_gestionar_citas'), 'seccion'),
+        ('Historial de pagos', 'Revisa tus pagos y compras', reverse('cliente_historial_pagos'), 'seccion'),
+        ('Configuración', 'Datos personales, direcciones y contraseña', reverse('cliente_configuracion'), 'seccion'),
+        ('Direcciones de envío', 'Administra tus direcciones de despacho', f"{reverse('cliente_configuracion')}#direcciones-envio", 'seccion'),
+        ('Direcciones de facturación', 'Administra tus datos de facturación', f"{reverse('cliente_configuracion')}#direcciones-facturacion", 'seccion'),
+        ('Datos de contacto', 'Actualiza tu información personal', f"{reverse('cliente_configuracion')}#datos-contacto", 'seccion'),
+        ('Cambiar contraseña', 'Actualiza la contraseña de tu cuenta', f"{reverse('cliente_configuracion')}#cambiar-contrasena", 'seccion'),
+    ]
+    for titulo, descripcion, url, tipo in secciones:
+        if _usuario_en_vista_cliente(request) and titulo in {
+            'Mis citas',
+            'Historial de pagos',
+            'Configuración',
+            'Direcciones de envío',
+            'Direcciones de facturación',
+            'Datos de contacto',
+            'Cambiar contraseña',
+        }:
+            continue
+        contenido = _normalizar_busqueda(f'{titulo} {descripcion}')
+        if all(termino in contenido for termino in terminos):
+            resultados.append({
+                'title': titulo,
+                'description': descripcion,
+                'url': url,
+                'type': tipo,
+            })
+
+    if not _usuario_en_vista_cliente(request):
+        servicios = Servicio.objects.filter(activo=True).select_related('categoria')
+        for servicio in servicios:
+            contenido = _normalizar_busqueda(
+                f'{servicio.nombre} {servicio.categoria.nombre} {servicio.descripcion or ""}'
+            )
+            if all(termino in contenido for termino in terminos):
+                resultados.append({
+                    'title': servicio.nombre,
+                    'description': f'Servicio · {servicio.categoria.nombre}',
+                    'url': f"{reverse('cliente_servicios')}#servicio-{servicio.pk}",
+                    'type': 'servicio',
+                })
+
+        productos = Producto.objects.filter(
+            activo=True,
+            stock__gt=0,
+        ).select_related('categoria')
+        for producto in productos:
+            contenido = _normalizar_busqueda(
+                f'{producto.nombre} {producto.categoria.nombre} {producto.descripcion or ""}'
+            )
+            if all(termino in contenido for termino in terminos):
+                resultados.append({
+                    'title': producto.nombre,
+                    'description': f'Producto · {producto.categoria.nombre}',
+                    'url': f"{reverse('cliente_productos')}#producto-{producto.pk}",
+                    'type': 'producto',
+                })
+
+    return JsonResponse({'results': resultados[:8]})
 
 
 @never_cache
@@ -849,6 +1011,10 @@ def cliente_historial_pagos_view(request):
 
 @never_cache
 def cliente_configuracion_view(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    if not request.user.is_active or not es_cliente(request.user):
+        return render(request, 'usuarios/acceso_denegado.html', status=403)
     datos_cliente = {
         'nombre': request.user.nombre,
         'segundo_nombre': request.user.segundo_nombre,
@@ -892,6 +1058,10 @@ def cliente_configuracion_view(request):
 @never_cache
 @require_POST
 def cliente_eliminar_cuenta_view(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    if not request.user.is_active or not es_cliente(request.user):
+        return render(request, 'usuarios/acceso_denegado.html', status=403)
     if request.POST.get('confirmar') != 'eliminar':
         messages.error(request, 'Confirma la eliminación de la cuenta para continuar.')
         return redirect('cliente_configuracion')

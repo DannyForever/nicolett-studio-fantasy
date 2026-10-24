@@ -692,7 +692,7 @@ def _enviar_confirmacion_pedido(request, pedido):
             lineas.append(f'- Producto: {detalle.nombre} x{detalle.cantidad}.')
     lineas.extend((
         '',
-        'Puedes cancelar o re-agendar tus citas desde Gestionar citas:',
+        'Puedes cancelar o re-agendar tus citas desde Mis citas:',
         request.build_absolute_uri(reverse('cliente_gestionar_citas')),
     ))
     send_mail(
@@ -974,13 +974,13 @@ def pagar_carrito(request):
         messages.warning(
             request,
             'El pago y la cita se registraron, pero no se pudo enviar el correo. '
-            'Puedes revisar los datos en Gestionar citas.',
+            'Puedes revisar los datos en Mis citas.',
         )
     else:
         messages.success(
             request,
             'Pago y cita registrados correctamente. Enviamos la confirmación a tu correo; '
-            'también puedes gestionar la cita desde Gestionar citas.',
+            'también puedes gestionar la cita desde Mis citas.',
         )
     return redirect('cliente_compra_resultado', pk=pedido.pk)
 

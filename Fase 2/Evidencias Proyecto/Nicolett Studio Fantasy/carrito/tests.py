@@ -385,7 +385,7 @@ class CarritoTests(TestCase):
         self.assertIn(reverse('cliente_gestionar_citas'), mail.outbox[0].body)
         resultado = self.client.get(reverse('cliente_compra_resultado', args=[pedido.pk]))
         self.assertContains(resultado, 'citas incluidas en esta compra quedaron confirmadas')
-        self.assertContains(resultado, 'Gestionar citas')
+        self.assertContains(resultado, 'Mis citas')
 
     def test_mixed_checkout_records_products_services_and_paid_amount_for_admin(self):
         self.client.post(

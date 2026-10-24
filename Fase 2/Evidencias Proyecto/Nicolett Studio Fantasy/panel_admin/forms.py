@@ -3,8 +3,11 @@ import re
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import BaseUserManager
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .models import Categoria, Producto, Servicio
+from usuarios.utils import normalizar_correo_acceso
 
 Usuario = get_user_model()
 
@@ -200,6 +203,31 @@ class CategoriaForm(forms.ModelForm):
 
 
 class PersonalForm(forms.ModelForm):
+    email = forms.CharField(
+        label='Correo de acceso',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'off',
+            'inputmode': 'email',
+        }),
+    )
+    password = forms.CharField(
+        label='Contraseña',
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'new-password',
+        }),
+    )
+    confirmar_password = forms.CharField(
+        label='Confirmar contraseña',
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'new-password',
+        }),
+    )
     especializaciones = forms.ModelMultipleChoiceField(
         queryset=Categoria.objects.none(),
         label='Categorías de especialización',
@@ -215,6 +243,7 @@ class PersonalForm(forms.ModelForm):
             'apellido_paterno',
             'apellido_materno',
             'telefono',
+            'correo_contacto',
             'email',
         )
         labels = {
@@ -223,7 +252,8 @@ class PersonalForm(forms.ModelForm):
             'apellido_paterno': 'Apellido paterno',
             'apellido_materno': 'Apellido materno',
             'telefono': 'Teléfono',
-            'email': 'Correo electrónico',
+            'correo_contacto': 'Correo electrónico personal',
+            'email': 'Correo de acceso',
         }
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'given-name'}),
@@ -234,7 +264,10 @@ class PersonalForm(forms.ModelForm):
                 'class': 'form-control',
                 'autocomplete': 'tel',
             }),
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'autocomplete': 'email'}),
+            'correo_contacto': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'autocomplete': 'email',
+            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -242,14 +275,64 @@ class PersonalForm(forms.ModelForm):
         self.fields['especializaciones'].queryset = Categoria.objects.filter(
             activa=True,
         ).order_by('nombre')
+        self.fields['correo_contacto'].required = True
+        self.order_fields([
+            'nombre',
+            'segundo_nombre',
+            'apellido_paterno',
+            'apellido_materno',
+            'telefono',
+            'correo_contacto',
+            'email',
+            'password',
+            'confirmar_password',
+            'especializaciones',
+        ])
         if self.instance.pk:
             self.fields['especializaciones'].initial = self.instance.especialidades.values_list(
                 'categoria_id',
                 flat=True,
             )
+            self.initial['email'] = self.instance.email.partition('@')[0]
+            self.fields['password'].required = False
+            self.fields['confirmar_password'].required = False
+            self.fields['password'].help_text = (
+                'Déjala en blanco para conservar la contraseña actual.'
+            )
 
     def clean_email(self):
-        return BaseUserManager.normalize_email(self.cleaned_data['email'].strip())
+        try:
+            return normalizar_correo_acceso(
+                self.cleaned_data['email'],
+                self.cleaned_data.get('nombre', ''),
+                self.cleaned_data.get('apellido_paterno', ''),
+                self.cleaned_data.get('apellido_materno', ''),
+                excluir_pk=self.instance.pk,
+            )
+        except DjangoValidationError as error:
+            raise forms.ValidationError(error.messages) from error
+
+    def clean_correo_contacto(self):
+        return BaseUserManager.normalize_email(self.cleaned_data['correo_contacto'].strip())
+
+    def clean_password(self):
+        password = self.cleaned_data.get('password')
+        if not password:
+            return password
+        try:
+            validate_password(password, self.instance if self.instance.pk else None)
+        except DjangoValidationError as error:
+            raise forms.ValidationError(error.messages) from error
+        return password
+
+    def clean(self):
+        cleaned = super().clean()
+        password = cleaned.get('password')
+        confirmation = cleaned.get('confirmar_password')
+        if password or confirmation:
+            if password != confirmation:
+                self.add_error('confirmar_password', 'Las contraseñas no coinciden.')
+        return cleaned
 
     def clean_telefono(self):
         telefono = self.cleaned_data['telefono'].strip()
@@ -282,6 +365,15 @@ class PersonalForm(forms.ModelForm):
 
 
 class AdminProfileForm(forms.ModelForm):
+    email = forms.CharField(
+        label='Correo de acceso',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'off',
+        }),
+    )
+
     class Meta:
         model = Usuario
         fields = (
@@ -289,6 +381,7 @@ class AdminProfileForm(forms.ModelForm):
             'segundo_nombre',
             'apellido_paterno',
             'apellido_materno',
+            'correo_contacto',
             'email',
         )
         labels = {
@@ -296,21 +389,83 @@ class AdminProfileForm(forms.ModelForm):
             'segundo_nombre': 'Segundo nombre (opcional)',
             'apellido_paterno': 'Apellido paterno',
             'apellido_materno': 'Apellido materno',
-            'email': 'Correo electrónico',
+            'correo_contacto': 'Correo electrónico',
+            'email': 'Correo de acceso',
         }
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'given-name'}),
             'segundo_nombre': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'additional-name'}),
             'apellido_paterno': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'family-name'}),
             'apellido_materno': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'family-name'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'autocomplete': 'email'}),
+            'correo_contacto': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'autocomplete': 'email',
+            }),
+            'email': forms.TextInput(attrs={
+                'class': 'form-control',
+                'autocomplete': 'off',
+            }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['correo_contacto'].required = True
+        if self.instance.pk:
+            self.initial['email'] = self.instance.email.partition('@')[0]
+
+    def clean_correo_contacto(self):
+        return BaseUserManager.normalize_email(self.cleaned_data['correo_contacto'].strip())
+
     def clean_email(self):
-        email = BaseUserManager.normalize_email(self.cleaned_data['email'].strip())
-        if Usuario.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
-            raise forms.ValidationError('Ya existe una cuenta con este correo electrónico.')
-        return email
+        try:
+            return normalizar_correo_acceso(
+                self.cleaned_data['email'],
+                self.cleaned_data.get('nombre', ''),
+                self.cleaned_data.get('apellido_paterno', ''),
+                self.cleaned_data.get('apellido_materno', ''),
+                excluir_pk=self.instance.pk,
+            )
+        except DjangoValidationError as error:
+            raise forms.ValidationError(error.messages) from error
+
+
+class ColaboradorPasswordResetForm(forms.Form):
+    password = forms.CharField(
+        label='Nueva contraseña',
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'new-password',
+        }),
+    )
+    confirmar_password = forms.CharField(
+        label='Confirmar contraseña',
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'new-password',
+        }),
+    )
+
+    def __init__(self, usuario, *args, **kwargs):
+        self.usuario = usuario
+        super().__init__(*args, **kwargs)
+
+    def clean_password(self):
+        password = self.cleaned_data['password']
+        try:
+            validate_password(password, self.usuario)
+        except DjangoValidationError as error:
+            raise forms.ValidationError(error.messages) from error
+        return password
+
+    def clean(self):
+        cleaned = super().clean()
+        password = cleaned.get('password')
+        confirmation = cleaned.get('confirmar_password')
+        if password and confirmation and password != confirmation:
+            self.add_error('confirmar_password', 'Las contraseñas no coinciden.')
+        return cleaned
 
 
 class AdminPasswordChangeForm(forms.Form):

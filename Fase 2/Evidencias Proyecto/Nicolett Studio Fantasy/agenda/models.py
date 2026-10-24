@@ -61,6 +61,7 @@ class Reserva(models.Model):
     ]
     ORIGENES = [
         ('manual', 'Agendada por administración'),
+        ('personal', 'Agendada por personal'),
         ('cliente', 'Agendada por cliente'),
     ]
 

@@ -1,0 +1,77 @@
+{% extends 'panel_admin/base_dashboard.html' %}
+
+{% block title %}Mi agenda | Nicolett Studio{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0 services-page">
+    <div class="mb-4">
+        <h1 class="h3 mb-1 text-dark">Mi agenda</h1>
+        <p class="text-muted mb-0">Consulta tus próximas citas y la disponibilidad de servicios asignada.</p>
+    </div>
+    <section class="card-stat mb-4" aria-label="Disponibilidad de servicios">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="h5 text-capitalize mb-0">{{ calendario_mes.label }}</h2>
+            <div class="d-flex gap-2">
+                <a class="btn salon-btn-outline btn-sm" href="{% url 'colaborador_mi_agenda' %}?mes={{ calendario_mes.previous|date:'Y-m' }}" aria-label="Mes anterior">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <a class="btn salon-btn-outline btn-sm" href="{% url 'colaborador_mi_agenda' %}?mes={{ calendario_mes.next|date:'Y-m' }}" aria-label="Mes siguiente">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="agenda-calendar agenda-calendar-single">
+            {% for dia_nombre in dia_labels %}<span class="agenda-weekday">{{ dia_nombre }}</span>{% endfor %}
+            {% for semana in calendario_mes.weeks %}
+                {% for dia in semana %}
+                    {% if dia.in_month %}
+                        <span class="agenda-day{% if dia.enabled %} is-enabled{% endif %}{% if dia.closed %} is-closed{% endif %}{% if dia.has_configured_slots and not dia.enabled and not dia.closed and dia.date >= hoy %} is-full{% endif %}{% if dia.date < hoy %} is-past{% endif %}"
+                            tabindex="0"
+                            aria-label="{{ dia.date|date:'d-m-Y' }}. {{ dia.tooltip }}"
+                            title="{{ dia.tooltip }}">
+                            {{ dia.date.day }}
+                            {% if dia.enabled %}<span class="agenda-availability-dot" aria-hidden="true"></span>{% endif %}
+                        </span>
+                    {% else %}
+                        <span class="agenda-day is-outside">{{ dia.date.day }}</span>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+        <div class="small text-muted mt-3">
+            <span class="agenda-availability-dot"></span> Horas disponibles
+            <span class="agenda-legend is-closed ms-3"></span> Día bloqueado
+        </div>
+    </section>
+    <div class="card services-table-card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>FECHA Y HORA</th>
+                        <th>CLIENTE</th>
+                        <th>SERVICIO</th>
+                        <th>DURACIÓN</th>
+                        <th>ESTADO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cita in citas %}
+                        <tr>
+                            <td>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</td>
+                            <td>{{ cita.nombre_cliente|default:"Cliente" }}</td>
+                            <td>{% if cita.servicio_nombre %}{{ cita.servicio_nombre }}{% elif cita.servicio %}{{ cita.servicio.nombre }}{% else %}Servicio{% endif %}</td>
+                            <td>{{ cita.duracion_minutos }} min</td>
+                            <td>{{ cita.get_estado_display }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="py-5 text-center text-muted">No tienes próximas citas asignadas.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 {% load moneda %}
-<div class="mx-2 mb-2 mt-3 border-t border-[#ead7bc] pt-3">
+<div id="servicio-{{ servicio.pk }}" class="mx-2 mb-2 mt-3 border-t border-[#ead7bc] pt-3">
     {% if servicio.nombre != hide_service_heading %}
         <div class="flex items-center justify-between gap-2">
             <p class="font-semibold text-[#281b14]">{{ servicio.nombre }}</p>
@@ -17,7 +17,7 @@
         <span class="font-medium">{% if service_price_prefix %}{{ service_price_prefix }} {% endif %}{{ servicio.precio|pesos }}</span>
         <span class="text-[#6b5643]">{% if service_duration_label %}{{ service_duration_label }}{% else %}{{ servicio.duracion_minutos }} min{% endif %}</span>
     </p>
-    {% if not vista_admin %}
+    {% if not vista_admin and not vista_previa_admin %}
         {% if booking_cta %}
             <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="mt-3 block w-full bg-[#5a3e27] px-4 py-2.5 text-center text-sm font-medium text-white no-underline transition hover:bg-[#4b301b]">
                 {{ booking_cta_label|default:'TOMAR CITAS' }}

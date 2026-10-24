@@ -222,7 +222,7 @@
     {% if titulo == 'Productos' %}
         <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Productos disponibles">
             {% for producto in productos %}
-                <article data-catalog-item data-categories="{{ producto.categoria.nombre }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#ead7bc] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#bd8c43] hover:bg-[#ffffff] focus-within:z-10 focus-within:border-[#bd8c43]">
+                <article id="producto-{{ producto.pk }}" data-catalog-item data-categories="{{ producto.categoria.nombre }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#ead7bc] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#bd8c43] hover:bg-[#ffffff] focus-within:z-10 focus-within:border-[#bd8c43]">
                     {% if producto.imagen_url %}
                         <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" class="h-40 w-full bg-[#fae9cf] object-cover">
                     {% else %}
@@ -258,22 +258,26 @@
                         <p class="mb-2 text-xs uppercase tracking-widest text-[#6b5643]">{{ producto.categoria.nombre }}</p>
                         <div class="mb-2 flex items-center justify-between gap-2">
                             <h2 class="font-serif text-xl">{{ producto.nombre }}</h2>
-                            <a href="{{ producto.whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre {{ producto.nombre }}" title="Consultar por WhatsApp sobre {{ producto.nombre }}" class="shrink-0 text-xl text-[#25D366]">
-                                <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
-                            </a>
+                            {% if not vista_previa_admin %}
+                                <a href="{{ producto.whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre {{ producto.nombre }}" title="Consultar por WhatsApp sobre {{ producto.nombre }}" class="shrink-0 text-xl text-[#25D366]">
+                                    <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+                                </a>
+                            {% endif %}
                         </div>
                         <div class="mt-auto flex items-center justify-between text-sm">
                             <span class="font-medium">{{ producto.precio|pesos }}</span>
                             <span class="text-[#6b5643]">{% if producto.stock > 0 %}{{ producto.stock }} disponibles{% else %}Agotado{% endif %}</span>
                         </div>
-                        <form method="post" action="{% url 'cliente_carrito_agregar_producto' producto.pk %}" class="mt-4 flex items-center gap-3">
-                            {% csrf_token %}
-                            <label for="cantidad-{{ producto.pk }}" class="sr-only">Cantidad de {{ producto.nombre }}</label>
-                            <input id="cantidad-{{ producto.pk }}" name="cantidad" type="number" min="1" max="{{ producto.stock }}" value="1" required {% if producto.stock < 1 %}disabled{% endif %} class="w-20 border border-[#ead7bc] px-3 py-3 text-sm">
-                            <button type="submit" {% if producto.stock < 1 %}disabled{% endif %} class="flex-1 bg-[#5a3e27] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#5a3e27] disabled:cursor-not-allowed disabled:opacity-50">
-                                <i class="fa-solid fa-cart-plus mr-2"></i>Añadir al carrito
-                            </button>
-                        </form>
+                        {% if not vista_previa_admin %}
+                            <form method="post" action="{% url 'cliente_carrito_agregar_producto' producto.pk %}" class="mt-4 flex items-center gap-3">
+                                {% csrf_token %}
+                                <label for="cantidad-{{ producto.pk }}" class="sr-only">Cantidad de {{ producto.nombre }}</label>
+                                <input id="cantidad-{{ producto.pk }}" name="cantidad" type="number" min="1" max="{{ producto.stock }}" value="1" required {% if producto.stock < 1 %}disabled{% endif %} class="w-20 border border-[#ead7bc] px-3 py-3 text-sm">
+                                <button type="submit" {% if producto.stock < 1 %}disabled{% endif %} class="flex-1 bg-[#5a3e27] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#5a3e27] disabled:cursor-not-allowed disabled:opacity-50">
+                                    <i class="fa-solid fa-cart-plus mr-2"></i>Añadir al carrito
+                                </button>
+                            </form>
+                        {% endif %}
                     </div>
                 </article>
             {% empty %}

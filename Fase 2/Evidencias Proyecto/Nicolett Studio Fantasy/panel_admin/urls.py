@@ -2,6 +2,7 @@ from django.urls import path
 from django.urls import include
 from . import views
 from fichas.views import ficha_tecnica_pdf
+from agenda.views import gestion_citas_admin
 
 urlpatterns = [
     # Vista principal / Resumen del panel
@@ -28,6 +29,7 @@ urlpatterns = [
     path('productos/estado/<int:pk>/', views.cambiar_estado_producto, name='cambiar_estado_producto'),
 
     # 3. Agenda, Citas e Historial
+    path('citas/', gestion_citas_admin, name='admin_citas'),
     path('agenda/', include('agenda.urls')),
     path(
         'agenda/ficha-tecnica/<int:cliente_id>/',
@@ -55,8 +57,11 @@ urlpatterns = [
     path('personal/', views.lista_personal, name='admin_personal'),
     path('personal/crear/', views.crear_personal, name='crear_personal'),
     path('personal/editar/<int:pk>/', views.editar_personal, name='editar_personal'),
+    path('personal/<int:pk>/contrasena/', views.restablecer_contrasena_personal, name='restablecer_contrasena_personal'),
     path('personal/eliminar/<int:pk>/', views.eliminar_personal, name='eliminar_personal'),
     path('personal/desactivar/<int:pk>/', views.desactivar_personal, name='desactivar_personal'),
+    path('mi-agenda/', views.colaborador_mi_agenda, name='colaborador_mi_agenda'),
+    path('mi-configuracion/', views.configuracion_admin, name='colaborador_configuracion'),
 
     # Configuración de la cuenta administrativa activa
     path('configuracion/', views.configuracion_admin, name='admin_configuracion'),

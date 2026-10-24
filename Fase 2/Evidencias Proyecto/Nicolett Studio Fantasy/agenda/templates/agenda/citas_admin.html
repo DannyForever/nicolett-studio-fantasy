@@ -1,0 +1,321 @@
+{% extends 'panel_admin/base_dashboard.html' %}
+
+{% block title %}{% if es_colaborador %}Mis citas{% else %}Citas{% endif %} | Nicolett Studio{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1">{% if es_colaborador %}Mis citas{% else %}Citas{% endif %}</h1>
+        <p class="text-muted mb-0">Consulta y administra las reservas de clientes y citas presenciales.</p>
+    </div>
+    <button class="btn salon-btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#modalNuevaCita">
+        <i class="fas fa-plus me-2"></i>Agendar cita presencial
+    </button>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<section class="card-stat">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <form method="get" class="row g-2 align-items-end citas-filters w-100">
+            <div class="col-md-6 col-xl-4">
+                <label class="form-label small mb-1" for="filtroTexto">Buscar</label>
+                <input id="filtroTexto" class="form-control form-control-sm" type="search" name="q" value="{{ busqueda }}" placeholder="{% if es_colaborador %}Cliente, correo o servicio{% else %}Cliente, correo, servicio o profesional{% endif %}">
+            </div>
+            <div class="col-sm-6 col-md-3 col-xl-2">
+                <label class="form-label small mb-1" for="filtroFecha">Día exacto</label>
+                <input id="filtroFecha" class="form-control form-control-sm" type="date" name="fecha" value="{{ filtro_fecha }}">
+            </div>
+            <div class="col-sm-6 col-md-3 col-xl-2">
+                <label class="form-label small mb-1" for="filtroDesde">Desde</label>
+                <input id="filtroDesde" class="form-control form-control-sm" type="date" name="desde" value="{{ filtro_desde }}">
+            </div>
+            <div class="col-sm-6 col-md-3 col-xl-2">
+                <label class="form-label small mb-1" for="filtroHasta">Hasta</label>
+                <input id="filtroHasta" class="form-control form-control-sm" type="date" name="hasta" value="{{ filtro_hasta }}">
+            </div>
+            <div class="col-sm-6 col-md-3 col-xl-2">
+                <label class="form-label small mb-1" for="filtroEstado">Estado</label>
+                <select id="filtroEstado" class="form-select form-select-sm" name="estado">
+                    <option value="">Todos los estados</option>
+                    {% for value, label in estados_reserva %}
+                        <option value="{{ value }}" {% if filtro_estado == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-4 col-xl-3">
+                <label class="form-label small mb-1" for="filtroServicio">Servicio</label>
+                <select id="filtroServicio" class="form-select form-select-sm" name="servicio">
+                    <option value="">Todos los servicios</option>
+                    {% for servicio in servicios %}
+                        <option value="{{ servicio.pk }}" {% if filtro_servicio == servicio.pk|stringformat:'s' %}selected{% endif %}>{{ servicio.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if not es_colaborador %}
+            <div class="col-sm-6 col-md-4 col-xl-3">
+                <label class="form-label small mb-1" for="filtroProfesional">Profesional</label>
+                <select id="filtroProfesional" class="form-select form-select-sm" name="profesional">
+                    <option value="">Todos los profesionales</option>
+                    {% for profesional in profesionales %}
+                        <option value="{{ profesional.pk }}" {% if filtro_profesional == profesional.pk|stringformat:'s' %}selected{% endif %}>{{ profesional.nombre }} {{ profesional.apellido_paterno }} {{ profesional.apellido_materno }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-sm-6 col-md-4 col-xl-3">
+                <label class="form-label small mb-1" for="filtroOrigen">Origen</label>
+                <select id="filtroOrigen" class="form-select form-select-sm" name="origen">
+                    <option value="">Todos los orígenes</option>
+                    {% for value, label in origenes_reserva %}
+                        <option value="{{ value }}" {% if filtro_origen == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto d-flex gap-2">
+                <button class="btn salon-btn-outline btn-sm" type="submit">Filtrar</button>
+                {% if filtro_fecha or filtro_desde or filtro_hasta or busqueda or filtro_servicio or filtro_profesional or filtro_estado or filtro_origen %}
+                    <a class="btn btn-light btn-sm" href="{% url 'admin_citas' %}">Limpiar</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle agenda-table">
+            <thead><tr><th>Fecha y hora</th><th>Cliente</th><th>Servicio</th>{% if not es_colaborador %}<th>Profesional</th>{% endif %}<th>Estado / origen</th><th>Acciones</th></tr></thead>
+            <tbody>
+                {% for reserva in reservas %}
+                    <tr>
+                        <td class="text-nowrap">{{ reserva.fecha_hora|date:"d-m-Y H:i" }}</td>
+                        <td>
+                            <strong>{{ reserva.nombre_cliente|default:"Cliente sin nombre" }}</strong>
+                            {% if reserva.correo_cliente %}<small class="d-block text-muted">{{ reserva.correo_cliente }}</small>{% endif %}
+                            {% if reserva.cliente_telefono %}<small class="d-block text-muted">{{ reserva.cliente_telefono }}</small>{% endif %}
+                        </td>
+                        <td>{{ reserva.servicio_nombre|default:reserva.servicio.nombre|default:"Servicio eliminado" }}</td>
+                        {% if not es_colaborador %}<td>{{ reserva.profesional.nombre|default:"Sin asignar" }}</td>{% endif %}
+                        <td>
+                            <span class="badge {% if reserva.estado == 'cancelada' %}text-bg-secondary{% elif reserva.estado == 'confirmada' %}text-bg-success{% elif reserva.estado == 'suspendida' %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ reserva.get_estado_display }}</span>
+                            <small class="d-block text-muted">{{ reserva.get_origen_display|default:"Reserva" }}</small>
+                            {% if reserva.estado == 'suspendida' %}<small class="d-block text-danger">{{ reserva.motivo_suspension }}{% if reserva.respuesta_suspension == 'reagendar' %} · Cliente solicita re-agendar{% endif %}</small>{% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            {% if reserva.estado != 'cancelada' and reserva.estado != 'completada' %}
+                                <button class="btn btn-sm salon-btn-outline js-reagendar" type="button"
+                                    data-url="{% url 'reagendar_cita' reserva.pk %}"
+                                    data-servicio="{{ reserva.servicio_id }}"
+                                    data-profesional="{{ reserva.profesional_id|default:'' }}"
+                                    data-fecha="{{ reserva.fecha_hora|date:'Y-m-d' }}"
+                                    data-reserva="{{ reserva.pk }}">Editar</button>
+                                <button class="btn btn-sm salon-btn-danger js-cancelar" type="button"
+                                    data-url="{% url 'cancelar_cita' reserva.pk %}"
+                                    data-cliente="{{ reserva.nombre_cliente }}">Cancelar</button>
+                            {% endif %}
+                            {% if reserva.cliente_id and not es_colaborador %}
+                                <a class="btn btn-sm salon-btn-outline" target="_blank" rel="noopener" href="{% url 'ficha_tecnica_pdf' reserva.cliente_id %}">Ver ficha técnica</a>
+                            {% else %}
+                                <button class="btn btn-sm salon-btn-outline" type="button" disabled title="Las citas presenciales no tienen ficha técnica de una cuenta de cliente.">Ver ficha técnica</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="{% if es_colaborador %}5{% else %}6{% endif %}" class="text-center text-muted py-4">No hay citas para mostrar.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="modal fade salon-modal" id="modalNuevaCita" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'crear_reserva_manual' %}" id="formNuevaCita">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <div><h2 class="modal-title h5">Agendar cita presencial</h2><p class="small text-muted mb-0">No se requiere una cuenta de cliente.</p></div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label" for="{{ reserva_form.cliente_nombre.id_for_label }}">{{ reserva_form.cliente_nombre.label }}</label>{{ reserva_form.cliente_nombre }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ reserva_form.cliente_email.id_for_label }}">{{ reserva_form.cliente_email.label }}</label>{{ reserva_form.cliente_email }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ reserva_form.cliente_telefono.id_for_label }}">{{ reserva_form.cliente_telefono.label }}</label>{{ reserva_form.cliente_telefono }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ reserva_form.servicio.id_for_label }}">{{ reserva_form.servicio.label }}</label>{{ reserva_form.servicio }}</div>
+                        <div class="col-md-6"><label class="form-label" for="id_fecha">Fecha</label><input class="form-control" type="date" name="fecha" id="id_fecha" min="{{ hoy|date:'Y-m-d' }}" required></div>
+                        <div class="col-md-6">
+                            {% if es_colaborador %}
+                                <label class="form-label" for="profesionalFijo">{{ reserva_form.profesional.label }}</label>
+                                <input class="form-control" id="profesionalFijo" type="text" value="{{ request.user.nombre }} {{ request.user.apellido_paterno }} {{ request.user.apellido_materno }} · {{ request.user.email }}" readonly>
+                                <input type="hidden" name="profesional" value="{{ request.user.pk }}">
+                            {% else %}
+                                <label class="form-label" for="{{ reserva_form.profesional.id_for_label }}">{{ reserva_form.profesional.label }}</label>{{ reserva_form.profesional }}
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6"><label class="form-label" for="{{ reserva_form.hora.id_for_label }}">Hora disponible</label>{{ reserva_form.hora }}</div>
+                    </div>
+                    <div class="form-text mt-2">Solo aparecerán horas disponibles que respetan la duración del servicio.</div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn salon-btn-light" data-bs-dismiss="modal">Cancelar</button><button class="btn salon-btn-primary" type="submit">Confirmar cita</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade salon-modal" id="modalReagendar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <form method="post" id="formReagendar">
+            {% csrf_token %}
+            <div class="modal-header"><h2 class="modal-title h5">Editar cita</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+            <div class="modal-body">
+                <label class="form-label" for="reagendarServicio">Servicio</label>
+                <select class="form-select mb-3" id="reagendarServicio" name="servicio" required>
+                    <option value="">Selecciona un servicio</option>
+                    {% for servicio in servicios %}<option value="{{ servicio.pk }}">{{ servicio.nombre }}</option>{% endfor %}
+                </select>
+                <label class="form-label" for="reagendarProfesional">Profesional</label>
+                <select class="form-select mb-3" id="reagendarProfesional" name="profesional" required><option value="">Selecciona un servicio primero</option></select>
+                <label class="form-label" for="reagendarFecha">Nueva fecha</label>
+                <input class="form-control mb-3" id="reagendarFecha" type="date" name="fecha" min="{{ hoy|date:'Y-m-d' }}" required>
+                <label class="form-label" for="reagendarHora">Nueva hora</label>
+                <select class="form-select" id="reagendarHora" name="hora" required><option value="">Selecciona primero la fecha</option></select>
+                {% if es_colaborador %}
+                    <label class="form-label mt-3" for="motivoEdicion">Motivo del cambio</label>
+                    <textarea class="form-control" id="motivoEdicion" name="motivo" rows="2" maxlength="500" required></textarea>
+                {% endif %}
+            </div>
+            <div class="modal-footer"><button class="btn salon-btn-light" type="button" data-bs-dismiss="modal">Volver</button><button class="btn salon-btn-primary" type="submit">Guardar cambio</button></div>
+        </form>
+    </div></div>
+</div>
+
+<div class="modal fade salon-modal" id="modalCancelar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <form method="post" id="formCancelar">
+            {% csrf_token %}
+            <div class="modal-header"><h2 class="modal-title h5">Cancelar cita</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+            <div class="modal-body">
+                <p id="cancelarResumen" class="small text-muted"></p>
+                <label class="form-label" for="motivoCancelacion">Motivo (se informará al cliente)</label>
+                <textarea class="form-control" id="motivoCancelacion" name="motivo" rows="3" maxlength="500" required></textarea>
+            </div>
+            <div class="modal-footer"><button class="btn salon-btn-light" type="button" data-bs-dismiss="modal">Mantener cita</button><button class="btn salon-btn-danger" type="submit">Confirmar cancelación</button></div>
+        </form>
+    </div></div>
+</div>
+
+<script>
+(() => {
+    const hoursEndpoint = "{% url 'agenda_horas_disponibles' %}";
+    const professionalsEndpoint = "{% url 'agenda_profesionales_por_servicio' %}";
+    const bookingForm = document.getElementById('formNuevaCita');
+    const bookingService = bookingForm.querySelector('[name="servicio"]');
+    const bookingDate = bookingForm.querySelector('[name="fecha"]');
+    const bookingProfessional = bookingForm.querySelector('[name="profesional"]');
+    const bookingHour = bookingForm.querySelector('[name="hora"]');
+    const rebookDate = document.getElementById('reagendarFecha');
+    const rebookHour = document.getElementById('reagendarHora');
+    const rebookService = document.getElementById('reagendarServicio');
+    const rebookProfessional = document.getElementById('reagendarProfesional');
+    let rebookContext = null;
+
+    async function loadProfessionals(serviceSelect, professionalSelect, emptyLabel, includeEmail = false) {
+        if (professionalSelect.type === 'hidden') return;
+        const selected = professionalSelect.value;
+        professionalSelect.replaceChildren(new Option(emptyLabel, ''));
+        if (!serviceSelect.value) return;
+        const response = await fetch(`${professionalsEndpoint}?servicio=${encodeURIComponent(serviceSelect.value)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'No se pudieron cargar profesionales.');
+        data.professionals.forEach((professional) => {
+            const label = includeEmail ? `${professional.name} · ${professional.email}` : professional.name;
+            const option = new Option(label, professional.id);
+            option.selected = String(professional.id) === selected;
+            professionalSelect.appendChild(option);
+        });
+        if (!data.professionals.length) professionalSelect.options[0].textContent = 'No hay profesionales disponibles para este servicio.';
+    }
+
+    async function loadHours(select, selectedDate, serviceId, professionalId = '', reservationId = '') {
+        select.replaceChildren(new Option('Buscando horas...', ''));
+        if (!selectedDate || !serviceId) {
+            select.replaceChildren(new Option('Selecciona servicio y fecha', ''));
+            return;
+        }
+        const params = new URLSearchParams({fecha: selectedDate, servicio: serviceId});
+        if (professionalId) params.set('profesional', professionalId);
+        if (reservationId) params.set('reserva', reservationId);
+        const response = await fetch(`${hoursEndpoint}?${params.toString()}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'No se pudieron cargar las horas disponibles.');
+        select.replaceChildren(new Option(data.hours.length ? 'Selecciona una hora' : 'No hay horas disponibles', ''));
+        data.hours.forEach((hour) => select.appendChild(new Option(hour, hour)));
+    }
+
+    const refreshBookingHours = () => loadHours(bookingHour, bookingDate.value, bookingService.value, bookingProfessional.value);
+    const refreshRebookHours = () => {
+        if (rebookContext) {
+            return loadHours(rebookHour, rebookDate.value, rebookService.value, rebookProfessional.value, rebookContext.reserva);
+        }
+    };
+
+    const reportLoadError = (error, select) => {
+        select.replaceChildren(new Option(error.message || 'No se pudieron cargar los datos.', ''));
+    };
+    bookingService.addEventListener('change', () => {
+        loadProfessionals(bookingService, bookingProfessional, 'Selecciona un profesional...', true)
+            .then(refreshBookingHours)
+            .catch((error) => reportLoadError(error, bookingProfessional));
+    });
+    bookingDate.addEventListener('change', () => refreshBookingHours().catch((error) => reportLoadError(error, bookingHour)));
+    bookingProfessional.addEventListener('change', () => refreshBookingHours().catch((error) => reportLoadError(error, bookingHour)));
+    rebookService.addEventListener('change', async () => {
+        try {
+            await loadProfessionals(rebookService, rebookProfessional, 'Selecciona un profesional...', true);
+            await refreshRebookHours();
+        } catch (error) {
+            reportLoadError(error, rebookProfessional);
+        }
+    });
+    rebookProfessional.addEventListener('change', () => refreshRebookHours().catch((error) => reportLoadError(error, rebookHour)));
+    rebookDate.addEventListener('change', () => refreshRebookHours().catch((error) => reportLoadError(error, rebookHour)));
+
+    document.querySelectorAll('.js-reagendar').forEach((button) => {
+        button.addEventListener('click', async () => {
+            rebookContext = button.dataset;
+            document.getElementById('formReagendar').action = button.dataset.url;
+            rebookService.value = button.dataset.servicio || '';
+            rebookDate.value = button.dataset.fecha;
+            rebookProfessional.replaceChildren(new Option('Selecciona un servicio primero', ''));
+            rebookHour.replaceChildren(new Option('Selecciona profesional y fecha', ''));
+            if (rebookService.value) {
+                rebookProfessional.replaceChildren(new Option('Cargando profesionales...', ''));
+                try {
+                    await loadProfessionals(rebookService, rebookProfessional, 'Selecciona un profesional...');
+                    rebookProfessional.value = button.dataset.profesional || '';
+                    await refreshRebookHours();
+                } catch (error) {
+                    reportLoadError(error, rebookProfessional);
+                }
+            }
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReagendar')).show();
+        });
+    });
+    document.querySelectorAll('.js-cancelar').forEach((button) => {
+        button.addEventListener('click', () => {
+            document.getElementById('formCancelar').action = button.dataset.url;
+            document.getElementById('cancelarResumen').textContent =
+                `Se cancelará la cita de ${button.dataset.cliente}. Se enviará un aviso por email si hay dirección registrada.`;
+            document.getElementById('motivoCancelacion').value = '';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCancelar')).show();
+        });
+    });
+})();
+</script>
+{% endblock %}

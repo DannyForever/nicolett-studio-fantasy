@@ -24,13 +24,14 @@ from .forms import (
     AdminPasswordChangeForm,
     AdminProfileForm,
     CategoriaForm,
+    ColaboradorPasswordResetForm,
     PersonalForm,
     ProductoForm,
     ServicioForm,
 )
 from .models import Servicio, Categoria, Producto
 from usuarios.models import Rol, Usuario
-from usuarios.permissions import es_administrador
+from usuarios.permissions import es_administrador, es_colaborador
 from agenda.models import (
     Disponibilidad,
     ProfesionalCategoria,
@@ -336,11 +337,16 @@ def lista_productos(request):
 
 @login_required(login_url='login')
 def configuracion_admin(request):
-    if not es_administrador(request.user):
+    es_colaborador_actual = es_colaborador(request.user)
+    if not es_administrador(request.user) and not es_colaborador_actual:
         return HttpResponseForbidden()
+    ruta_configuracion = (
+        'colaborador_configuracion' if es_colaborador_actual else 'admin_configuracion'
+    )
 
     perfil_form = AdminProfileForm(instance=request.user)
     password_form = AdminPasswordChangeForm(request.user)
+    perfil_editando = False
     if request.method == 'POST':
         if request.POST.get('form_type') == 'password':
             password_form = AdminPasswordChangeForm(request.user, request.POST)
@@ -349,13 +355,29 @@ def configuracion_admin(request):
                 request.user.save(update_fields=['password'])
                 update_session_auth_hash(request, request.user)
                 messages.success(request, 'La contraseña se actualizó correctamente.')
-                return redirect('admin_configuracion')
-        else:
+                return redirect(ruta_configuracion)
+        elif request.POST.get('form_type') == 'profile' and request.POST.get('profile_edit') == '1':
+            perfil_editando = True
             perfil_form = AdminProfileForm(request.POST, instance=request.user)
             if perfil_form.is_valid():
                 perfil_form.save()
                 messages.success(request, 'Los datos personales se actualizaron correctamente.')
-                return redirect('admin_configuracion')
+                return redirect(ruta_configuracion)
+        elif request.POST.get('form_type') == 'profile':
+            messages.error(request, 'Activa la edición antes de guardar los datos personales.')
+            return redirect(ruta_configuracion)
+
+    for field in perfil_form.fields.values():
+        attrs = field.widget.attrs
+        classes = attrs.get('class', '')
+        if perfil_editando:
+            attrs.pop('readonly', None)
+            attrs['class'] = ' '.join(
+                clase for clase in classes.split() if clase not in {'bg-light', 'text-muted'}
+            )
+        else:
+            attrs['readonly'] = True
+            attrs['class'] = f'{classes} bg-light text-muted'.strip()
 
     return render(
         request,
@@ -363,6 +385,8 @@ def configuracion_admin(request):
         {
             'perfil_form': perfil_form,
             'password_form': password_form,
+            'perfil_editando': perfil_editando,
+            'es_colaborador': es_colaborador_actual,
         },
     )
 
@@ -581,12 +605,18 @@ def detalle_venta(request, pk):
 
 @login_required(login_url='login')
 def gestion_recordatorios(request):
-    if not es_administrador(request.user):
+    es_colaborador_actual = es_colaborador(request.user)
+    if not es_administrador(request.user) and not es_colaborador_actual:
         return HttpResponseForbidden()
     if request.method != 'GET':
         return HttpResponseForbidden()
     busqueda = request.GET.get('q', '').strip()
     tareas = listar_recordatorios_pendientes()
+    if es_colaborador_actual:
+        tareas = [
+            tarea for tarea in tareas
+            if tarea['reserva'].profesional_id == request.user.pk
+        ]
     if busqueda:
         busqueda_normalizada = busqueda.casefold()
         tareas = [
@@ -654,13 +684,15 @@ def gestion_recordatorios(request):
         'busqueda': busqueda,
         'fecha_cita': fecha_cita,
         'fecha_seguimiento': fecha_seguimiento,
+        'es_colaborador': es_colaborador_actual,
     })
 
 
 @login_required(login_url='login')
 @require_POST
 def programar_recordatorio(request, reserva_id):
-    if not es_administrador(request.user):
+    es_colaborador_actual = es_colaborador(request.user)
+    if not es_administrador(request.user) and not es_colaborador_actual:
         return HttpResponseForbidden()
     tipo = request.POST.get('tipo', '')
     if tipo not in {'cita', 'seguimiento'}:
@@ -674,6 +706,10 @@ def programar_recordatorio(request, reserva_id):
     tarea = next((
         item for item in listar_recordatorios_pendientes()
         if item['reserva'].pk == reserva_id
+        and (
+            not es_colaborador_actual
+            or item['reserva'].profesional_id == request.user.pk
+        )
         and item['tipo'] == tipo
         and item['desfase'] == desfase
     ), None)
@@ -761,6 +797,8 @@ def _contexto_personal(personal_form=None, form_action=None, form_is_edit=False)
         'form_action': form_action or reverse('crear_personal'),
         'form_is_edit': form_is_edit,
         'form_has_errors': bool(personal_form.errors),
+        'password_reset_form': ColaboradorPasswordResetForm(None),
+        'password_reset_target': None,
     }
     context['total_personal'] = context['total_activos'] + context['total_inactivos']
     return context
@@ -961,11 +999,11 @@ def crear_personal(request):
         colaborador = form.save(commit=False)
         colaborador.rol = rol_colaborador
         colaborador.is_active = True
-        colaborador.is_staff = True
+        colaborador.is_staff = False
         colaborador.is_superuser = False
         colaborador.acepta_terminos_at = timezone.now()
         colaborador.deleted_at = None
-        colaborador.set_unusable_password()
+        colaborador.set_password(form.cleaned_data['password'])
         colaborador.save()
         _guardar_especializaciones(
             colaborador,
@@ -977,7 +1015,7 @@ def crear_personal(request):
         )
     messages.success(
         request,
-        'El colaborador se agregó correctamente. No se creó una contraseña ni acceso al sistema.',
+        'El colaborador y sus credenciales de acceso se crearon correctamente.',
     )
     return redirect('admin_personal')
 
@@ -998,7 +1036,11 @@ def editar_personal(request, pk):
         )
 
     with transaction.atomic():
-        colaborador = form.save()
+        colaborador = form.save(commit=False)
+        password = form.cleaned_data.get('password')
+        if password:
+            colaborador.set_password(password)
+        colaborador.save()
         _guardar_especializaciones(
             colaborador,
             form.cleaned_data['especializaciones'],
@@ -1010,6 +1052,61 @@ def editar_personal(request, pk):
             )
     messages.success(request, 'Los datos del colaborador se actualizaron correctamente.')
     return redirect('admin_personal')
+
+
+@require_POST
+def restablecer_contrasena_personal(request, pk):
+    colaborador = get_object_or_404(
+        Usuario,
+        pk=pk,
+        rol__nombre__iexact='Colaborador',
+        deleted_at__isnull=True,
+    )
+    form = ColaboradorPasswordResetForm(colaborador, request.POST)
+    if not form.is_valid():
+        context = _contexto_personal()
+        context.update({
+            'password_reset_form': form,
+            'password_reset_target': colaborador,
+        })
+        return render(request, 'panel_admin/personal_lista.html', context)
+
+    colaborador.set_password(form.cleaned_data['password'])
+    colaborador.save(update_fields=['password'])
+    messages.success(request, f'La contraseña de {colaborador.nombre} se restableció correctamente.')
+    return redirect('admin_personal')
+
+
+@login_required(login_url='login')
+def colaborador_mi_agenda(request):
+    if not es_colaborador(request.user):
+        return HttpResponseForbidden()
+
+    from agenda.views import _construir_calendario
+
+    hoy = timezone.localdate()
+    mes_param = request.GET.get('mes', '').strip()
+    try:
+        mes_seleccionado = date.fromisoformat(f'{mes_param}-01') if mes_param else hoy
+    except ValueError:
+        mes_seleccionado = hoy
+    citas = Reserva.objects.select_related('cliente', 'servicio').filter(
+        profesional=request.user,
+        fecha_hora__gte=timezone.now(),
+    ).exclude(
+        estado__in=['cancelada', 'completada'],
+    ).order_by('fecha_hora')
+    return render(request, 'panel_admin/colaborador_agenda.html', {
+        'citas': citas,
+        'hoy': hoy,
+        'calendario_mes': _construir_calendario(
+            hoy,
+            mes_seleccionado,
+            mes_seleccionado.replace(day=1),
+            profesional_id=request.user.pk,
+        ),
+        'dia_labels': ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+    })
 
 
 @require_POST

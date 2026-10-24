@@ -181,6 +181,11 @@ class CierreDiaForm(forms.Form):
 
 
 class ReagendarReservaForm(forms.Form):
+    motivo = forms.CharField(
+        required=False,
+        max_length=500,
+        widget=forms.Textarea(attrs={**FORM_CONTROL, 'rows': 2}),
+    )
     servicio = forms.ModelChoiceField(
         queryset=ServicioAgenda.objects.none(),
         widget=forms.Select(attrs=FORM_SELECT),

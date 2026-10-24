@@ -16,3 +16,10 @@ def es_cliente(usuario):
         and rol is not None
         and rol.nombre.casefold() == 'cliente'
     )
+
+
+def es_colaborador(usuario):
+    if not usuario.is_authenticated or es_administrador(usuario):
+        return False
+    rol = getattr(usuario, 'rol', None)
+    return rol is not None and rol.nombre.casefold() == 'colaborador'

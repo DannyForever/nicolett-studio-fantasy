@@ -31,6 +31,17 @@ class UsuarioManager(BaseUserManager):
         extra.setdefault('is_staff', True)
         extra.setdefault('is_superuser', True)
         extra['rol'], _ = Rol.objects.get_or_create(nombre='Admin')
+        from .utils import DOMINIO_ACCESO, generar_correo_acceso
+
+        if not (email or '').casefold().endswith(f'@{DOMINIO_ACCESO}'):
+            extra.setdefault('correo_contacto', email)
+            correo_generado = generar_correo_acceso(
+                extra.get('nombre', ''),
+                extra.get('apellido_paterno', ''),
+                extra.get('apellido_materno', ''),
+            )
+            if correo_generado:
+                email = correo_generado
         return self.create_user(email, password, **extra)
 
 
@@ -41,6 +52,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     apellido_materno = models.CharField(max_length=100)
     telefono = models.CharField(max_length=20)
     email = models.EmailField(unique=True)
+    correo_contacto = models.EmailField(blank=True, default='')
     rol = models.ForeignKey(Rol, on_delete=models.PROTECT, related_name='usuarios')
     is_active = models.BooleanField('activo', default=True)
     is_staff = models.BooleanField(default=False)

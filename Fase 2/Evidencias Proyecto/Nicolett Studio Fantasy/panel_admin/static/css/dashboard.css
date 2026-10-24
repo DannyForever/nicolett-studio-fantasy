@@ -94,6 +94,63 @@ h1, h2, h3, .brand-title {
     background-color: #4b301b;
 }
 
+.account-switch-menu {
+    margin: 0 0 12px;
+    border-top: 1px solid rgba(234, 215, 188, 0.16);
+    border-bottom: 1px solid rgba(234, 215, 188, 0.16);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.account-switch-menu > summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 2px;
+    color: #ead7bc;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none;
+}
+
+.account-switch-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+.account-switch-menu > summary > i:first-child {
+    color: #e0bd7c;
+}
+
+.account-switch-chevron {
+    margin-left: auto;
+    font-size: 0.65rem;
+    transition: transform 0.2s ease;
+}
+
+.account-switch-menu[open] .account-switch-chevron {
+    transform: rotate(90deg);
+}
+
+.account-switch-options {
+    padding: 0 0 8px 16px;
+}
+
+.account-switch-options a {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    color: #e0bd7c;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.78rem;
+    text-decoration: none;
+}
+
+.account-switch-options a:hover,
+.account-switch-options a[aria-current="page"] {
+    color: #ffffff;
+    background-color: #4b301b;
+}
+
 .services-nav-details > summary {
     display: flex;
     align-items: center;
@@ -294,6 +351,10 @@ details[open] > summary .services-nav-chevron {
     font-weight: 500;
 }
 
+.account-switch-menu[open] .account-switch-chevron {
+    transform: rotate(90deg);
+}
+
 .btn-logout {
     background: rgba(224, 122, 95, 0.1);
     border: 1px solid rgba(224, 122, 95, 0.35);
@@ -365,6 +426,123 @@ details[open] > summary .services-nav-chevron {
 .services-table-card td {
     padding: 0.9rem 1rem;
     border-color: #fae9cf;
+}
+
+.admin-access-domain {
+    flex: 0 0 46%;
+    justify-content: center;
+    text-align: center;
+}
+
+.personal-page .card-stat {
+    padding: 16px;
+}
+
+.personal-page .services-table-card .table {
+    width: 100%;
+    min-width: 1200px;
+    table-layout: auto;
+    font-size: 0.9rem;
+}
+
+.personal-page .services-table-card th,
+.personal-page .services-table-card td {
+    padding: 0.75rem 0.65rem;
+    vertical-align: middle;
+}
+
+.personal-page .services-table-card th:nth-child(1) { width: 14%; }
+.personal-page .services-table-card th:nth-child(2) { width: 16%; }
+.personal-page .services-table-card th:nth-child(3) { width: 16%; }
+.personal-page .services-table-card th:nth-child(4) { width: 13%; }
+.personal-page .services-table-card th:nth-child(5) { width: 13%; }
+.personal-page .services-table-card th:nth-child(6) { width: 8%; }
+.personal-page .services-table-card th:nth-child(7) { width: 20%; }
+
+.personal-page .services-table-card .service-actions {
+    min-width: 200px;
+    white-space: normal;
+}
+
+.personal-page .services-table-card .service-actions form,
+.personal-page .services-table-card .service-actions > button {
+    display: inline-block;
+    margin: 2px 0;
+}
+
+.personal-page .services-table-card .service-actions .btn,
+.personal-page .services-table-card td:nth-child(4) .btn {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.78rem;
+}
+
+.personal-page .services-table-card td:nth-child(2) a,
+.personal-page .services-table-card td:nth-child(3) {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.access-email-domain {
+    flex: 0 0 40%;
+    justify-content: center;
+    padding-right: 0.35rem;
+    padding-left: 0.35rem;
+    font-size: 0.82rem;
+    text-align: center;
+}
+
+.field-help {
+    position: relative;
+    display: inline-flex;
+    width: 1rem;
+    height: 1rem;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.2rem;
+    border: 1px solid #bd8c43;
+    border-radius: 50%;
+    color: #8b5e26;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: middle;
+    cursor: help;
+}
+
+.field-help::after {
+    position: absolute;
+    z-index: 1100;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    width: max-content;
+    max-width: min(22rem, 80vw);
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.35rem;
+    background: #281b14;
+    color: #fffaf5;
+    content: attr(aria-label);
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: left;
+    white-space: normal;
+    box-shadow: 0 4px 14px rgba(40, 27, 20, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.field-help:hover::after,
+.field-help:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+.field-help:focus-visible {
+    outline: 2px solid #bd8c43;
+    outline-offset: 2px;
 }
 
 .dashboard-appointments-table thead th {
@@ -913,7 +1091,7 @@ body {
     align-items: center;
     justify-content: center;
     border: 1px solid #ead7bc;
-    border-radius: 50%;
+    border-radius: 8px;
     background: #fffaf5;
     color: #5a3e27;
     box-shadow: 0 2px 8px rgba(30, 22, 17, 0.18);
@@ -928,7 +1106,7 @@ body {
     align-items: center;
     justify-content: center;
     border: 1px solid #ead7bc;
-    border-radius: 50%;
+    border-radius: 8px;
     background: #fffaf5;
     color: #5a3e27;
     box-shadow: 0 2px 8px rgba(30, 22, 17, 0.18);
@@ -984,6 +1162,7 @@ body {
     body.admin-sidebar-collapsed .sidebar-menu .nav-label,
     body.admin-sidebar-collapsed .sidebar-user-label,
     body.admin-sidebar-collapsed .sidebar-user-email,
+    body.admin-sidebar-collapsed .account-switch-menu .nav-label,
     body.admin-sidebar-collapsed .btn-logout .nav-label {
         display: none;
     }
@@ -1006,6 +1185,26 @@ body {
     body.admin-sidebar-collapsed .sidebar-footer {
         padding-right: 8px;
         padding-left: 8px;
+    }
+
+    body.admin-sidebar-collapsed .account-switch-menu > summary {
+        justify-content: center;
+        padding-right: 0;
+        padding-left: 0;
+    }
+
+    body.admin-sidebar-collapsed .account-switch-chevron {
+        display: none;
+    }
+
+    body.admin-sidebar-collapsed .account-switch-options {
+        padding-left: 0;
+    }
+
+    body.admin-sidebar-collapsed .account-switch-options a {
+        justify-content: center;
+        padding-right: 0;
+        padding-left: 0;
     }
 
     body.admin-sidebar-collapsed .btn-logout {

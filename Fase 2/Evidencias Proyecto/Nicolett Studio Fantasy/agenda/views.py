@@ -12,8 +12,8 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.mail import send_mail
 from django.core import signing
 from django.db import transaction
-from django.db.models import Count, F
-from django.http import JsonResponse
+from django.db.models import Count, F, Q
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.db.models.functions import TruncDate
@@ -39,12 +39,46 @@ from .models import (
     ReservaCitaTemporal,
     ServicioAgenda,
 )
-from usuarios.permissions import es_cliente
+from usuarios.permissions import es_administrador, es_cliente, es_colaborador
 
 logger = logging.getLogger(__name__)
 Usuario = get_user_model()
 ANTICIPACION_MINIMA_GESTION_CLIENTE = timedelta(hours=48)
 RESERVA_CITA_CARRITO_MINUTOS = 30
+
+
+def _puede_gestionar_agenda(usuario):
+    return es_administrador(usuario) or es_colaborador(usuario)
+
+
+def _servicios_colaborador(usuario):
+    categorias = ProfesionalCategoria.objects.filter(
+        profesional=usuario,
+    ).values_list('categoria_id', flat=True)
+    return ServicioAgenda.objects.filter(
+        activo=True,
+        categoria_id__in=categorias,
+    ).order_by('nombre')
+
+
+def _limitar_formulario_reserva_manual(form, usuario):
+    if not es_colaborador(usuario):
+        return
+    categorias = ProfesionalCategoria.objects.filter(
+        profesional=usuario,
+    ).values_list('categoria_id', flat=True)
+    form.fields['servicio'].queryset = ServicioAgenda.objects.filter(
+        activo=True,
+        categoria_id__in=categorias,
+    ).order_by('nombre')
+    servicio_id = form.data.get('servicio') if form.is_bound else None
+    if servicio_id and str(servicio_id).isdecimal():
+        form.fields['profesional'].queryset = Usuario.objects.filter(
+            pk=usuario.pk,
+            especialidades__categoria_id__in=categorias,
+        ).distinct()
+    else:
+        form.fields['profesional'].queryset = Usuario.objects.filter(pk=usuario.pk)
 
 
 def _reserva_cliente_gestionable(reserva):
@@ -285,7 +319,12 @@ def _enviar_aviso_cancelacion(reserva, motivo):
         return False
 
 
-def _construir_calendario(hoy, mes_seleccionado, fecha_seleccionada):
+def _construir_calendario(
+    hoy,
+    mes_seleccionado,
+    fecha_seleccionada,
+    profesional_id=None,
+):
     primero = mes_seleccionado.replace(day=1)
     ultimo = date(
         primero.year,
@@ -293,17 +332,32 @@ def _construir_calendario(hoy, mes_seleccionado, fecha_seleccionada):
         calendar.monthrange(primero.year, primero.month)[1],
     )
     reglas_por_fecha = {}
-    reglas = Disponibilidad.objects.filter(
+    reglas_query = Disponibilidad.objects.filter(
         activo=True,
         servicio__activo=True,
         fecha_especifica__range=(primero, ultimo),
-        profesional__isnull=False,
-    ).select_related('servicio', 'profesional')
-    for regla in reglas:
-        reglas_por_fecha.setdefault(regla.fecha_especifica, []).append(regla)
-    fechas_cerradas = set(
-        DiaCerrado.objects.filter(fecha__range=(primero, ultimo)).values_list('fecha', flat=True)
+        profesional__is_active=True,
+        profesional__deleted_at__isnull=True,
+        profesional__rol__nombre__iexact='Colaborador',
     )
+    if profesional_id is not None:
+        reglas_query = reglas_query.filter(profesional_id=profesional_id)
+    reglas = reglas_query.select_related('servicio', 'profesional')
+    reglas = list(reglas)
+    categorias = {regla.servicio.categoria_id for regla in reglas}
+    especialidades = set(ProfesionalCategoria.objects.filter(
+        categoria_id__in=categorias,
+    ).values_list('profesional_id', 'categoria_id'))
+    for regla in reglas:
+        if (regla.profesional_id, regla.servicio.categoria_id) not in especialidades:
+            continue
+        reglas_por_fecha.setdefault(regla.fecha_especifica, []).append(regla)
+    motivos_cierre = dict(
+        DiaCerrado.objects.filter(
+            fecha__range=(primero, ultimo),
+        ).values_list('fecha', 'motivo')
+    )
+    fechas_cerradas = set(motivos_cierre)
     cantidad_citas_por_fecha = {
         fila['fecha_cita']: fila['cantidad']
         for fila in Reserva.objects.filter(
@@ -333,8 +387,11 @@ def _construir_calendario(hoy, mes_seleccionado, fecha_seleccionada):
         cells = []
         for dia in week:
             has_slots = False
+            day_rules = reglas_por_fecha.get(dia, [])
+            nombres_servicios = sorted({
+                regla.servicio.nombre for regla in day_rules
+            }, key=str.casefold)
             if dia >= hoy and dia not in fechas_cerradas:
-                day_rules = reglas_por_fecha.get(dia, [])
                 day_reservas = [
                     reserva for reserva in reservas_del_mes
                     if timezone.localtime(reserva.fecha_hora).date() == dia
@@ -358,12 +415,26 @@ def _construir_calendario(hoy, mes_seleccionado, fecha_seleccionada):
                     ):
                         has_slots = True
                         break
+            if dia in fechas_cerradas:
+                motivo = motivos_cierre[dia].strip() or 'El salón está cerrado.'
+                tooltip = f'Día no disponible: {motivo}'
+            elif dia < hoy:
+                tooltip = 'Día no disponible: la fecha ya pasó.'
+            elif nombres_servicios:
+                tooltip = 'Servicios habilitados: ' + ', '.join(nombres_servicios)
+                if not has_slots:
+                    tooltip += '. No quedan horarios disponibles.'
+            else:
+                tooltip = 'Día no disponible: no hay servicios habilitados.'
             cells.append({
                 'date': dia,
                 'in_month': dia.month == primero.month,
                 'enabled': has_slots,
-                'has_configured_slots': bool(reglas_por_fecha.get(dia)),
+                'has_configured_slots': bool(day_rules),
                 'closed': dia in fechas_cerradas,
+                'closed_reason': motivos_cierre.get(dia, ''),
+                'services': nombres_servicios,
+                'tooltip': tooltip,
                 'appointments': cantidad_citas_por_fecha.get(dia, 0),
                 'can_configure': dia >= hoy,
                 'selected': dia == fecha_seleccionada,
@@ -416,21 +487,10 @@ def _agrupar_disponibilidades(reglas, cambios_pendientes):
 
 @require_GET
 def gestion_agenda_citas(request):
+    if not _puede_gestionar_agenda(request.user):
+        return HttpResponseForbidden()
+    es_colaborador_actual = es_colaborador(request.user)
     hoy = timezone.localdate()
-    servicios = ServicioAgenda.objects.filter(activo=True).order_by('nombre')
-    reservas = Reserva.objects.select_related(
-        'cliente', 'profesional', 'servicio',
-    ).order_by('fecha_hora')
-    filtro_fecha = request.GET.get('fecha', '').strip()
-    if filtro_fecha:
-        try:
-            fecha_seleccionada = date.fromisoformat(filtro_fecha)
-            reservas = reservas.filter(fecha_hora__date=fecha_seleccionada)
-        except ValueError:
-            messages.error(request, 'La fecha de búsqueda no es válida.')
-    else:
-        reservas = reservas.filter(fecha_hora__date__gte=hoy)
-
     mes_param = request.GET.get('mes', '').strip()
     dia_param = request.GET.get('dia', '').strip()
     try:
@@ -449,23 +509,36 @@ def gestion_agenda_citas(request):
         mes_seleccionado.month,
     ):
         fecha_seleccionada = mes_seleccionado.replace(day=1)
-    reserva_form = ReservaManualForm()
     disponibilidad_dia_form = DisponibilidadDiaForm(
         initial={'fecha': fecha_seleccionada.isoformat()},
     )
+    servicios = (
+        _servicios_colaborador(request.user)
+        if es_colaborador_actual
+        else ServicioAgenda.objects.filter(activo=True).order_by('nombre')
+    )
+    if es_colaborador_actual:
+        disponibilidad_dia_form.fields['servicio'].queryset = servicios
+        disponibilidad_dia_form.fields['profesional'].queryset = Usuario.objects.filter(
+            pk=request.user.pk,
+        )
     cierre_form = CierreDiaForm()
-    reglas_del_dia = list(Disponibilidad.objects.filter(
+    reglas_query = Disponibilidad.objects.filter(
         fecha_especifica=fecha_seleccionada,
-    ).select_related('servicio', 'profesional').order_by('hora_inicio'))
+    )
+    if es_colaborador_actual:
+        reglas_query = reglas_query.filter(profesional=request.user)
+    reglas_del_dia = list(
+        reglas_query.select_related('servicio', 'profesional').order_by('hora_inicio')
+    )
     cambios_del_dia = list(CambioDisponibilidadPendiente.objects.filter(
         fecha=fecha_seleccionada,
     ))
     disponibilidad_grupos = _agrupar_disponibilidades(reglas_del_dia, cambios_del_dia)
     return render(request, 'agenda/agenda_lista.html', {
-        'reservas': reservas,
-        'servicios': servicios,
-        'reserva_form': reserva_form,
         'disponibilidad_dia_form': disponibilidad_dia_form,
+        'servicios': servicios,
+        'es_colaborador': es_colaborador_actual,
         'cierre_form': cierre_form,
         'calendario_mes': _construir_calendario(
             hoy,
@@ -479,13 +552,152 @@ def gestion_agenda_citas(request):
         'fecha_configurable': fecha_seleccionada >= hoy
         and not DiaCerrado.objects.filter(fecha=fecha_seleccionada).exists(),
         'dia_cerrado': DiaCerrado.objects.filter(fecha=fecha_seleccionada).first(),
-        'filtro_fecha': filtro_fecha,
         'dia_labels': ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
     })
 
 
 @require_GET
+def gestion_citas_admin(request):
+    if not _puede_gestionar_agenda(request.user):
+        return HttpResponseForbidden()
+    es_colaborador_actual = es_colaborador(request.user)
+    hoy = timezone.localdate()
+    reservas = Reserva.objects.select_related(
+        'cliente', 'profesional', 'servicio',
+    ).order_by('fecha_hora')
+    if es_colaborador_actual:
+        reservas = reservas.filter(profesional=request.user)
+    filtro_fecha = request.GET.get('fecha', '').strip()
+    filtro_desde = request.GET.get('desde', '').strip()
+    filtro_hasta = request.GET.get('hasta', '').strip()
+    busqueda = request.GET.get('q', '').strip()
+    filtro_servicio = request.GET.get('servicio', '').strip()
+    filtro_profesional = (
+        '' if es_colaborador_actual
+        else request.GET.get('profesional', '').strip()
+    )
+    filtro_estado = request.GET.get('estado', '').strip()
+    filtro_origen = request.GET.get('origen', '').strip()
+    hay_filtros = any((
+        filtro_fecha,
+        filtro_desde,
+        filtro_hasta,
+        busqueda,
+        filtro_servicio,
+        filtro_profesional,
+        filtro_estado,
+        filtro_origen,
+    ))
+    filtros_invalidos = False
+    fechas = {}
+    for nombre, valor, etiqueta in (
+        ('fecha', filtro_fecha, 'La fecha de búsqueda no es válida.'),
+        ('desde', filtro_desde, 'La fecha inicial de búsqueda no es válida.'),
+        ('hasta', filtro_hasta, 'La fecha final de búsqueda no es válida.'),
+    ):
+        if not valor:
+            continue
+        try:
+            fechas[nombre] = date.fromisoformat(valor)
+        except ValueError:
+            messages.error(request, etiqueta)
+            filtros_invalidos = True
+    if fechas.get('desde') and fechas.get('hasta') and fechas['desde'] > fechas['hasta']:
+        messages.error(request, 'La fecha inicial no puede ser posterior a la fecha final.')
+        filtros_invalidos = True
+    if filtros_invalidos:
+        reservas = reservas.none()
+    else:
+        if 'fecha' in fechas:
+            reservas = reservas.filter(fecha_hora__date=fechas['fecha'])
+        if 'desde' in fechas:
+            reservas = reservas.filter(fecha_hora__date__gte=fechas['desde'])
+        if 'hasta' in fechas:
+            reservas = reservas.filter(fecha_hora__date__lte=fechas['hasta'])
+    if not hay_filtros:
+        reservas = reservas.filter(fecha_hora__date__gte=hoy)
+    if busqueda:
+        for termino in busqueda.split():
+            reservas = reservas.filter(
+                Q(cliente_nombre__icontains=termino)
+                | Q(cliente_email__icontains=termino)
+                | Q(cliente_telefono__icontains=termino)
+                | Q(cliente__email__icontains=termino)
+                | Q(cliente__telefono__icontains=termino)
+                | Q(servicio_nombre__icontains=termino)
+                | Q(servicio__nombre__icontains=termino)
+                | Q(profesional__nombre__icontains=termino)
+                | Q(profesional__apellido_paterno__icontains=termino)
+                | Q(profesional__apellido_materno__icontains=termino)
+                | Q(cliente__nombre__icontains=termino)
+                | Q(cliente__apellido_paterno__icontains=termino)
+                | Q(cliente__apellido_materno__icontains=termino)
+            )
+    if filtro_servicio and not filtro_servicio.isdecimal():
+        messages.error(request, 'El servicio seleccionado no es válido.')
+        reservas = reservas.none()
+    elif filtro_servicio:
+        reservas = reservas.filter(servicio_id=int(filtro_servicio))
+    if filtro_profesional and not filtro_profesional.isdecimal():
+        messages.error(request, 'El profesional seleccionado no es válido.')
+        reservas = reservas.none()
+    elif filtro_profesional:
+        reservas = reservas.filter(profesional_id=int(filtro_profesional))
+    if filtro_estado and filtro_estado not in dict(Reserva.ESTADOS):
+        messages.error(request, 'El estado seleccionado no es válido.')
+        reservas = reservas.none()
+    elif filtro_estado:
+        reservas = reservas.filter(estado=filtro_estado)
+    if filtro_origen and filtro_origen not in dict(Reserva.ORIGENES):
+        messages.error(request, 'El origen seleccionado no es válido.')
+        reservas = reservas.none()
+    elif filtro_origen:
+        reservas = reservas.filter(origen=filtro_origen)
+
+    return render(request, 'agenda/citas_admin.html', {
+        'reservas': reservas,
+        'servicios': (
+            _servicios_colaborador(request.user)
+            if es_colaborador_actual
+            else ServicioAgenda.objects.filter(activo=True).order_by('nombre')
+        ),
+        'profesionales': (
+            Usuario.objects.filter(pk=request.user.pk)
+            if es_colaborador_actual
+            else Usuario.objects.filter(
+                is_active=True,
+                deleted_at__isnull=True,
+                rol__nombre__iexact='Colaborador',
+            ).order_by('nombre', 'apellido_paterno')
+        ),
+        'estados_reserva': Reserva.ESTADOS,
+        'origenes_reserva': Reserva.ORIGENES,
+        'reserva_form': _formulario_reserva_manual(
+            request.user,
+        ),
+        'hoy': hoy,
+        'filtro_fecha': filtro_fecha,
+        'filtro_desde': filtro_desde,
+        'filtro_hasta': filtro_hasta,
+        'busqueda': busqueda,
+        'filtro_servicio': filtro_servicio,
+        'filtro_profesional': filtro_profesional,
+        'filtro_estado': filtro_estado,
+        'filtro_origen': filtro_origen,
+        'es_colaborador': es_colaborador_actual,
+    })
+
+
+def _formulario_reserva_manual(usuario):
+    form = ReservaManualForm()
+    _limitar_formulario_reserva_manual(form, usuario)
+    return form
+
+
+@require_GET
 def horas_disponibles_json(request):
+    if not _puede_gestionar_agenda(request.user):
+        return HttpResponseForbidden()
     try:
         fecha = date.fromisoformat(request.GET.get('fecha', ''))
         servicio = ServicioAgenda.objects.get(pk=request.GET.get('servicio'), activo=True)
@@ -499,6 +711,19 @@ def horas_disponibles_json(request):
         return JsonResponse({'hours': [], 'error': 'La cita indicada no es válida.'}, status=400)
     if profesional_id:
         profesional_id = int(profesional_id)
+    if es_colaborador(request.user) and profesional_id != request.user.pk:
+        return JsonResponse(
+            {'hours': [], 'error': 'Solo puedes consultar tus propios horarios.'},
+            status=403,
+        )
+    if es_colaborador(request.user) and not ProfesionalCategoria.objects.filter(
+        profesional=request.user,
+        categoria_id=servicio.categoria_id,
+    ).exists():
+        return JsonResponse(
+            {'hours': [], 'error': 'El servicio no pertenece a tus especialidades.'},
+            status=403,
+        )
     horas = horas_disponibles(
         fecha,
         servicio,
@@ -510,6 +735,8 @@ def horas_disponibles_json(request):
 
 @require_GET
 def profesionales_por_servicio_json(request):
+    if not _puede_gestionar_agenda(request.user):
+        return HttpResponseForbidden()
     service_id = request.GET.get('servicio', '')
     if not service_id.isdecimal():
         return JsonResponse(
@@ -527,7 +754,18 @@ def profesionales_por_servicio_json(request):
         deleted_at__isnull=True,
         rol__nombre__iexact='Colaborador',
         especialidades__categoria_id=servicio.categoria_id,
-    ).distinct().order_by('nombre', 'apellido_paterno')
+    )
+    if es_colaborador(request.user):
+        if not ProfesionalCategoria.objects.filter(
+            profesional=request.user,
+            categoria_id=servicio.categoria_id,
+        ).exists():
+            return JsonResponse(
+                {'professionals': [], 'error': 'El servicio no pertenece a tus especialidades.'},
+                status=403,
+            )
+        profesionales = profesionales.filter(pk=request.user.pk)
+    profesionales = profesionales.distinct().order_by('nombre', 'apellido_paterno')
     return JsonResponse({
         'professionals': [
             {
@@ -535,11 +773,11 @@ def profesionales_por_servicio_json(request):
                 'name': ' '.join(
                     part for part in (
                         profesional.nombre,
-                        profesional.segundo_nombre,
                         profesional.apellido_paterno,
                         profesional.apellido_materno,
                     ) if part
                 ),
+                'email': profesional.email,
             }
             for profesional in profesionales
         ],
@@ -732,11 +970,12 @@ def cliente_calendario_disponibilidad_json(request):
         ).add(
             regla['profesional_id'],
         )
-    fechas_cerradas = set(
+    motivos_cierre = dict(
         DiaCerrado.objects.filter(
             fecha__range=(primer_dia, ultimo_dia),
-        ).values_list('fecha', flat=True)
+        ).values_list('fecha', 'motivo')
     )
+    fechas_cerradas = set(motivos_cierre)
     today = timezone.localdate()
     weeks = []
     for week in calendar.Calendar(firstweekday=0).monthdatescalendar(
@@ -748,14 +987,30 @@ def cliente_calendario_disponibilidad_json(request):
             past = day < today
             closed = day in fechas_cerradas
             has_slots = False
+            scheduled_services = [
+                service for service in servicios
+                if (day, service.pk) in reglas_por_fecha
+            ]
             if day.month == primer_dia.month and not past and not closed:
-                for servicio in servicios:
+                for servicio in scheduled_services:
                     for professional_id in reglas_por_fecha.get((day, servicio.pk), set()):
                         if horas_disponibles(day, servicio, professional_id):
                             has_slots = True
                             break
                     if has_slots:
                         break
+            service_names = [service.nombre for service in scheduled_services]
+            if closed:
+                reason = motivos_cierre[day].strip() or 'El salón está cerrado.'
+                tooltip = f'Día no disponible: {reason}'
+            elif past:
+                tooltip = 'Día no disponible: la fecha ya pasó.'
+            elif service_names:
+                tooltip = 'Servicios habilitados: ' + ', '.join(service_names)
+                if not has_slots:
+                    tooltip += '. No quedan horarios disponibles.'
+            else:
+                tooltip = 'Día no disponible: no hay servicios habilitados.'
             cells.append({
                 'date': day.isoformat(),
                 'day': day.day,
@@ -763,6 +1018,9 @@ def cliente_calendario_disponibilidad_json(request):
                 'past': past,
                 'closed': closed,
                 'available': has_slots,
+                'services': service_names,
+                'closed_reason': motivos_cierre.get(day, ''),
+                'tooltip': tooltip,
             })
         weeks.append(cells)
 
@@ -1084,7 +1342,10 @@ def _cargar_opciones_hora(form, fecha_value, servicio_id, profesional_id=None, i
 
 @require_POST
 def crear_reserva_manual(request):
+    if not _puede_gestionar_agenda(request.user):
+        return HttpResponseForbidden()
     form = ReservaManualForm(request.POST)
+    _limitar_formulario_reserva_manual(form, request.user)
     _cargar_opciones_hora(
         form,
         request.POST.get('fecha', ''),
@@ -1095,7 +1356,7 @@ def crear_reserva_manual(request):
         messages.error(request, 'No se pudo agendar: ' + ' '.join(
             error for errors in form.errors.values() for error in errors
         ))
-        return redirect('admin_agenda')
+        return redirect('admin_citas')
 
     reserva = form.save(commit=False)
     servicio = form.cleaned_data['servicio']
@@ -1107,11 +1368,11 @@ def crear_reserva_manual(request):
     reserva.servicio_nombre = servicio.nombre
     reserva.duracion_minutos = servicio.duracion_minutos
     reserva.estado = 'confirmada'
-    reserva.origen = 'manual'
+    reserva.origen = 'personal' if es_colaborador(request.user) else 'manual'
     reserva.creada_por = request.user if request.user.is_authenticated else None
     reserva.save()
     messages.success(request, 'La cita presencial se agendó correctamente.')
-    return redirect('admin_agenda')
+    return redirect('admin_citas')
 
 
 def _destino_dia(fecha):
@@ -1168,16 +1429,23 @@ def _intervalos_conflictivos(fecha, servicio, profesional, bloques, grupo_actual
 
 @require_POST
 def guardar_disponibilidad_dia(request):
+    if not _puede_gestionar_agenda(request.user):
+        return HttpResponseForbidden()
     return _guardar_disponibilidad_dia(request, editar=False)
 
 
 @require_POST
 def editar_disponibilidad_dia(request):
+    if not _puede_gestionar_agenda(request.user):
+        return HttpResponseForbidden()
     return _guardar_disponibilidad_dia(request, editar=True)
 
 
 def _guardar_disponibilidad_dia(request, editar):
     form = DisponibilidadDiaForm(request.POST)
+    if es_colaborador(request.user):
+        form.fields['servicio'].queryset = _servicios_colaborador(request.user)
+        form.fields['profesional'].queryset = Usuario.objects.filter(pk=request.user.pk)
     fecha_texto = request.POST.get('fecha', '')
     try:
         fecha = date.fromisoformat(fecha_texto)
@@ -1193,6 +1461,15 @@ def _guardar_disponibilidad_dia(request, editar):
     servicio = form.cleaned_data['servicio']
     profesional = form.cleaned_data['profesional']
     bloques = form.cleaned_data['bloques']
+    if es_colaborador(request.user) and (
+        profesional.pk != request.user.pk
+        or not ProfesionalCategoria.objects.filter(
+            profesional=request.user,
+            categoria_id=servicio.categoria_id,
+        ).exists()
+    ):
+        messages.error(request, 'Solo puedes configurar tus servicios de especialidad.')
+        return redirect(destino)
     grupo = _disponibilidades_del_grupo(fecha, servicio.pk, profesional.pk)
     cambios = CambioDisponibilidadPendiente.objects.filter(
         fecha=fecha,
@@ -1368,6 +1645,8 @@ def _enviar_aviso_suspension(reserva, cambio, request):
 
 @require_POST
 def eliminar_disponibilidad_grupo(request):
+    if not _puede_gestionar_agenda(request.user):
+        return HttpResponseForbidden()
     try:
         fecha = date.fromisoformat(request.POST.get('fecha', ''))
         servicio_id = int(request.POST.get('servicio', ''))
@@ -1382,6 +1661,14 @@ def eliminar_disponibilidad_grupo(request):
         return redirect(destino)
     servicio = get_object_or_404(ServicioAgenda, pk=servicio_id)
     profesional = get_object_or_404(Usuario, pk=profesional_id)
+    if es_colaborador(request.user) and (
+        profesional.pk != request.user.pk
+        or not ProfesionalCategoria.objects.filter(
+            profesional=request.user,
+            categoria_id=servicio.categoria_id,
+        ).exists()
+    ):
+        return HttpResponseForbidden()
     motivo = request.POST.get('motivo', '').strip()
     if not motivo:
         messages.error(request, 'Indica el motivo para quitar este registro.')
@@ -1538,6 +1825,8 @@ def guardar_respuesta_suspension(request, token):
 
 @require_POST
 def cerrar_dia(request):
+    if not es_administrador(request.user):
+        return HttpResponseForbidden()
     form = CierreDiaForm(request.POST)
     if not form.is_valid():
         messages.error(request, 'No se pudo cerrar el día: ' + ' '.join(
@@ -1566,6 +1855,8 @@ def cerrar_dia(request):
 
 @require_POST
 def abrir_dia(request, pk):
+    if not es_administrador(request.user):
+        return HttpResponseForbidden()
     dia = get_object_or_404(DiaCerrado, pk=pk)
     dia.delete()
     messages.success(request, 'El día quedó habilitado de acuerdo con sus reglas de disponibilidad.')
@@ -1574,14 +1865,21 @@ def abrir_dia(request, pk):
 
 @require_POST
 def reagendar_cita(request, pk):
+    if not _puede_gestionar_agenda(request.user):
+        return HttpResponseForbidden()
     reserva = get_object_or_404(
         Reserva.objects.select_related('servicio', 'cliente', 'profesional'),
         pk=pk,
     )
+    if es_colaborador(request.user) and reserva.profesional_id != request.user.pk:
+        return HttpResponseForbidden()
     if reserva.estado in ['cancelada', 'completada']:
         messages.error(request, 'Esta cita no se puede editar.')
-        return redirect('admin_agenda')
+        return redirect('admin_citas')
     form = ReagendarReservaForm(request.POST)
+    if es_colaborador(request.user):
+        form.fields['servicio'].queryset = _servicios_colaborador(request.user)
+        form.fields['profesional'].queryset = Usuario.objects.filter(pk=request.user.pk)
     _cargar_opciones_hora(
         form,
         request.POST.get('fecha', ''),
@@ -1593,7 +1891,11 @@ def reagendar_cita(request, pk):
         messages.error(request, 'No se pudo editar la cita: ' + ' '.join(
             error for errors in form.errors.values() for error in errors
         ))
-        return redirect('admin_agenda')
+        return redirect('admin_citas')
+    motivo_edicion = form.cleaned_data.get('motivo', '').strip()
+    if es_colaborador(request.user) and not motivo_edicion:
+        messages.error(request, 'Indica el motivo para modificar esta cita.')
+        return redirect('admin_citas')
 
     servicio = form.cleaned_data['servicio']
     profesional = form.cleaned_data['profesional']
@@ -1610,7 +1912,9 @@ def reagendar_cita(request, pk):
         ).get(pk=pk)
         if reserva.estado in ['cancelada', 'completada']:
             messages.error(request, 'Esta cita ya no se puede editar.')
-            return redirect('admin_agenda')
+            return redirect('admin_citas')
+        if es_colaborador(request.user) and reserva.profesional_id != request.user.pk:
+            return HttpResponseForbidden()
         list(Disponibilidad.objects.select_for_update().filter(
             activo=True,
             fecha_especifica=nueva_fecha,
@@ -1628,9 +1932,9 @@ def reagendar_cita(request, pk):
                 'El horario seleccionado ya no está disponible en el calendario. '
                 'Elige otra opción.',
             )
-            return redirect('admin_agenda')
+            return redirect('admin_citas')
         cambio_pendiente = reserva.cambio_disponibilidad
-        _registrar_historial_reserva(reserva, 'modificada')
+        _registrar_historial_reserva(reserva, 'modificada', motivo_edicion)
         reserva.fecha_hora = nueva_fecha_hora
         reserva.servicio = servicio
         reserva.servicio_nombre = servicio.nombre
@@ -1678,7 +1982,7 @@ def reagendar_cita(request, pk):
             messages.success(request, 'La cita se modificó y se notificó al cliente por correo.')
     else:
         messages.success(request, 'La cita se modificó correctamente.')
-    return redirect('admin_agenda')
+    return redirect('admin_citas')
 
 
 def _nombre_profesional(profesional):
@@ -1694,14 +1998,18 @@ def _nombre_profesional(profesional):
 
 @require_POST
 def cancelar_cita(request, pk):
+    if not _puede_gestionar_agenda(request.user):
+        return HttpResponseForbidden()
     reserva = get_object_or_404(Reserva.objects.select_related('cambio_disponibilidad'), pk=pk)
+    if es_colaborador(request.user) and reserva.profesional_id != request.user.pk:
+        return HttpResponseForbidden()
     if reserva.estado in ['cancelada', 'completada']:
         messages.error(request, 'La cita ya no está pendiente y no se puede cancelar.')
-        return redirect('admin_agenda')
+        return redirect('admin_citas')
     form = CancelarReservaForm(request.POST)
     if not form.is_valid():
         messages.error(request, 'Indica un motivo para cancelar la cita.')
-        return redirect('admin_agenda')
+        return redirect('admin_citas')
     cambio_pendiente = reserva.cambio_disponibilidad
     _registrar_historial_reserva(reserva, 'cancelada', form.cleaned_data['motivo'])
     reserva.estado = 'cancelada'
@@ -1718,4 +2026,4 @@ def cancelar_cita(request, pk):
         messages.warning(request, 'La cita se canceló, pero ocurrió un error al enviar el correo de aviso.')
     else:
         messages.warning(request, 'La cita se canceló; no hay un correo de contacto registrado.')
-    return redirect('admin_agenda')
+    return redirect('admin_citas')

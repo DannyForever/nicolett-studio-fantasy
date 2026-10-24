@@ -5,7 +5,7 @@
 {% block content %}
     <div class="mx-auto grid max-w-7xl grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
         <div class="space-y-6">
-        <section class="border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8">
+        <section id="datos-contacto" class="border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8">
             <h1 class="font-serif text-2xl">Datos de contacto</h1>
             {% if messages %}
                 <div class="mt-5 space-y-2" aria-live="polite">
@@ -34,6 +34,7 @@
             </form>
 
             <form method="post" class="mt-8 space-y-4 border-t border-[#ead7bc] pt-6">
+                <div id="cambiar-contrasena"></div>
                 {% csrf_token %}
                 <input type="hidden" name="accion" value="contrasena">
                 <div>

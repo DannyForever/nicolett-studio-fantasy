@@ -545,7 +545,7 @@ class RoleAccessTests(TestCase):
                 )
                 self.assertContains(response, 'aria-current="page"')
                 self.assertIn('no-store', response['Cache-Control'])
-                self.assertContains(response, 'lg:sticky lg:top-16')
+                self.assertContains(response, 'lg:fixed lg:inset-y-0 lg:left-0')
                 self.assertNotContains(response, 'Todos los derechos reservados')
                 self.assertContains(
                     response,
@@ -1049,7 +1049,7 @@ class RoleAccessTests(TestCase):
         )
         self.assertNotContains(servicios, 'id="catalog-grid"')
         self.assertContains(servicios, 'aria-label="Servicios"')
-        self.assertNotContains(servicios, 'Buscar servicios')
+        self.assertContains(servicios, 'Buscar servicios, productos...')
         self.assertNotContains(servicios, 'resultados')
         ordenados = self.client.get(reverse('cliente_servicios'), {'orden': 'precio_desc'})
         self.assertEqual(
@@ -1209,18 +1209,154 @@ class RoleAccessTests(TestCase):
 
         response = self.client.get(reverse('cliente_home'))
 
-        self.assertContains(response, 'h-16')
+        self.assertContains(response, 'h-14')
         self.assertContains(response, 'id="clientMenuToggle"')
         self.assertContains(response, 'aria-controls="clientSidebar"')
         self.assertContains(response, 'id="clientMenuBackdrop"')
         self.assertContains(response, 'id="clientSidebarCollapseToggle"')
-        self.assertContains(response, 'client-sidebar-home-row')
+        self.assertContains(response, 'client-sidebar-tools')
         self.assertContains(response, 'data-collapsed="false"')
         self.assertContains(response, 'client-sidebar-label')
+        self.assertContains(response, 'Mis citas')
+        self.assertNotContains(response, 'Gestionar citas')
         self.assertContains(response, 'client-sidebar[data-open="true"]')
         self.assertContains(response, 'fa-instagram')
         self.assertContains(response, 'https://wa.me/56982108409')
         self.assertContains(response, 'bg-[#e07a5f]/10')
+
+    def test_client_smart_search_suggests_catalog_and_settings_sections(self):
+        categoria = Categoria.objects.create(nombre='Cabello', tipo='Tratamientos')
+        servicio = Servicio.objects.create(
+            nombre='Tratamiento hidratante',
+            categoria=categoria,
+            descripcion='Hidratación capilar profunda.',
+            duracion_minutos=60,
+            precio='18000',
+            activo=True,
+        )
+        producto = Producto.objects.create(
+            nombre='Mascarilla nutritiva',
+            categoria=categoria,
+            descripcion='Nutrición capilar.',
+            precio='9900',
+            stock=4,
+            activo=True,
+        )
+        self.client.force_login(self.crear_cliente())
+
+        address_response = self.client.get(reverse('cliente_busqueda'), {'q': 'direcciones'})
+        services_response = self.client.get(reverse('cliente_busqueda'), {'q': 'hidratacion'})
+        product_response = self.client.get(reverse('cliente_busqueda'), {'q': 'mascarilla'})
+        empty_response = self.client.get(reverse('cliente_busqueda'), {'q': 'noexiste'})
+
+        address_results = address_response.json()['results']
+        self.assertEqual(
+            {result['title'] for result in address_results},
+            {'Configuración', 'Direcciones de envío', 'Direcciones de facturación'},
+        )
+        self.assertIn(
+            f'#servicio-{servicio.pk}',
+            services_response.json()['results'][0]['url'],
+        )
+        self.assertIn(
+            f'#producto-{producto.pk}',
+            product_response.json()['results'][0]['url'],
+        )
+        self.assertEqual(empty_response.json()['results'], [])
+
+    def test_admin_can_preview_customer_catalog_without_purchase_actions(self):
+        admin = self.crear_admin()
+        categoria = Categoria.objects.create(nombre='Cabello', tipo='Tratamientos')
+        Producto.objects.create(
+            nombre='Mascarilla de prueba',
+            categoria=categoria,
+            descripcion='Producto para la vista previa.',
+            precio='9900',
+            stock=3,
+            activo=True,
+        )
+        self.client.force_login(admin)
+
+        start_response = self.client.get(reverse('admin_vista_cliente'))
+        home_response = self.client.get(reverse('cliente_home'))
+        products_response = self.client.get(reverse('cliente_productos'))
+        settings_response = self.client.get(reverse('cliente_configuracion'))
+        deletion_response = self.client.post(
+            reverse('cliente_eliminar_cuenta'),
+            {'confirmar': 'eliminar'},
+        )
+
+        self.assertRedirects(start_response, reverse('cliente_home'))
+        self.assertEqual(home_response.status_code, 200)
+        self.assertContains(home_response, 'Vista previa')
+        self.assertContains(home_response, 'Volver a Admin')
+        self.assertNotContains(home_response, 'id="cart-summary-toggle"')
+        self.assertEqual(products_response.status_code, 200)
+        self.assertContains(products_response, 'Mascarilla de prueba')
+        self.assertNotContains(products_response, 'Añadir al carrito')
+        self.assertNotContains(products_response, 'cliente_carrito_agregar_producto')
+        self.assertEqual(settings_response.status_code, 403)
+        self.assertEqual(deletion_response.status_code, 403)
+        admin.refresh_from_db()
+        self.assertTrue(admin.is_active)
+
+        exit_response = self.client.get(reverse('admin_salir_vista_cliente'))
+        self.assertRedirects(exit_response, reverse('admin_dashboard'))
+        self.assertEqual(self.client.get(reverse('cliente_home')).status_code, 403)
+
+    def test_collaborator_can_preview_catalog_read_only_and_return_to_agenda(self):
+        rol_colaborador, _ = Rol.objects.get_or_create(nombre='Colaborador')
+        colaborador = Usuario.objects.create_user(
+            email='colaborador@example.com',
+            password='Colaborador123!',
+            nombre='Alejandra',
+            apellido_paterno='Garrido',
+            apellido_materno='Fuentes',
+            telefono='+56987654321',
+            rol=rol_colaborador,
+        )
+        categoria = Categoria.objects.create(nombre='Cabello', tipo='Tratamientos')
+        Producto.objects.create(
+            nombre='Mascarilla demostración',
+            categoria=categoria,
+            descripcion='Producto para mostrar.',
+            precio='9900',
+            stock=3,
+            activo=True,
+        )
+        self.client.force_login(colaborador)
+
+        start = self.client.get(reverse('admin_vista_cliente'))
+        home = self.client.get(reverse('cliente_home'))
+        products = self.client.get(reverse('cliente_productos'))
+        settings = self.client.get(reverse('cliente_configuracion'))
+        booking = self.client.get(reverse('cliente_agendamiento'))
+        exit_preview = self.client.get(reverse('admin_salir_vista_cliente'))
+
+        self.assertEqual(start.status_code, 302)
+        self.assertEqual(start['Location'], reverse('cliente_home'))
+        self.assertEqual(home.status_code, 200)
+        self.assertContains(home, 'Vista previa de colaborador')
+        self.assertContains(home, 'Volver a Mi agenda')
+        self.assertNotContains(home, 'id="cart-summary-toggle"')
+        self.assertEqual(products.status_code, 200)
+        self.assertContains(products, 'Mascarilla demostración')
+        self.assertNotContains(products, 'Añadir al carrito')
+        self.assertEqual(settings.status_code, 403)
+        self.assertEqual(booking.status_code, 403)
+        self.assertRedirects(exit_preview, reverse('colaborador_mi_agenda'))
+
+    def test_smart_search_and_preview_are_restricted_by_role(self):
+        self.client.force_login(self.crear_admin())
+
+        search_response = self.client.get(reverse('cliente_busqueda'), {'q': 'mis citas'})
+        preview_response = self.client.get(reverse('admin_vista_cliente'))
+        preview_search = self.client.get(reverse('cliente_busqueda'), {'q': 'mis citas'})
+
+        self.assertEqual(search_response.status_code, 403)
+        self.assertRedirects(preview_response, reverse('cliente_home'))
+        self.assertEqual(preview_search.status_code, 200)
+        self.assertEqual(preview_search.json()['results'], [])
 
     def test_client_profile_fields_are_disabled_with_locked_visual_state(self):
         self.client.force_login(self.crear_cliente())
@@ -1292,6 +1428,7 @@ class RoleAccessTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Mis citas')
         self.assertContains(response, 'Cita propia')
         self.assertContains(response, 'En curso')
         self.assertContains(response, 'Servicio anterior')
@@ -1436,7 +1573,9 @@ class RoleAccessTests(TestCase):
             response,
             'href="{}" title="Servicios" aria-label="Servicios" class="nav-link active"'.format(reverse('listar_servicios')),
         )
-        self.assertContains(response, 'dashboard.css?v=20261022-1')
+        self.assertContains(response, 'Cambiar vista')
+        self.assertContains(response, reverse('admin_vista_cliente'))
+        self.assertContains(response, 'dashboard.css?v=20261023-5')
 
     def test_customer_can_update_account_details_and_password(self):
         cliente = self.crear_cliente()

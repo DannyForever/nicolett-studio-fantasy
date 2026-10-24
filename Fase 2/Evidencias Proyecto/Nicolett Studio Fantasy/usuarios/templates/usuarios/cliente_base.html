@@ -17,11 +17,24 @@
         }
 
         @media (min-width: 1024px) {
+            body[data-client-sidebar-collapsed="true"] > header {
+                width: calc(100% - 76px);
+                margin-left: 76px;
+            }
+
+            body[data-client-sidebar-collapsed="true"] #clientLayoutContent {
+                margin-left: 76px;
+            }
+
             .client-sidebar[data-collapsed="true"] {
                 width: 76px;
             }
 
             .client-sidebar[data-collapsed="true"] .client-sidebar-label {
+                display: none;
+            }
+
+            .client-sidebar[data-collapsed="true"] .client-sidebar-brand {
                 display: none;
             }
 
@@ -31,21 +44,13 @@
                 padding-left: 0;
             }
 
-            .client-sidebar[data-collapsed="true"] .client-sidebar-home-row > a {
+            .client-sidebar[data-collapsed="true"] .client-sidebar-tools {
                 justify-content: center;
                 padding-right: 0;
                 padding-left: 0;
             }
 
-            .client-sidebar[data-collapsed="true"] .client-sidebar-home-row {
-                gap: 0;
-            }
-
-            .client-sidebar[data-collapsed="true"] .client-sidebar-home-row > a {
-                flex: 1;
-            }
-
-            .client-sidebar[data-collapsed="true"] .client-sidebar-home-row > button {
+            .client-sidebar[data-collapsed="true"] .client-sidebar-tools > button {
                 width: 32px;
                 flex: 0 0 32px;
             }
@@ -92,16 +97,32 @@
     </script>
 </head>
 <body class="flex min-h-screen flex-col bg-[#fffaf5] font-sans text-[#281b14] antialiased">
-    <header class="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#60452f] bg-[#332216] px-3 text-[#ffffff] shadow-sm sm:px-8 lg:px-16">
+    <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#60452f] bg-[#332216] px-3 text-[#ffffff] shadow-sm sm:px-8 lg:ml-[240px] lg:w-[calc(100%-240px)] lg:px-6">
         <button type="button" id="clientMenuToggle" class="flex h-10 w-10 shrink-0 items-center justify-center border border-[#ead7bc]/50 bg-transparent text-lg text-white lg:hidden" aria-label="Abrir menú" aria-expanded="false" aria-controls="clientSidebar">
             <i class="fa-solid fa-bars" aria-hidden="true"></i>
         </button>
-        <a href="{% url 'cliente_home' %}" aria-label="Ir a Nosotras" class="flex min-w-0 items-baseline gap-2 text-[#ffffff] no-underline">
-            <span class="font-serif text-xl font-bold">Nicolett</span>
+        <a href="{% url 'cliente_home' %}" aria-label="Ir a Nosotras" class="flex min-w-0 items-baseline gap-2 text-[#ffffff] no-underline lg:hidden">
+            <span class="font-serif text-xl font-bold text-[#e0bd7c]">Nicolett</span>
             <span class="text-[10px] uppercase tracking-[0.2em] text-[#e0bd7c]">Studio</span>
         </a>
-        <div class="flex shrink-0 items-center gap-3 text-sm sm:gap-5">
-            <span class="hidden text-[#e0bd7c] sm:inline">Hola, <strong class="text-white">{{ request.user.nombre }}</strong></span>
+        <div class="relative ml-auto flex min-w-0 items-center gap-3 text-sm sm:gap-5">
+            <button type="button" id="clientSearchToggle" aria-label="Buscar" aria-expanded="false" aria-controls="client-smart-search" class="flex h-9 w-9 shrink-0 items-center justify-center border border-[#ead7bc]/50 bg-transparent text-white md:hidden">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            </button>
+            <div class="absolute right-3 top-full z-40 hidden w-[min(92vw,380px)] md:relative md:right-auto md:top-auto md:z-auto md:block md:w-[min(32vw,320px)]" data-client-search data-search-url="{% url 'cliente_busqueda' %}">
+                <label class="sr-only" for="client-smart-search">Buscar en Nicolett Studio</label>
+                <div class="flex items-center border border-[#ead7bc]/60 bg-white/10 px-3 text-white transition focus-within:border-[#e0bd7c]">
+                    <i class="fa-solid fa-magnifying-glass text-xs text-[#e0bd7c]" aria-hidden="true"></i>
+                    <input id="client-smart-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="client-search-results" placeholder="Buscar servicios, productos..." autocomplete="off" class="w-full border-0 bg-transparent px-2 py-2 text-xs text-white outline-none placeholder:text-white/60">
+                </div>
+                <div id="client-search-results" role="listbox" class="absolute right-0 top-full z-50 mt-2 max-h-[min(65vh,420px)] w-[min(88vw,380px)] overflow-y-auto border border-[#ead7bc] bg-white py-1 text-[#281b14] shadow-xl" hidden></div>
+            </div>
+            {% if vista_previa_admin %}
+                <span class="hidden text-xs font-medium text-[#e0bd7c] sm:inline">{% if vista_previa_colaborador %}Vista previa de colaborador{% else %}Vista previa{% endif %}</span>
+            {% else %}
+                <span class="hidden text-[#e0bd7c] sm:inline">Hola, <strong class="text-white">{{ request.user.nombre }}</strong></span>
+            {% endif %}
+            {% if not vista_previa_admin %}
             <div class="relative">
                 <button id="cart-summary-toggle" type="button" aria-label="Abrir resumen de compra" aria-expanded="false" aria-controls="cart-summary-panel" class="relative border-0 bg-transparent text-lg text-[#fae9cf] transition hover:text-white">
                     <i class="fa-solid fa-cart-shopping"></i>
@@ -195,6 +216,7 @@
                     </footer>
                 </section>
             </div>
+            {% endif %}
             <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram de Nicolett Studio Fantasy" title="Instagram" class="text-xl transition hover:scale-110">
                 <i class="fa-brands fa-instagram bg-gradient-to-br from-[#833AB4] via-[#E4405F] to-[#FCAF45] bg-clip-text text-transparent" aria-hidden="true"></i>
             </a>
@@ -204,40 +226,65 @@
         </div>
     </header>
 
-    <button type="button" id="clientMenuBackdrop" class="fixed inset-0 z-30 hidden border-0 bg-black/40" style="top: 4rem;" aria-label="Cerrar menú" hidden></button>
-    <div class="flex flex-1">
-        <aside id="clientSidebar" data-collapsed="false" class="client-sidebar fixed inset-y-16 left-0 z-40 hidden w-[min(82vw,280px)] shrink-0 flex-col overflow-y-auto border-r border-[#ead7bc] bg-white py-7 shadow-xl transition-[width] duration-200 lg:sticky lg:top-16 lg:z-auto lg:flex lg:h-[calc(100vh-4rem)] lg:w-[240px] lg:self-start lg:shadow-none">
+    <button type="button" id="clientMenuBackdrop" class="fixed inset-0 z-30 hidden border-0 bg-black/40" style="top: 3.5rem;" aria-label="Cerrar menú" hidden></button>
+    <div id="clientLayoutContent" class="flex flex-1 lg:ml-[240px]">
+        <aside id="clientSidebar" data-collapsed="false" class="client-sidebar fixed inset-y-14 left-0 z-40 hidden w-[min(82vw,280px)] shrink-0 flex-col overflow-y-auto border-r border-[#ead7bc] bg-white py-3 shadow-xl transition-[width] duration-200 lg:fixed lg:inset-y-0 lg:left-0 lg:z-auto lg:flex lg:h-screen lg:w-[240px] lg:self-start lg:shadow-none">
+            <div class="client-sidebar-tools flex items-center justify-between gap-2 px-4 pb-3">
+                <a href="{% url 'cliente_home' %}" aria-label="Nicolett Studio, ir a Nosotras" class="client-sidebar-brand flex min-w-0 items-baseline gap-1.5 text-[#281b14] no-underline">
+                    <span class="font-serif text-xl font-bold text-[#6b5643]">Nicolett</span>
+                    <span class="text-[9px] uppercase tracking-[0.18em] text-[#bd8c43]">Studio</span>
+                </a>
+                <button type="button" id="clientSidebarCollapseToggle" class="hidden h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#ead7bc] bg-white text-[#5a3e27] shadow-sm transition hover:bg-[#fae9cf] lg:flex" aria-label="Contraer menú" aria-expanded="true" aria-controls="clientSidebar" title="Contraer menú">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+            </div>
             <nav class="flex flex-col gap-1" aria-label="Menú de cliente">
-                <div class="client-sidebar-home-row flex items-center gap-1">
-                    <a href="{% url 'cliente_home' %}" title="Nosotras" class="flex min-w-0 flex-1 items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
-                        <i class="fa-solid fa-heart w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Nosotras</span>
-                    </a>
-                    <button type="button" id="clientSidebarCollapseToggle" class="hidden h-9 w-9 shrink-0 items-center justify-center border border-[#ead7bc] bg-white text-[#5a3e27] transition hover:bg-[#fae9cf] lg:flex" aria-label="Contraer menú" aria-expanded="true" aria-controls="clientSidebar" title="Contraer menú">
-                        <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
-                    </button>
-                </div>
+                <a href="{% url 'cliente_home' %}" title="Nosotras" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-heart w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Nosotras</span>
+                </a>
                 <a href="{% url 'cliente_servicios' %}#servicios-semana" title="Servicios y citas" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' or request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_servicios' or request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-spa w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Servicios y citas</span>
                 </a>
                 <a href="{% url 'cliente_productos' %}" title="Productos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Productos</span>
                 </a>
-                <a href="{% url 'cliente_gestionar_citas' %}" title="Gestionar citas" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}aria-current="page"{% endif %}>
-                    <i class="fa-regular fa-calendar-check w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Gestionar citas</span>
-                </a>
-                <a href="{% url 'cliente_historial_pagos' %}" title="Historial de pagos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-receipt w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Historial de pagos</span>
-                </a>
-                <a href="{% url 'cliente_configuracion' %}" title="Configuración" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_configuracion' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_configuracion' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-gear w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Configuración</span>
-                </a>
+                {% if vista_previa_admin %}
+                    <span title="No disponible en la vista previa" aria-disabled="true" class="flex cursor-not-allowed items-center gap-3.5 border-l-4 border-transparent px-5 py-3 text-sm text-[#6b5643]/50">
+                        <i class="fa-regular fa-calendar-check w-5 text-center text-base text-[#bd8c43]/50" aria-hidden="true"></i><span class="client-sidebar-label">Mis citas</span>
+                    </span>
+                {% else %}
+                    <a href="{% url 'cliente_gestionar_citas' %}" title="Mis citas" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}aria-current="page"{% endif %}>
+                        <i class="fa-regular fa-calendar-check w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Mis citas</span>
+                    </a>
+                {% endif %}
+                {% if vista_previa_admin %}
+                    <span title="No disponible en la vista previa" aria-disabled="true" class="flex cursor-not-allowed items-center gap-3.5 border-l-4 border-transparent px-5 py-3 text-sm text-[#6b5643]/50">
+                        <i class="fa-solid fa-receipt w-5 text-center text-base text-[#bd8c43]/50" aria-hidden="true"></i><span class="client-sidebar-label">Historial de pagos</span>
+                    </span>
+                    <span title="No disponible en la vista previa" aria-disabled="true" class="flex cursor-not-allowed items-center gap-3.5 border-l-4 border-transparent px-5 py-3 text-sm text-[#6b5643]/50">
+                        <i class="fa-solid fa-gear w-5 text-center text-base text-[#bd8c43]/50" aria-hidden="true"></i><span class="client-sidebar-label">Configuración</span>
+                    </span>
+                {% else %}
+                    <a href="{% url 'cliente_historial_pagos' %}" title="Historial de pagos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}aria-current="page"{% endif %}>
+                        <i class="fa-solid fa-receipt w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Historial de pagos</span>
+                    </a>
+                    <a href="{% url 'cliente_configuracion' %}" title="Configuración" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_configuracion' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_configuracion' %}aria-current="page"{% endif %}>
+                        <i class="fa-solid fa-gear w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Configuración</span>
+                    </a>
+                {% endif %}
             </nav>
-            <form action="{% url 'logout' %}" method="post" class="mt-auto px-5 pb-2 pt-6">
-                {% csrf_token %}
-                <button type="submit" title="Cerrar sesión" class="flex w-full items-center gap-3 rounded border border-[#e07a5f]/35 bg-[#e07a5f]/10 px-3 py-2.5 text-left text-sm font-semibold text-[#e07a5f] transition-colors hover:bg-[#e07a5f]/20 hover:text-[#f4a261]">
-                    <i class="fa-solid fa-right-from-bracket w-4 shrink-0 text-center" aria-hidden="true"></i><span class="client-sidebar-label">Cerrar sesión</span>
-                </button>
-            </form>
+            {% if vista_previa_admin %}
+                <a href="{% url 'admin_salir_vista_cliente' %}" title="{% if vista_previa_colaborador %}Volver a Mi agenda{% else %}Volver a Admin{% endif %}" class="mt-auto mx-5 mb-2 mt-6 flex items-center gap-3 rounded border border-[#bd8c43]/50 bg-[#fae9cf] px-3 py-2.5 text-left text-sm font-semibold text-[#5a3e27] no-underline transition-colors hover:bg-[#f2ddb9]">
+                    <i class="fa-solid fa-arrow-left w-4 shrink-0 text-center" aria-hidden="true"></i><span class="client-sidebar-label">{% if vista_previa_colaborador %}Volver a Mi agenda{% else %}Volver a Admin{% endif %}</span>
+                </a>
+            {% else %}
+                <form action="{% url 'logout' %}" method="post" class="mt-auto px-5 pb-2 pt-6">
+                    {% csrf_token %}
+                    <button type="submit" title="Cerrar sesión" class="flex w-full items-center gap-3 rounded border border-[#e07a5f]/35 bg-[#e07a5f]/10 px-3 py-2.5 text-left text-sm font-semibold text-[#e07a5f] transition-colors hover:bg-[#e07a5f]/20 hover:text-[#f4a261]">
+                        <i class="fa-solid fa-right-from-bracket w-4 shrink-0 text-center" aria-hidden="true"></i><span class="client-sidebar-label">Cerrar sesión</span>
+                    </button>
+                </form>
+            {% endif %}
         </aside>
 
         <main class="w-full min-w-0 px-5 py-8 lg:flex-1 lg:px-10">
@@ -265,10 +312,11 @@
 
             const setCollapsed = (collapsed) => {
                 sidebar.dataset.collapsed = String(collapsed);
+                document.body.dataset.clientSidebarCollapsed = String(collapsed);
                 collapseToggle.setAttribute('aria-expanded', String(!collapsed));
                 collapseToggle.setAttribute('aria-label', collapsed ? 'Expandir menú' : 'Contraer menú');
                 collapseToggle.title = collapsed ? 'Expandir menú' : 'Contraer menú';
-                collapseToggle.innerHTML = `<i class="fa-solid fa-angles-${collapsed ? 'right' : 'left'}" aria-hidden="true"></i>`;
+                collapseToggle.innerHTML = '<i class="fa-solid fa-bars" aria-hidden="true"></i>';
             };
 
             setCollapsed(false);
@@ -291,6 +339,100 @@
                 window.location.reload();
             }
         });
+        (() => {
+            const searchRoot = document.querySelector('[data-client-search]');
+            const search = document.getElementById('client-smart-search');
+            const results = document.getElementById('client-search-results');
+            const searchToggle = document.getElementById('clientSearchToggle');
+            if (!searchRoot || !search || !results || !searchToggle) return;
+
+            let timer;
+            let requestController;
+            const setMobileSearchOpen = (open) => {
+                searchRoot.classList.toggle('hidden', !open);
+                searchToggle.setAttribute('aria-expanded', String(open));
+                if (open) search.focus();
+                else closeResults();
+            };
+            const closeResults = () => {
+                results.hidden = true;
+                search.setAttribute('aria-expanded', 'false');
+            };
+            const showMessage = (message) => {
+                results.replaceChildren();
+                const item = document.createElement('p');
+                item.className = 'px-4 py-3 text-sm text-[#6b5643]';
+                item.textContent = message;
+                results.appendChild(item);
+                results.hidden = false;
+                search.setAttribute('aria-expanded', 'true');
+            };
+            search.addEventListener('input', () => {
+                window.clearTimeout(timer);
+                if (requestController) requestController.abort();
+                const query = search.value.trim();
+                if (query.length < 2) {
+                    closeResults();
+                    return;
+                }
+                showMessage('Buscando...');
+                timer = window.setTimeout(async () => {
+                    requestController = new AbortController();
+                    try {
+                        const url = new URL(searchRoot.dataset.searchUrl, window.location.origin);
+                        url.searchParams.set('q', query);
+                        const response = await fetch(url, {
+                            credentials: 'same-origin',
+                            signal: requestController.signal,
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'No se pudo realizar la búsqueda.');
+                        results.replaceChildren();
+                        if (!data.results.length) {
+                            showMessage(`No hay coincidencias para “${query}”.`);
+                            return;
+                        }
+                        data.results.forEach((result) => {
+                            const link = document.createElement('a');
+                            link.href = result.url;
+                            link.role = 'option';
+                            link.className = 'block border-b border-[#ead7bc] px-4 py-3 text-left no-underline transition last:border-0 hover:bg-[#fffaf5] focus:bg-[#fffaf5]';
+                            const title = document.createElement('span');
+                            title.className = 'block text-sm font-medium text-[#281b14]';
+                            title.textContent = result.title;
+                            const description = document.createElement('span');
+                            description.className = 'mt-1 block text-xs text-[#6b5643]';
+                            description.textContent = result.description;
+                            link.append(title, description);
+                            results.appendChild(link);
+                        });
+                        results.hidden = false;
+                        search.setAttribute('aria-expanded', 'true');
+                    } catch (error) {
+                        if (error.name !== 'AbortError') showMessage(error.message || 'No se pudo realizar la búsqueda.');
+                    }
+                }, 180);
+            });
+            search.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') closeResults();
+                if (event.key === 'ArrowDown' && !results.hidden) {
+                    event.preventDefault();
+                    results.querySelector('a')?.focus();
+                }
+            });
+            searchToggle.addEventListener('click', () => {
+                setMobileSearchOpen(searchRoot.classList.contains('hidden'));
+            });
+            document.addEventListener('click', (event) => {
+                if (!searchRoot.contains(event.target) && !searchToggle.contains(event.target)) {
+                    closeResults();
+                    if (window.matchMedia('(max-width: 767.98px)').matches) setMobileSearchOpen(false);
+                }
+            });
+            window.matchMedia('(min-width: 768px)').addEventListener('change', () => {
+                setMobileSearchOpen(false);
+            });
+        })();
         (() => {
             const toggle = document.getElementById('cart-summary-toggle');
             const panel = document.getElementById('cart-summary-panel');

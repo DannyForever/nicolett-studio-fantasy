@@ -4,7 +4,7 @@
 <div class="container-fluid px-0 services-page">
     <div class="mb-4">
         <h1 class="h3 mb-1 text-dark">Configuración de la cuenta</h1>
-        <p class="text-muted mb-0">Actualiza los datos de la cuenta administradora con la que iniciaste sesión.</p>
+        <p class="text-muted mb-0">Actualiza los datos de tu cuenta de {% if es_colaborador %}colaborador{% else %}administración{% endif %}.</p>
     </div>
 
     {% if messages %}
@@ -22,22 +22,34 @@
         <div class="col-xl-7">
             <section class="card-stat h-100">
                 <h2 class="h5 mb-3">Datos personales</h2>
-                <form method="post" novalidate>
+                <form id="adminProfileForm" method="post" novalidate>
                     {% csrf_token %}
                     <input type="hidden" name="form_type" value="profile">
+                    <input type="hidden" name="profile_edit" value="{% if perfil_editando %}1{% else %}0{% endif %}">
                     {{ perfil_form.non_field_errors }}
                     <div class="row g-3">
                         {% for field in perfil_form %}
                             <div class="col-md-6">
                                 <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                {{ field }}
+                                {% if field.name == 'email' %}
+                                    <div class="input-group">
+                                        {{ field }}
+                                        <span class="input-group-text admin-access-domain">@nicolettstudio.cl</span>
+                                    </div>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
                                 {% for error in field.errors %}
                                     <div class="invalid-feedback d-block">{{ error }}</div>
                                 {% endfor %}
                             </div>
                         {% endfor %}
                     </div>
-                    <button type="submit" class="btn salon-btn-primary mt-4">Guardar datos personales</button>
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="button" id="adminProfileEdit" class="btn salon-btn-outline"{% if perfil_editando %} hidden{% endif %}>Modificar</button>
+                        <button type="submit" id="adminProfileSave" class="btn salon-btn-primary"{% if not perfil_editando %} hidden{% endif %}>Guardar cambios</button>
+                        <button type="button" id="adminProfileCancel" class="btn salon-btn-light"{% if not perfil_editando %} hidden{% endif %}>Cancelar</button>
+                    </div>
                 </form>
             </section>
         </div>
@@ -68,8 +80,64 @@
         </div>
     </div>
 
-    <div class="alert alert-info mt-3" role="note">
+    {% if not es_colaborador %}<div class="alert alert-info mt-3" role="note">
         Esta configuración no permite eliminar la cuenta administradora ni quitarle el acceso al sistema.
-    </div>
+    </div>{% endif %}
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('adminProfileForm');
+    const editButton = document.getElementById('adminProfileEdit');
+    const saveButton = document.getElementById('adminProfileSave');
+    const cancelButton = document.getElementById('adminProfileCancel');
+    const editFlag = form.querySelector('[name="profile_edit"]');
+    const accessEmail = document.getElementById('id_email');
+    const firstName = document.getElementById('id_nombre');
+    const paternalSurname = document.getElementById('id_apellido_paterno');
+    const maternalSurname = document.getElementById('id_apellido_materno');
+    const profileInputs = form.querySelectorAll('input:not([type="hidden"])');
+    let accessCustomized = false;
+
+    function suggestedAccess() {
+        const normalize = (value) => (value || '')
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '');
+        const name = normalize(firstName.value.trim().split(/\s+/)[0]);
+        const firstSurname = normalize(paternalSurname.value.trim().split(/\s+/)[0]);
+        const secondSurname = normalize(maternalSurname.value.trim());
+        return name && firstSurname && secondSurname
+            ? `${name[0]}${firstSurname[0]}.${secondSurname}`
+            : '';
+    }
+
+    function updateSuggestedAccess() {
+        if (!accessCustomized) accessEmail.value = suggestedAccess();
+    }
+
+    const suggestion = suggestedAccess();
+    accessCustomized = Boolean(accessEmail.value && accessEmail.value !== suggestion);
+    [firstName, paternalSurname, maternalSurname].forEach((input) => {
+        input.addEventListener('input', updateSuggestedAccess);
+    });
+    accessEmail.addEventListener('input', () => {
+        accessCustomized = Boolean(accessEmail.value.trim());
+        if (!accessCustomized) updateSuggestedAccess();
+    });
+
+    editButton.addEventListener('click', () => {
+        editFlag.value = '1';
+        profileInputs.forEach((input) => {
+            input.readOnly = false;
+            input.classList.remove('bg-light', 'text-muted');
+        });
+        editButton.hidden = true;
+        saveButton.hidden = false;
+        cancelButton.hidden = false;
+        firstName.focus();
+    });
+    cancelButton.addEventListener('click', () => window.location.reload());
+});
+</script>
 {% endblock %}

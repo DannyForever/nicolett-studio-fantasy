@@ -50,7 +50,7 @@ class AgendaTests(TestCase):
             apellido_paterno='Pérez',
             apellido_materno='Soto',
             telefono='+56912345678',
-            email='juan.agenda@example.com',
+            email='jp.soto@nicolettstudio.cl',
             rol=rol_colaborador,
         )
         self.profesional.set_unusable_password()
@@ -120,14 +120,272 @@ class AgendaTests(TestCase):
         response = self.client.get(reverse('admin_agenda'))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'value="{self.servicio.pk}"')
+        self.assertEqual(
+            [item['id'] for item in self.client.get(
+                reverse('agenda_profesionales_por_servicio'),
+                {'servicio': self.servicio.pk},
+            ).json()['professionals']],
+            [self.profesional.pk],
+        )
         self.assertContains(response, 'Calendario de disponibilidad')
         self.assertContains(response, 'Horas disponibles')
+        self.assertNotContains(response, 'Ir a Citas')
         self.assertNotContains(response, 'Quedan horas disponibles')
         self.assertContains(response, 'Añadir bloque horario')
         self.assertNotContains(response, 'Horizonte de agenda')
         self.assertNotContains(response, 'Configuración semanal avanzada')
         self.assertNotContains(response, 'Meses disponibles para agendar')
+        self.assertNotContains(response, 'Ver ficha técnica')
+        self.assertNotContains(response, 'No hay citas para mostrar.')
+        self.assertNotContains(response, 'Agendar cita presencial')
 
+    def test_admin_calendar_explains_enabled_services_and_closed_day_reason(self):
+        self.crear_bloque('09:00')
+        closed_date = self.fecha + timedelta(days=1)
+        if closed_date.month != self.fecha.month:
+            closed_date -= timedelta(days=2)
+        DiaCerrado.objects.create(fecha=closed_date, motivo='Feriado regional')
+
+        response = self.client.get(
+            reverse('admin_agenda'),
+            {'mes': self.fecha.strftime('%Y-%m'), 'dia': self.fecha.isoformat()},
+        )
+
+        days = {
+            day['date']: day
+            for week in response.context['calendario_mes']['weeks']
+            for day in week
+        }
+        self.assertIn('Manicure', days[self.fecha]['tooltip'])
+        self.assertIn('Feriado regional', days[closed_date]['tooltip'])
+        self.assertContains(response, 'Servicios habilitados: Manicure')
+        self.assertContains(response, 'Día no disponible: Feriado regional')
+
+    def test_admin_citas_page_contains_reservation_management_and_day_filter(self):
+        reserva = self.crear_reserva()
+
+        response = self.client.get(reverse('admin_citas'), {'fecha': self.fecha.isoformat()})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Citas')
+        self.assertContains(response, 'filtroProfesional')
+        self.assertContains(response, '<th>Profesional</th>', html=True)
+        self.assertContains(response, 'Camila Pérez')
+        self.assertContains(response, 'Ver ficha técnica')
+        self.assertContains(response, 'Agendar cita presencial')
+        self.assertContains(response, 'Agendada por personal')
+        self.assertNotContains(response, 'Las reservas de clientes también aparecerán aquí.')
+        profesionales = self.client.get(
+            reverse('agenda_profesionales_por_servicio'),
+            {'servicio': self.servicio.pk},
+        ).json()['professionals']
+        self.assertEqual(profesionales[0]['name'], 'Juan Pérez Soto')
+        self.assertEqual(profesionales[0]['email'], self.profesional.email)
+        body = response.content.decode()
+        modal = body[
+            body.index('id="modalNuevaCita"'):body.index('id="modalReagendar"')
+        ]
+        self.assertLess(modal.index('>Profesional</label>'), modal.index('Hora disponible'))
+        self.assertEqual([item.pk for item in response.context['reservas']], [reserva.pk])
+
+    def test_admin_citas_filters_by_text_state_and_date_range(self):
+        reserva_encontrada = self.crear_reserva()
+        reserva_otra = self.crear_reserva('10:00', correo='otra@example.com')
+        reserva_otra.cliente_nombre = 'Otra clienta'
+        reserva_otra.estado = 'cancelada'
+        reserva_otra.save(update_fields=['cliente_nombre', 'estado'])
+
+        response = self.client.get(
+            reverse('admin_citas'),
+            {
+                'desde': self.fecha.isoformat(),
+                'hasta': self.fecha.isoformat(),
+                'q': 'Camila Pérez',
+                'estado': 'confirmada',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [reserva.pk for reserva in response.context['reservas']],
+            [reserva_encontrada.pk],
+        )
+        self.assertContains(response, 'filtroTexto')
+        self.assertContains(response, 'filtroServicio')
+        self.assertContains(response, 'filtroProfesional')
+        self.assertContains(response, 'filtroEstado')
+        self.assertContains(response, 'filtroOrigen')
+
+    def test_collaborator_can_book_in_person_as_staff_for_own_specialty(self):
+        self.crear_bloque('09:00')
+        self.client.force_login(self.profesional)
+
+        page = self.client.get(reverse('admin_citas'))
+        response = self.client.post(
+            reverse('crear_reserva_manual'),
+            {
+                'cliente_nombre': 'Visita presencial',
+                'cliente_email': 'visita@example.com',
+                'cliente_telefono': '+56987654321',
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+                'hora': '09:00',
+            },
+        )
+
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Mis citas')
+        self.assertNotContains(page, 'filtroProfesional')
+        self.assertNotContains(page, '<th>Profesional</th>', html=True)
+        self.assertNotContains(page, 'Todos los profesionales')
+        self.assertContains(page, f'value="{self.profesional.pk}"')
+        self.assertContains(page, 'Juan Pérez Soto · jp.soto@nicolettstudio.cl')
+        self.assertContains(page, 'Hora disponible')
+        body = page.content.decode()
+        modal = body[
+            body.index('id="modalNuevaCita"'):body.index('id="modalReagendar"')
+        ]
+        self.assertLess(modal.index('>Profesional</label>'), modal.index('Hora disponible'))
+        self.assertRedirects(response, reverse('admin_citas'))
+        reserva = Reserva.objects.get(cliente_nombre='Visita presencial')
+        self.assertEqual(reserva.origen, 'personal')
+        self.assertEqual(reserva.creada_por_id, self.profesional.pk)
+
+    def test_collaborator_can_only_manage_own_appointments_and_requires_change_reason(self):
+        self.crear_bloque('09:00')
+        self.crear_bloque('10:00')
+        reserva_propia = self.crear_reserva()
+        otro_profesional = Usuario(
+            nombre='Ana',
+            segundo_nombre='',
+            apellido_paterno='Otra',
+            apellido_materno='Profesional',
+            telefono='+56912345679',
+            email='ana.otra@example.com',
+            rol=self.profesional.rol,
+        )
+        otro_profesional.set_unusable_password()
+        otro_profesional.save()
+        reserva_ajena = Reserva.objects.create(
+            fecha_hora=reserva_propia.fecha_hora + timedelta(minutes=60),
+            profesional=otro_profesional,
+            cliente_nombre='Cita ajena',
+            servicio_id=self.servicio.pk,
+        )
+        self.client.force_login(self.profesional)
+
+        response = self.client.get(reverse('admin_citas'))
+        self.assertContains(response, 'Mis citas')
+        self.assertContains(response, 'Camila Pérez')
+        self.assertNotContains(response, 'Cita ajena')
+        self.assertNotContains(response, 'filtroProfesional')
+        self.assertNotContains(response, '<th>Profesional</th>', html=True)
+
+        editar_url = reverse('reagendar_cita', args=[reserva_propia.pk])
+        missing_reason = self.client.post(
+            editar_url,
+            {
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+                'hora': '10:00',
+            },
+        )
+        self.assertRedirects(missing_reason, reverse('admin_citas'))
+        self.assertFalse(HistorialReserva.objects.filter(
+            reserva=reserva_propia,
+            evento='modificada',
+        ).exists())
+
+        edited = self.client.post(
+            editar_url,
+            {
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+                'hora': '10:00',
+                'motivo': 'Cambio solicitado por la clienta',
+            },
+        )
+        self.assertRedirects(edited, reverse('admin_citas'))
+        self.assertEqual(
+            HistorialReserva.objects.get(reserva=reserva_propia, evento='modificada').motivo,
+            'Cambio solicitado por la clienta',
+        )
+        forbidden = self.client.post(
+            reverse('cancelar_cita', args=[reserva_ajena.pk]),
+            {'motivo': 'No corresponde'},
+        )
+        self.assertEqual(forbidden.status_code, 403)
+        cancelled = self.client.post(
+            reverse('cancelar_cita', args=[reserva_propia.pk]),
+            {'motivo': 'La clienta no podrá asistir'},
+        )
+        self.assertRedirects(cancelled, reverse('admin_citas'))
+        reserva_propia.refresh_from_db()
+        self.assertEqual(reserva_propia.estado, 'cancelada')
+        self.assertEqual(reserva_propia.motivo_cancelacion, 'La clienta no podrá asistir')
+
+    def test_collaborator_can_manage_only_specialty_availability_and_cannot_open_closed_day(self):
+        otra_categoria = Categoria.objects.create(nombre='Cabello', tipo='Peluquería')
+        otro_servicio = Servicio.objects.create(
+            nombre='Corte',
+            categoria=otra_categoria,
+            duracion_minutos=60,
+            precio='15000',
+        )
+        fecha_cerrada = self.fecha + timedelta(days=1)
+        if fecha_cerrada.month != self.fecha.month:
+            fecha_cerrada -= timedelta(days=2)
+        cierre = DiaCerrado.objects.create(fecha=fecha_cerrada, motivo='Cierre admin')
+        self.client.force_login(self.profesional)
+
+        page = self.client.get(
+            reverse('admin_agenda'),
+            {'mes': self.fecha.strftime('%Y-%m'), 'dia': self.fecha.isoformat()},
+        )
+        self.assertContains(
+            page,
+            f'type="hidden" id="id_profesional_disponibilidad" name="profesional" value="{self.profesional.pk}"',
+        )
+        self.assertNotContains(page, 'for="id_profesional_disponibilidad"')
+
+        allowed = self.post_bloques([{'inicio': '09:00', 'fin': '10:00'}])
+        self.assertEqual(allowed.status_code, 302)
+        self.assertTrue(Disponibilidad.objects.filter(
+            profesional=self.profesional,
+            servicio_id=self.servicio.pk,
+        ).exists())
+
+        disallowed_service = self.client.post(
+            reverse('guardar_disponibilidad_dia'),
+            {
+                'fecha': self.fecha.isoformat(),
+                'servicio': str(otro_servicio.pk),
+                'profesional': str(self.profesional.pk),
+                'bloques': '[{"inicio":"11:00","fin":"12:00"}]',
+            },
+        )
+        self.assertEqual(disallowed_service.status_code, 302)
+        self.assertFalse(Disponibilidad.objects.filter(servicio_id=otro_servicio.pk).exists())
+
+        closed_day = self.client.post(
+            reverse('guardar_disponibilidad_dia'),
+            {
+                'fecha': fecha_cerrada.isoformat(),
+                'servicio': str(self.servicio.pk),
+                'profesional': str(self.profesional.pk),
+                'bloques': '[{"inicio":"11:00","fin":"12:00"}]',
+            },
+        )
+        self.assertEqual(closed_day.status_code, 302)
+        self.assertFalse(Disponibilidad.objects.filter(fecha_especifica=fecha_cerrada).exists())
+        self.assertEqual(
+            self.client.post(reverse('abrir_dia', args=[cierre.pk])).status_code,
+            403,
+        )
     def test_client_can_request_an_available_appointment(self):
         self.crear_bloque('09:00')
         cliente = self.crear_cliente()
@@ -234,7 +492,9 @@ class AgendaTests(TestCase):
             for day in week
         }
         self.assertTrue(days[self.fecha.isoformat()]['available'])
+        self.assertIn('Manicure', days[self.fecha.isoformat()]['tooltip'])
         self.assertTrue(days[closed_date.isoformat()]['closed'])
+        self.assertIn('Cierre de prueba', days[closed_date.isoformat()]['tooltip'])
         past_days = [
             day for day in days.values()
             if day['in_month'] and day['past']
@@ -672,7 +932,7 @@ class AgendaTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse('admin_agenda'))
+        self.assertRedirects(response, reverse('admin_citas'))
         reserva = Reserva.objects.get()
         self.assertEqual(reserva.estado, 'confirmada')
         self.assertEqual(reserva.profesional_id, self.profesional.pk)
@@ -730,7 +990,7 @@ class AgendaTests(TestCase):
             'hora': '11:00',
         })
 
-        self.assertRedirects(response, reverse('admin_agenda'))
+        self.assertRedirects(response, reverse('admin_citas'))
         reserva.refresh_from_db()
         self.assertEqual(reserva.servicio_id, servicio_nuevo.pk)
         self.assertEqual(reserva.profesional_id, profesional_nuevo.pk)
@@ -764,7 +1024,7 @@ class AgendaTests(TestCase):
         self.assertIn(b'%PDF-1.4', response.content)
         self.assertIn(b'cliente.agenda@example.com', response.content)
         self.assertIn(b'Manicure', response.content)
-        page = self.client.get(reverse('admin_agenda'))
+        page = self.client.get(reverse('admin_citas'))
         self.assertContains(page, 'Ver ficha técnica')
         self.assertContains(page, 'disabled')
         self.assertContains(page, 'Editar')
@@ -875,7 +1135,7 @@ class AgendaTests(TestCase):
             'hora': '09:00',
         })
 
-        self.assertRedirects(response, reverse('admin_agenda'))
+        self.assertRedirects(response, reverse('admin_citas'))
         reserva.refresh_from_db()
         self.assertEqual(reserva.estado, 'confirmada')
         self.assertIsNone(reserva.cambio_disponibilidad_id)
