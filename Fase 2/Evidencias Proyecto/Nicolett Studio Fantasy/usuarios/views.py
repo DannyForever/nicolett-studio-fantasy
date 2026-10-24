@@ -1,4 +1,5 @@
 from datetime import timedelta
+from collections.abc import Iterable
 import binascii
 import logging
 import re
@@ -28,7 +29,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from agenda.models import HistorialReserva, Reserva
 from agenda.views import servicios_con_horarios_disponibles
-from carrito.models import PagoSimulado, Pedido, ReservaProductoCarrito
+from carrito.models import ReservaProductoCarrito
 from panel_admin.models import Producto, Servicio
 
 from .forms import ClienteCambiarContrasenaForm, ClienteConfiguracionForm
@@ -577,6 +578,12 @@ def _vista_cliente(request, template, context=None):
     if not request.user.is_authenticated:
         return redirect('login')
     contexto = context.copy() if context else {}
+    contexto.setdefault(
+        'categorias_servicio_menu',
+        _categorias_servicio_menu(
+            Servicio.objects.select_related('categoria').order_by('nombre'),
+        ),
+    )
     vista_previa = _usuario_en_vista_cliente(request)
     vista_admin_existente = contexto.get('vista_admin', False)
     paginas_previsualizables = {
@@ -626,6 +633,7 @@ def _vista_cliente(request, template, context=None):
         'coloracion': 'Colorimetría',
         'podologia': 'Podología',
         'lash_brow': 'Lash & Brow',
+        'cuidado_facial': 'Cuidado facial',
         'maquillaje': 'Maquillaje',
     }
     contexto['whatsapp_categoria_urls'] = {
@@ -636,11 +644,17 @@ def _vista_cliente(request, template, context=None):
         for categoria, nombre_servicio in categorias_whatsapp.items()
     }
     if 'servicios' in contexto:
+        servicios_por_id = {}
         for servicio in contexto['servicios']:
             servicio.whatsapp_url = _url_whatsapp(
                 '56982108409',
                 _mensaje_consulta_cliente(request.user, servicio.nombre),
             )
+            servicios_por_id[servicio.pk] = servicio
+        for servicios_galeria in contexto.get('servicios_galeria', {}).values():
+            for indice, servicio in enumerate(servicios_galeria):
+                if servicio.pk in servicios_por_id:
+                    servicios_galeria[indice] = servicios_por_id[servicio.pk]
     if 'productos' in contexto:
         for producto in contexto['productos']:
             producto.whatsapp_url = _url_whatsapp(
@@ -721,7 +735,6 @@ def sugerencias_busqueda_cliente(request):
         ('Servicios y citas', 'Explora los servicios disponibles', reverse('cliente_servicios'), 'seccion'),
         ('Productos', 'Revisa productos disponibles', reverse('cliente_productos'), 'seccion'),
         ('Mis citas', 'Consulta tus próximas citas e historial', reverse('cliente_gestionar_citas'), 'seccion'),
-        ('Historial de pagos', 'Revisa tus pagos y compras', reverse('cliente_historial_pagos'), 'seccion'),
         ('Configuración', 'Datos personales, direcciones y contraseña', reverse('cliente_configuracion'), 'seccion'),
         ('Direcciones de envío', 'Administra tus direcciones de despacho', f"{reverse('cliente_configuracion')}#direcciones-envio", 'seccion'),
         ('Direcciones de facturación', 'Administra tus datos de facturación', f"{reverse('cliente_configuracion')}#direcciones-facturacion", 'seccion'),
@@ -731,7 +744,6 @@ def sugerencias_busqueda_cliente(request):
     for titulo, descripcion, url, tipo in secciones:
         if _usuario_en_vista_cliente(request) and titulo in {
             'Mis citas',
-            'Historial de pagos',
             'Configuración',
             'Direcciones de envío',
             'Direcciones de facturación',
@@ -800,10 +812,82 @@ def cliente_servicios_view(request):
     }
     if orden not in ordenes:
         orden = 'nombre_asc'
+    servicios_catalogo = list(
+        Servicio.objects.select_related('categoria').order_by('nombre'),
+    )
     servicios = Servicio.objects.filter(
         activo=True,
     ).select_related('categoria').order_by(*ordenes[orden])
-    servicios_galeria = _agrupar_servicios_galeria(servicios)
+    categoria_solicitada = request.GET.get('categoria', '').strip()
+    categorias_menu = _categorias_servicio_menu(servicios_catalogo)
+    categoria_seleccionada = next(
+        (
+            categoria['nombre']
+            for categoria in categorias_menu
+            if categoria['nombre'].casefold() == categoria_solicitada.casefold()
+        ),
+        '',
+    )
+    categorias_galeria_seleccionadas = []
+    if categoria_seleccionada:
+        servicios_categoria = Servicio.objects.filter(
+            categoria__nombre__iexact=categoria_seleccionada,
+        ).select_related('categoria')
+        galerias_categoria = _agrupar_servicios_galeria(servicios_categoria)
+        categorias_galeria_seleccionadas = [
+            categoria
+            for categoria, servicios_de_categoria in galerias_categoria.items()
+            if servicios_de_categoria
+        ]
+        if not categorias_galeria_seleccionadas:
+            categorias_galeria_seleccionadas = ['otros']
+        servicios = servicios.filter(
+            categoria__nombre__iexact=categoria_seleccionada,
+        )
+    elif categoria_solicitada in {
+        'corte',
+        'tratamientos',
+        'manos',
+        'pedicure',
+        'depilaciones',
+        'peinados',
+        'coloracion',
+        'podologia',
+        'lash_brow',
+        'cuidado_facial',
+        'maquillaje',
+    }:
+        categorias_galeria_seleccionadas = [categoria_solicitada]
+        for categoria in categorias_menu:
+            servicios_categoria = [
+                servicio
+                for servicio in servicios_catalogo
+                if servicio.categoria.nombre == categoria['nombre']
+            ]
+            galerias_categoria = _agrupar_servicios_galeria(
+                servicios_categoria,
+            )
+            if any(
+                galerias_categoria.get(categoria_solicitada, [])
+            ):
+                categoria_seleccionada = categoria['nombre']
+                break
+    servicios_con_horario = servicios.filter(
+        pk__in=servicios_con_horarios_disponibles(),
+    )
+    servicios_galeria = _agrupar_servicios_galeria(servicios_con_horario)
+    servicios_categorizados = {
+        servicio.pk
+        for servicios_de_categoria in servicios_galeria.values()
+        for servicio in servicios_de_categoria
+    }
+    servicios_sin_galeria = [
+        servicio
+        for servicio in servicios_con_horario
+        if servicio.pk not in servicios_categorizados
+    ]
+    if servicios_sin_galeria:
+        servicios_galeria['otros'] = servicios_sin_galeria
     return _vista_cliente(
         request,
         'usuarios/cliente_seccion.html',
@@ -812,6 +896,8 @@ def cliente_servicios_view(request):
             'descripcion': 'Aquí podrás conocer los servicios disponibles.',
             'servicios': servicios,
             'servicios_galeria': servicios_galeria,
+            'categoria_seleccionada': categoria_seleccionada,
+            'categorias_galeria_seleccionadas': categorias_galeria_seleccionadas,
             'filtros_categoria': _filtros_catalogo(servicios),
             'orden_catalogo': orden,
         },
@@ -829,10 +915,25 @@ def cliente_productos_view(request):
     }
     if orden not in ordenes:
         orden = 'nombre_asc'
-    productos = Producto.objects.filter(
+    productos_disponibles = Producto.objects.filter(
         activo=True,
         stock__gt=0,
-    ).select_related('categoria').order_by(*ordenes[orden])
+    ).select_related('categoria')
+    filtros_categoria = _filtros_catalogo(productos_disponibles)
+    categoria_seleccionada = request.GET.get('categoria', '').strip()
+    if categoria_seleccionada:
+        productos_disponibles = productos_disponibles.filter(
+            categoria__nombre__iexact=categoria_seleccionada,
+        )
+        categoria_seleccionada = next(
+            (
+                categoria
+                for categoria in filtros_categoria
+                if categoria.casefold() == categoria_seleccionada.casefold()
+            ),
+            categoria_seleccionada,
+        )
+    productos = productos_disponibles.order_by(*ordenes[orden])
     return _vista_cliente(
         request,
         'usuarios/cliente_seccion.html',
@@ -840,7 +941,8 @@ def cliente_productos_view(request):
             'titulo': 'Productos',
             'descripcion': 'Aquí podrás revisar los productos del estudio.',
             'productos': productos,
-            'filtros_categoria': _filtros_catalogo(productos),
+            'filtros_categoria': filtros_categoria,
+            'categoria_seleccionada': categoria_seleccionada,
             'orden_catalogo': orden,
         },
     )
@@ -855,6 +957,20 @@ def _filtros_catalogo(items: QuerySet) -> list[str]:
     return sorted(filtros.values(), key=str.casefold)
 
 
+def _categorias_servicio_menu(
+    servicios: Iterable[Servicio],
+) -> list[dict[str, str]]:
+    nombres = {
+        servicio.categoria.nombre.strip()
+        for servicio in servicios
+        if servicio.categoria.nombre and servicio.categoria.nombre.strip()
+    }
+    return [
+        {'nombre': nombre}
+        for nombre in sorted(nombres, key=str.casefold)
+    ]
+
+
 def _agrupar_servicios_galeria(servicios: QuerySet) -> dict[str, list[Servicio]]:
     categorias = {
         'corte': ('corte', 'estilo'),
@@ -866,22 +982,54 @@ def _agrupar_servicios_galeria(servicios: QuerySet) -> dict[str, list[Servicio]]
         'coloracion': ('colorimetria', 'coloracion', 'tinte', 'balayage'),
         'podologia': ('podologia',),
         'lash_brow': ('lash', 'brow'),
+        'cuidado_facial': ('cuidado facial', 'skincare', 'limpieza facial'),
         'maquillaje': ('maquillaje', 'makeup'),
     }
     agrupados = {categoria: [] for categoria in categorias}
+
+    def normalizar(texto: str) -> str:
+        texto = unicodedata.normalize('NFKD', texto)
+        return ''.join(
+            caracter
+            for caracter in texto
+            if not unicodedata.combining(caracter)
+        ).casefold()
+
+    categorias_catalogo = (
+        ('depilaciones', ('depilacion',)),
+        ('maquillaje', ('maquillaje', 'makeup')),
+        ('pedicure', ('pedicure', 'pies')),
+        ('manos', ('manicure', 'unas', 'nails', 'nail care')),
+        ('lash_brow', ('pestanas', 'cejas', 'lash', 'brow')),
+        ('cuidado_facial', ('cuidado facial', 'skincare', 'limpieza facial')),
+        ('podologia', ('podologia',)),
+        ('coloracion', ('colorimetria', 'coloracion')),
+    )
     for servicio in servicios:
-        texto = unicodedata.normalize(
-            'NFKD',
-            f'{servicio.nombre} {servicio.categoria.nombre}',
+        nombre = normalizar(servicio.nombre)
+        categoria_nombre = normalizar(servicio.categoria.nombre)
+        categoria = next(
+            (
+                clave
+                for clave, terminos in categorias_catalogo
+                if any(termino in categoria_nombre for termino in terminos)
+            ),
+            None,
         )
-        texto = ''.join(caracter for caracter in texto if not unicodedata.combining(caracter))
-        texto = texto.casefold()
-        if 'pedicure' in texto:
-            agrupados['pedicure'].append(servicio)
-            continue
-        for categoria, terminos in categorias.items():
-            if any(termino in texto for termino in terminos):
-                agrupados[categoria].append(servicio)
+        if 'pedicure' in nombre:
+            categoria = 'pedicure'
+        elif categoria is None:
+            texto = normalizar(f'{servicio.nombre} {servicio.categoria.nombre}')
+            categoria = next(
+                (
+                    clave
+                    for clave, terminos in categorias.items()
+                    if any(termino in texto for termino in terminos)
+                ),
+                None,
+            )
+        if categoria is not None:
+            agrupados[categoria].append(servicio)
     orden_depilaciones = (
         'Pierna completa',
         'Media pierna',
@@ -1058,22 +1206,6 @@ def cliente_gestionar_citas_view(request):
             'cliente_profesionales_url': reverse('cliente_profesionales_disponibles'),
             'cliente_horas_url': reverse('cliente_horas_disponibles'),
         },
-    )
-
-
-@never_cache
-def cliente_historial_pagos_view(request):
-    pedidos = Pedido.objects.filter(
-        cliente=request.user,
-        pagos_simulados__isnull=False,
-    ).distinct().prefetch_related(
-        'pagos_simulados',
-        'detalles',
-    ).order_by('-creado_en')
-    return _vista_cliente(
-        request,
-        'usuarios/cliente_historial_pagos.html',
-        {'pedidos': pedidos},
     )
 
 

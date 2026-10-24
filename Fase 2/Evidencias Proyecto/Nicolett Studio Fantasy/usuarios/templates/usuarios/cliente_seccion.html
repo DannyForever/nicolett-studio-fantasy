@@ -20,51 +20,107 @@
         @media (prefers-reduced-motion: reduce) {
             #catalog-grid { animation: none; }
         }
-        .service-gallery-compact > img {
+        [data-service-gallery] {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+            align-items: stretch;
+            column-gap: clamp(1.25rem, 3vw, 3rem);
+            row-gap: 0.5rem;
+            width: 100%;
+            overflow: visible;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            padding: 0;
+            box-shadow: none;
+        }
+        [data-service-gallery][hidden] {
+            display: none;
+        }
+        [data-service-gallery] > :first-child {
+            grid-column: 1;
+            grid-row: 1 / span 12;
+            min-width: 0;
+            align-self: stretch;
+            height: 100%;
+            min-height: 32rem;
+        }
+        [data-service-gallery] > :not(:first-child) {
+            grid-column: 2;
+            min-width: 0;
+        }
+        [data-service-gallery] > img {
             display: block;
-            width: 82%;
+            width: 100%;
             max-width: 100%;
-            height: auto;
-            margin-inline: auto;
+            height: 100%;
+            min-height: 32rem;
+            max-height: 46rem;
             object-fit: contain;
         }
-        .service-gallery-compact > img.haircut-photos {
+        [data-service-gallery] > :first-child img {
+            display: block;
             width: 100%;
+            height: 100%;
+            max-width: 100%;
+            min-height: 32rem;
+            max-height: 46rem;
+            object-fit: contain;
         }
         .treatment-gallery-crop {
-            width: 82%;
+            width: 100%;
             max-width: 100%;
-            aspect-ratio: 1.9 / 1;
-            margin-inline: auto;
+            height: 100%;
+            min-height: 32rem;
+            max-height: 46rem;
             overflow: hidden;
         }
         .treatment-gallery-crop > img {
             display: block;
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            object-position: center bottom;
-        }
-        .depilation-gallery-image {
-            display: block;
-            width: 100%;
-            max-width: 100%;
-            height: auto;
             object-fit: contain;
-        }
-        .nail-care-gallery-image {
-            display: block;
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-            object-fit: contain;
+            object-position: center;
         }
         .lash-brow-gallery-image {
             display: block;
             width: 100%;
-            max-width: 100%;
-            height: auto;
+            height: 100%;
+            min-height: 32rem;
+            max-height: 46rem;
             object-fit: contain;
+        }
+        @media (max-width: 767px) {
+            [data-service-gallery] {
+                grid-template-columns: minmax(0, 1fr);
+                row-gap: 0.5rem;
+            }
+            [data-service-gallery] > :first-child,
+            [data-service-gallery] > :not(:first-child) {
+                grid-column: 1;
+            }
+            [data-service-gallery] > :first-child {
+                grid-row: auto;
+                height: auto;
+                min-height: 0;
+            }
+            .treatment-gallery-crop {
+                height: auto;
+                min-height: 0;
+                max-height: none;
+                aspect-ratio: 1.9 / 1;
+            }
+            .lash-brow-gallery-image {
+                height: auto;
+                min-height: 0;
+                max-height: 22rem;
+            }
+            [data-service-gallery] > img,
+            [data-service-gallery] > :first-child img {
+                min-height: 0;
+                max-height: 22rem;
+                height: auto;
+            }
         }
     </style>
     {% if messages %}
@@ -75,11 +131,12 @@
         </div>
     {% endif %}
     {% if titulo == 'Servicios' or titulo == 'Productos' %}
-        <section class="mx-auto max-w-6xl overflow-hidden border border-[#ead7bc] bg-white shadow-sm" aria-label="{{ titulo }}">
+        <section class="mx-auto w-full {% if titulo != 'Servicios' %}max-w-6xl overflow-hidden border border-[#ead7bc] bg-white shadow-sm{% endif %}" aria-label="{{ titulo }}">
             {% if titulo == 'Servicios' %}
-                <section id="servicios-semana" class="scroll-mt-20 bg-[#f2f2f2] p-5 sm:p-7" aria-label="Galería de servicios">
-                    <div data-services-layout class="{% if not request.GET.categoria or request.GET.categoria == 'todos' %}flex flex-col gap-5{% else %}grid gap-5 md:grid-cols-[1fr_2fr] md:items-center{% endif %}">
-                        <div data-services-intro class="px-2 py-3 {% if not request.GET.categoria or request.GET.categoria == 'todos' %}w-full text-center{% endif %}">
+                <section id="servicios-semana" class="scroll-mt-20 px-1 py-5 sm:px-2 sm:py-7" aria-label="Galería de servicios">
+                    <div data-services-layout class="flex w-full flex-col gap-5">
+                        {% if not request.GET.categoria or request.GET.categoria == 'todos' %}
+                        <div data-services-intro class="w-full px-2 py-3 text-center">
                             <h1 id="services-banner-title" class="font-serif text-4xl font-bold text-[#281b14] sm:text-5xl">¡Servicios!</h1>
                             <p class="mt-3 text-sm leading-6 text-[#6b5643]">Descubre los servicios de Nicolett Studio Fantasy.</p>
                             <p class="mt-3 font-semibold uppercase tracking-wide text-[#281b14]">Atención de lunes a sábado</p>
@@ -87,23 +144,24 @@
                                 <a href="{% url 'listar_servicios' %}" class="mt-5 inline-block border border-[#5a3e27] px-4 py-2 text-sm font-semibold text-[#5a3e27] no-underline transition hover:bg-[#5a3e27] hover:text-white">Administrar servicios</a>
                             {% endif %}
                         </div>
+                        {% endif %}
                         <div data-service-gallery-grid class="grid grid-cols-1 gap-3" aria-live="polite">
-                            <article data-service-gallery="all corte" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'corte' %}hidden{% endif %} class="service-gallery-compact order-1 overflow-hidden border border-[#ead7bc] bg-white">
+                            <article data-service-gallery="all corte" {% if categorias_galeria_seleccionadas and 'corte' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="service-gallery-compact order-1 overflow-hidden">
                                 <img src="{% static 'img/cortes_y_estilos_panel.png' %}" alt="Galería de cortes y estilos de cabello de Nicolett Studio Fantasy" class="haircut-photos h-auto w-full object-contain">
                                 <div class="flex items-center justify-between gap-3 px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Cortes &amp; estilos</h2>
                                     <div class="flex shrink-0 items-center gap-2">
-                                        {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.corte }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Cortes &amp; estilos" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
+                                        {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.corte }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Corte y Estilo" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
                                     </div>
                                 </div>
                                 <p class="px-2 pb-1 pt-1 text-xs leading-4 text-[#6b5643]">Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.</p>
                                 {% for servicio in servicios_galeria.corte %}
                                     {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Corte & Estilo' booking_cta=True %}
                                 {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                 {% endfor %}
                             </article>
-                            <article data-service-gallery="all tratamientos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'tratamientos' %}hidden{% endif %} class="service-gallery-compact order-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                            <article data-service-gallery="all tratamientos" {% if categorias_galeria_seleccionadas and 'tratamientos' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="service-gallery-compact order-2 overflow-hidden">
                                 <div class="treatment-gallery-crop">
                                     <img src="{% static 'img/tratamientos_capilares_galeria_brand.png' %}" alt="Tratamientos capilares con logo Nicolett Studio Fantasy">
                                 </div>
@@ -115,10 +173,10 @@
                                 {% for servicio in servicios_galeria.tratamientos %}
                                     {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Tratamiento capilar de prueba' hide_service_description=True booking_cta=True %}
                                 {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                 {% endfor %}
                             </article>
-                            <article data-service-gallery="all manos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'manos' %}hidden{% endif %} class="order-3 overflow-hidden bg-white">
+                            <article data-service-gallery="all manos" {% if categorias_galeria_seleccionadas and 'manos' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-3 overflow-hidden">
                                 <img src="{% static 'img/nail_care_precios_afiche.png' %}" alt="Lista de precios de manicura Nicolett Studio Fantasy" class="nail-care-gallery-image">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Nail Care &amp; Beauty</h2>
@@ -127,8 +185,10 @@
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Cada servicio incluye un solo tono y 2 diseños simples. Los adicionales se cobran aparte según el diseño elegido.</p>
                                 <div class="grid gap-x-2 sm:grid-cols-2">
                                     {% for servicio in servicios_galeria.manos %}
-                                        {% if servicio.categoria.nombre == 'Uñas' or servicio.categoria.nombre == 'Nails' %}
-                                            <div class="mb-2 grid grid-cols-[2.5rem_minmax(0,1fr)_auto_auto] items-center gap-1 rounded-full border border-[#d7bd91] bg-white px-2 py-2 last:mb-0">
+                                        {% if servicio.categoria.nombre == 'Uñas' or servicio.categoria.nombre == 'Nails' or servicio.categoria.nombre == 'Nail Care & Beauty' %}
+                                            <div class="mb-2 flex min-w-0 flex-col gap-3 rounded-2xl border border-[#d7bd91] bg-white px-4 py-3 last:mb-0">
+                                                <div class="flex min-w-0 items-start justify-between gap-3">
+                                                    <div class="flex min-w-0 items-start gap-3">
                                                 {% if servicio.nombre == 'Permanente' %}
                                                     <img src="{% static 'img/nail_care/permanente.png' %}" alt="Muestra de uñas para permanente" class="size-10 shrink-0 rounded-full">
                                                 {% elif servicio.nombre == 'Ruber' %}
@@ -140,13 +200,20 @@
                                                 {% elif servicio.nombre == 'Extensión Poly Gel' %}
                                                     <img src="{% static 'img/nail_care/extension-poly-gel.png' %}" alt="Muestra de uñas para Extensión Poly Gel" class="size-10 shrink-0 rounded-full">
                                                 {% endif %}
-                                                <div class="min-w-0">
-                                                    <p class="text-sm font-medium text-[#4b301b]">{{ servicio.nombre }}</p>
-                                                    <p class="text-[10px] leading-3 text-[#6b5643]">{{ servicio.descripcion }}</p>
+                                                        <div class="min-w-0">
+                                                            <p class="break-words text-sm font-medium text-[#4b301b]">{{ servicio.nombre }}</p>
+                                                            {% if servicio.descripcion %}
+                                                                <details class="mt-2">
+                                                                    <summary class="w-fit cursor-pointer text-xs font-medium text-[#6b5643] underline decoration-[#bd8c43] underline-offset-2">Ver detalles</summary>
+                                                                    <p class="mt-2 whitespace-pre-line break-words text-sm leading-5 text-[#6b5643]">{{ servicio.descripcion }}</p>
+                                                                </details>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    <span class="shrink-0 whitespace-nowrap rounded-full bg-[#f1dfbd] px-2 py-1 text-xs font-semibold text-[#4b301b]">{{ servicio.precio|pesos }}</span>
                                                 </div>
-                                                <span class="whitespace-nowrap rounded-full bg-[#f1dfbd] px-2 py-1 text-xs font-semibold text-[#4b301b]">{{ servicio.precio|pesos }}</span>
                                                 {% if not vista_admin %}
-                                                    <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="whitespace-nowrap rounded-full bg-[#5a3e27] px-2 py-2 text-center text-[10px] font-semibold text-white no-underline transition hover:bg-[#4b301b]">AGENDAR CITAS</a>
+                                                    <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="w-full rounded-full bg-[#5a3e27] px-3 py-2.5 text-center text-xs font-semibold text-white no-underline transition hover:bg-[#4b301b]">AGENDAR CITAS</a>
                                                 {% endif %}
                                             </div>
                                         {% elif servicio.nombre == 'Manicure clásica de prueba' %}
@@ -155,7 +222,7 @@
                                             {% include 'usuarios/partials/servicio_galeria_item.html' %}
                                         {% endif %}
                                     {% empty %}
-                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                     {% endfor %}
                                 </div>
                                 <div class="mx-2 mb-2 mt-3 rounded-xl border border-[#d7bd91] bg-[#fffaf0] p-3">
@@ -170,7 +237,8 @@
                                     </div>
                                 </div>
                             </article>
-                            <article data-service-gallery="all pedicure" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'pedicure' %}hidden{% endif %} class="service-gallery-compact order-4 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                            <article data-service-gallery="all pedicure" {% if categorias_galeria_seleccionadas and 'pedicure' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="service-gallery-compact order-4 overflow-hidden">
+                                <img src="{% static 'img/manicure_pedicure_galeria.png' %}" alt="Servicios de manicure y pedicure de Nicolett Studio Fantasy" class="h-auto w-full object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Pedicure</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.manos }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Pedicure" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
@@ -178,20 +246,20 @@
                                 {% for servicio in servicios_galeria.pedicure %}
                                     {% include 'usuarios/partials/servicio_galeria_item.html' with booking_cta=True booking_cta_label='AGENDAR CITAS' %}
                                 {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">El servicio Pedicure se agregará aquí cuando esté registrado en el catálogo.</p>
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                 {% endfor %}
                             </article>
-                            <article data-service-gallery="all depilaciones" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'depilaciones' %}hidden{% endif %} class="order-4 overflow-hidden rounded-2xl border border-[#c9a56b] bg-[#fffaf0]">
+                            <article data-service-gallery="all depilaciones" {% if categorias_galeria_seleccionadas and 'depilaciones' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-4 overflow-hidden">
                                 <div class="flex w-full flex-col gap-0">
                                     <img src="{% static 'img/depilacion_cera_beneficios.png' %}" alt="Beneficios de la cera de abeja hipoalergénica Nicolett Studio Fantasy" class="depilation-gallery-image rounded-xl">
                                 </div>
-                                <div class="mx-2 mb-2 mt-3 border-t border-[#c9a56b] pt-3">
+                                <div class="mb-2">
+                                    <div class="mb-3 flex items-center justify-between gap-2">
+                                        <h2 class="font-semibold text-[#281b14]">Depilación</h2>
                                     {% if not vista_admin %}
-                                        <div class="mb-3 flex items-center justify-between gap-2">
-                                            <h2 class="font-semibold text-[#5a3e27]">Agenda tu tratamiento</h2>
-                                            <a href="{{ whatsapp_categoria_urls.depilaciones }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Depilación" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>
-                                        </div>
+                                        <a href="{{ whatsapp_categoria_urls.depilaciones }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Depilación" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>
                                     {% endif %}
+                                    </div>
                                     <div class="grid gap-x-2 sm:grid-cols-2">
                                 {% for servicio in servicios_galeria.depilaciones %}
                                     <div class="mb-2 grid grid-cols-[2.5rem_minmax(0,1fr)_auto_auto] items-center gap-1 rounded-full border border-[#d7bd91] bg-white px-2 py-2 last:mb-0">
@@ -229,12 +297,12 @@
                                         {% endif %}
                                     </div>
                                 {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                 {% endfor %}
                                     </div>
                                 </div>
                             </article>
-                            <article data-service-gallery="all peinados" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'peinados' %}hidden{% endif %} class="order-5 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                            <article data-service-gallery="all peinados" {% if categorias_galeria_seleccionadas and 'peinados' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-5 overflow-hidden">
                                 <img src="{% static 'img/peinados_galeria_brand.png' %}" alt="Peinados de Nicolett Studio con logo Nicolett Studio Fantasy" class="h-auto w-full object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Peinados</h2>
@@ -248,10 +316,10 @@
                                         {% include 'usuarios/partials/servicio_galeria_item.html' %}
                                     {% endif %}
                                 {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                 {% endfor %}
                             </article>
-                            <article data-service-gallery="all coloracion" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'coloracion' %}hidden{% endif %} class="order-6 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                            <article data-service-gallery="all coloracion" {% if categorias_galeria_seleccionadas and 'coloracion' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-6 overflow-hidden">
                                 <img src="{% static 'img/colorimetria_galeria_brand.png' %}" alt="Tres servicios de colorimetría para el cabello con logo Nicolett Studio Fantasy" class="h-auto w-full object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Colorimetría</h2>
@@ -261,10 +329,10 @@
                                 {% for servicio in servicios_galeria.coloracion %}
                                     {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Colorimetría' hide_service_description=True booking_cta=True booking_cta_label='AGENDAR CITAS' %}
                                 {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                 {% endfor %}
                             </article>
-                            <article data-service-gallery="all podologia" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'podologia' %}hidden{% endif %} class="order-7 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                            <article data-service-gallery="all podologia" {% if categorias_galeria_seleccionadas and 'podologia' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-7 overflow-hidden">
                                 <img src="{% static 'img/podologia_galeria_brand.png' %}" alt="Tres imágenes de tratamientos de podología con el logo de Nicolett Studio Fantasy en el panel izquierdo" class="h-auto w-full object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Podología</h2>
@@ -274,10 +342,10 @@
                                 {% for servicio in servicios_galeria.podologia %}
                                     {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Podología' hide_service_description=True booking_cta=True booking_cta_label='AGENDAR CITAS' %}
                                 {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                 {% endfor %}
                             </article>
-                            <article data-service-gallery="all lash_brow" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'lash_brow' %}hidden{% endif %} class="order-8 overflow-hidden rounded-2xl border border-[#c9a56b] bg-[#fffaf0]">
+                            <article data-service-gallery="all lash_brow" {% if categorias_galeria_seleccionadas and 'lash_brow' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-8 overflow-hidden">
                                 <img src="{% static 'img/lash_brow_afiche.png' %}" alt="Afiche de precios de pestañas y cejas de Nicolett Studio Fantasy" class="lash-brow-gallery-image">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Lash &amp; Brow</h2>
@@ -294,15 +362,31 @@
                                     {% else %}
                                         <div class="mb-2 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-full border border-[#d7bd91] bg-white px-3 py-2 last:mb-0">
                                             <span class="min-w-0 text-sm font-medium text-[#4b301b]">{{ servicio.nombre }}</span>
-                                            <span class="whitespace-nowrap rounded-full bg-[#f1dfbd] px-2 py-1 text-xs font-semibold text-[#4b301b]">{% if servicio.nombre == 'Volumen tecnológico' %}Desde {% endif %}{{ servicio.precio|pesos }}</span>
+                                            <div class="flex flex-wrap items-center justify-end gap-2">
+                                                <span class="whitespace-nowrap rounded-full bg-[#f1dfbd] px-2 py-1 text-xs font-semibold text-[#4b301b]">{% if servicio.nombre == 'Volumen tecnológico' %}Desde {% endif %}{{ servicio.precio|pesos }}</span>
+                                                <span class="whitespace-nowrap text-xs text-[#6b5643]">2 horas</span>
+                                            </div>
                                             <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="whitespace-nowrap rounded-full bg-[#5a3e27] px-2 py-2 text-center text-[10px] font-semibold text-white no-underline transition hover:bg-[#4b301b]">AGENDAR CITAS</a>
                                         </div>
                                     {% endif %}
                                 {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                 {% endfor %}
                             </article>
-                            <article data-service-gallery="all maquillaje" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'maquillaje' %}hidden{% endif %} class="order-9 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                            <article data-service-gallery="all cuidado_facial" {% if categorias_galeria_seleccionadas and 'cuidado_facial' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-9 overflow-hidden">
+                                <img src="{% static 'img/cuidado_facial_galeria.svg' %}" alt="Ilustración de cuidado facial de Nicolett Studio Fantasy" class="h-auto w-full object-contain">
+                                <div class="flex items-center justify-between px-2 pt-2">
+                                    <h2 class="font-semibold text-[#281b14]">Cuidado facial</h2>
+                                    {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.cuidado_facial }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Cuidado facial" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
+                                </div>
+                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Limpieza y cuidado facial para consentir tu piel.</p>
+                                {% for servicio in servicios_galeria.cuidado_facial %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Cuidado facial' booking_cta=True booking_cta_label='AGENDAR CITA' %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                            <article data-service-gallery="all maquillaje" {% if categorias_galeria_seleccionadas and 'maquillaje' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-10 overflow-hidden">
                                 <img src="{% static 'img/maquillaje_galeria_brand.png' %}" alt="Maquillaje social, de novia y para eventos con logo Nicolett Studio Fantasy" class="h-auto w-full object-contain">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Maquillaje</h2>
@@ -312,7 +396,18 @@
                                 {% for servicio in servicios_galeria.maquillaje %}
                                     {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Maquillaje' hide_service_description=True booking_cta=True booking_cta_label='AGENDAR CITA' service_price_prefix='Desde' service_duration_label='60 min' %}
                                 {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
+                                {% endfor %}
+                            </article>
+                            <article data-service-gallery="all otros" {% if categorias_galeria_seleccionadas and 'otros' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-11 overflow-hidden">
+                                <div class="flex h-40 items-center justify-center bg-[#fae9cf] text-5xl text-[#6b5643]" aria-hidden="true"><i class="fa-solid fa-spa"></i></div>
+                                <div class="flex items-center justify-between px-2 pt-2">
+                                    <h2 class="font-semibold text-[#281b14]">{{ categoria_seleccionada|default:'Otros servicios' }}</h2>
+                                </div>
+                                {% for servicio in servicios_galeria.otros %}
+                                    {% include 'usuarios/partials/servicio_galeria_item.html' with booking_cta=True %}
+                                {% empty %}
+                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                 {% endfor %}
                             </article>
                         </div>
@@ -328,6 +423,7 @@
                         <input id="catalog-search" type="search" placeholder="Escribe un nombre o categoría..." autocomplete="off" class="w-full border border-[#ead7bc] bg-[#fffaf5] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[#5a3e27] focus:ring-2 focus:ring-[#5a3e27]/15">
                     </div>
                     <form method="get" class="w-full lg:w-auto">
+                        <input type="hidden" name="categoria" value="{{ request.GET.categoria|default:'' }}">
                         <label for="catalog-sort" class="sr-only">Ordenar {{ titulo|lower }}</label>
                         <select id="catalog-sort" name="orden" onchange="this.form.submit()" class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm text-[#6b5643] lg:min-w-56">
                             <option value="nombre_asc" {% if orden_catalogo == 'nombre_asc' %}selected{% endif %}>Nombre: A-Z</option>
@@ -337,11 +433,14 @@
                         </select>
                     </form>
                     {% if titulo == 'Productos' %}
-                        <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoría">
-                            <button type="button" data-category-filter="" aria-pressed="true" class="catalog-filter rounded-full border border-[#5a3e27] bg-[#5a3e27] px-4 py-2 text-xs font-medium text-white transition">Todo</button>
+                        <div class="w-full lg:w-auto">
+                            <label for="catalog-category-filter" class="sr-only">Filtrar productos por categoría</label>
+                            <select id="catalog-category-filter" data-category-filter class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm text-[#6b5643] lg:min-w-56">
+                                <option value="">Ver todo</option>
                             {% for filtro in filtros_categoria %}
-                                <button type="button" data-category-filter="{{ filtro }}" aria-pressed="false" class="catalog-filter rounded-full border border-[#ead7bc] bg-white px-4 py-2 text-xs font-medium text-[#6b5643] transition hover:border-[#5a3e27] hover:bg-[#fae9cf]">{{ filtro }}</button>
+                                <option value="{{ filtro }}" {% if categoria_seleccionada == filtro %}selected{% endif %}>{{ filtro }}</option>
                             {% endfor %}
+                            </select>
                         </div>
                     {% endif %}
                 </div>
@@ -463,32 +562,29 @@
                     .toLocaleLowerCase()
                     .replace(/\s+/g, ' ')
                     .trim();
+                if (filters.length && filters[0].value) {
+                    selectedCategories = [normalize(filters[0].value)];
+                }
 
                 function showServiceGallery(category) {
                     const categoryTerms = {
                         corte: ['corte', 'estilo'],
                         tratamientos: ['tratamiento', 'capilar'],
                         manos: ['mano', 'pie', 'uña', 'manicure', 'pedicure', 'nail'],
+                        pedicure: ['pedicure'],
                         depilaciones: ['depilacion'],
                         peinados: ['peinado'],
                         coloracion: ['colorimetria', 'tinte', 'balayage'],
                         podologia: ['podologia'],
                         lash_brow: ['lash', 'brow'],
+                        maquillaje: ['maquillaje', 'makeup'],
                     };
                     const terms = categoryTerms[category] || [];
                     selectedCategories = terms.map(normalize);
-                    const showIntro = terms.length === 0;
-                    const servicesLayout = document.querySelector('[data-services-layout]');
-                    const servicesIntro = document.querySelector('[data-services-intro]');
-                    const galleryGrid = document.querySelector('[data-service-gallery-grid]');
-                    if (servicesLayout && servicesIntro && galleryGrid) {
-                        servicesIntro.hidden = !showIntro;
-                        servicesLayout.classList.toggle('md:grid-cols-[1fr_2fr]', showIntro);
-                        servicesLayout.classList.toggle('md:grid-cols-1', !showIntro);
-                    }
+                    const showAll = category === 'todos' || !category;
                     for (const gallery of galleries) {
                         const galleryCategories = gallery.dataset.serviceGallery.split(/\s+/);
-                        gallery.hidden = !galleryCategories.includes(showIntro ? 'all' : category);
+                        gallery.hidden = !galleryCategories.includes(showAll ? 'all' : category);
                     }
                 }
 
@@ -541,24 +637,26 @@
                     search.addEventListener('input', updateCatalog);
                 }
                 for (const filter of filters) {
-                    filter.addEventListener('click', () => {
-                        if (galleries.length) {
-                            showServiceGallery(filter.dataset.galleryFilter || 'todos');
+                    filter.addEventListener('change', () => {
+                        if (filter.hasAttribute('data-category-filter')) {
+                            const url = new URL(window.location.href);
+                            if (filter.value) url.searchParams.set('categoria', filter.value);
+                            else url.searchParams.delete('categoria');
+                            window.location.assign(url);
+                            return;
                         }
-                        selectedCategories = filter.dataset.categoryFilter
+                        if (galleries.length) {
+                            showServiceGallery(filter.dataset.galleryFilter || filter.value || 'todos');
+                        }
+                        const category = filter.dataset.categoryFilter === ''
+                            ? filter.value
+                            : filter.dataset.categoryFilter;
+                        selectedCategories = category
                             .split('|')
                             .map(normalize)
                             .filter(Boolean);
-                        for (const button of filters) {
-                            const active = button === filter;
-                            button.setAttribute('aria-pressed', String(active));
-                            button.classList.toggle('border-[#5a3e27]', active);
-                            button.classList.toggle('bg-[#5a3e27]', active);
-                            button.classList.toggle('text-white', active);
-                            button.classList.toggle('border-[#ead7bc]', !active);
-                            button.classList.toggle('bg-white', !active);
-                            button.classList.toggle('text-[#6b5643]', !active);
-                        }
+                        const categoryField = document.querySelector('input[name="categoria"]');
+                        if (categoryField) categoryField.value = filter.value;
                         updateCatalog();
                     });
                 }

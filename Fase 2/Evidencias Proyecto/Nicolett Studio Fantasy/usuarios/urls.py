@@ -71,7 +71,6 @@ urlpatterns = [
     ),
     path('cliente/historial/', views.cliente_historial_view, name='cliente_historial'),
     path('cliente/ficha-tecnica/', fichas_views.ficha_tecnica_cliente_pdf, name='cliente_ficha_tecnica_pdf'),
-    path('cliente/historial-pagos/', views.cliente_historial_pagos_view, name='cliente_historial_pagos'),
     path('cliente/configuracion/', views.cliente_configuracion_view, name='cliente_configuracion'),
     path('cliente/configuracion/eliminar-cuenta/', views.cliente_eliminar_cuenta_view, name='cliente_eliminar_cuenta'),
     path('cliente/cancelar-cita/', views.cliente_cancelar_cita_view, name='cliente_cancelar_cita'),

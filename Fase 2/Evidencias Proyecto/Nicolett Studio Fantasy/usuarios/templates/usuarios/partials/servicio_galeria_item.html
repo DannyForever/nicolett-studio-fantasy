@@ -1,8 +1,8 @@
 {% load moneda %}
-<div id="servicio-{{ servicio.pk }}" class="mx-2 mb-2 mt-3 border-t border-[#ead7bc] pt-3">
+<div id="servicio-{{ servicio.pk }}" class="mx-2 mb-2 mt-3 min-w-0 border-t border-[#ead7bc] pt-3">
     {% if servicio.nombre != hide_service_heading %}
         <div class="flex items-center justify-between gap-2">
-            <p class="font-semibold text-[#281b14]">{{ servicio.nombre }}</p>
+            <p class="min-w-0 break-words font-semibold text-[#281b14]">{{ servicio.nombre }}</p>
             {% if not vista_admin and not hide_service_whatsapp %}
                 <a href="{{ servicio.whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre {{ servicio.nombre }}" title="Consultar por WhatsApp" class="shrink-0 text-lg text-[#25D366]">
                     <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
@@ -11,9 +11,12 @@
         </div>
     {% endif %}
     {% if servicio.descripcion and not hide_service_description %}
-        <p class="mt-1 text-sm leading-5 text-[#6b5643]">{{ servicio.descripcion }}</p>
+        <details class="mt-2">
+            <summary class="w-fit cursor-pointer text-xs font-medium text-[#6b5643] underline decoration-[#bd8c43] underline-offset-2">Ver detalles del servicio</summary>
+            <p class="mt-2 whitespace-pre-line break-words text-sm leading-5 text-[#6b5643]">{{ servicio.descripcion }}</p>
+        </details>
     {% endif %}
-    <p class="mt-1 flex items-center justify-between text-sm">
+    <p class="mt-2 flex items-center justify-between gap-3 text-sm">
         <span class="font-medium">{% if service_price_prefix %}{{ service_price_prefix }} {% endif %}{{ servicio.precio|pesos }}</span>
         <span class="text-[#6b5643]">{% if service_duration_label %}{{ service_duration_label }}{% else %}{{ servicio.duracion_minutos }} min{% endif %}</span>
     </p>
