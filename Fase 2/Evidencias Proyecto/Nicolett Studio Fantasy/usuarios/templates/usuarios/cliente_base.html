@@ -44,7 +44,20 @@
                 padding-left: 0;
             }
 
-            .client-sidebar[data-collapsed="true"] .client-sidebar-tools {
+            .client-sidebar[data-collapsed="true"] .client-services-toggle {
+                justify-content: center;
+                padding-right: 0;
+                padding-left: 0;
+                border-left-width: 0;
+            }
+
+            .client-sidebar[data-collapsed="true"] .client-sidebar-chevron,
+            .client-sidebar[data-collapsed="true"] .client-sidebar-submenu {
+                display: none;
+            }
+
+            .client-sidebar[data-collapsed="true"] .client-sidebar-tools,
+            .client-sidebar[data-collapsed="true"] .client-sidebar-home-row > a {
                 justify-content: center;
                 padding-right: 0;
                 padding-left: 0;
@@ -239,12 +252,30 @@
                 </button>
             </div>
             <nav class="flex flex-col gap-1" aria-label="Menú de cliente">
-                <a href="{% url 'cliente_home' %}" title="Nosotras" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-heart w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Nosotras</span>
-                </a>
-                <a href="{% url 'cliente_servicios' %}#servicios-semana" title="Servicios y citas" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' or request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_servicios' or request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-spa w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Servicios y citas</span>
-                </a>
+                <div class="client-sidebar-home-row flex items-center gap-1">
+                    <a href="{% url 'cliente_home' %}" title="Nosotras" class="flex min-w-0 flex-1 items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
+                        <i class="fa-solid fa-heart w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Nosotras</span>
+                    </a>
+                </div>
+                <div class="flex flex-col">
+                    <button type="button" id="clientServicesToggle" aria-expanded="{% if request.resolver_match.url_name == 'cliente_servicios' %}true{% else %}false{% endif %}" aria-controls="clientServicesSubmenu" title="Servicios y citas" class="client-services-toggle flex w-full items-center gap-3.5 border-l-4 px-5 py-3 text-left text-sm transition-colors {% if request.resolver_match.url_name == 'cliente_servicios' or request.resolver_match.url_name == 'cliente_agendamiento' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent bg-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_servicios' or request.resolver_match.url_name == 'cliente_agendamiento' %}aria-current="page"{% endif %}>
+                        <i class="fa-solid fa-spa w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i>
+                        <span class="client-sidebar-label flex-1">Servicios y citas</span>
+                        <i class="client-sidebar-chevron fa-solid fa-chevron-down text-xs transition-transform {% if request.resolver_match.url_name == 'cliente_servicios' %}rotate-180{% endif %}" aria-hidden="true"></i>
+                    </button>
+                    <div id="clientServicesSubmenu" class="client-sidebar-submenu ml-9 mr-3 space-y-1 border-l border-[#ead7bc] pl-2" aria-label="Servicios disponibles"{% if request.resolver_match.url_name != 'cliente_servicios' %} hidden{% endif %}>
+                        <a href="{% url 'cliente_servicios' %}?categoria=corte#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'corte' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'corte' %}aria-current="page"{% endif %}>Cortes &amp; estilos</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=tratamientos#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'tratamientos' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'tratamientos' %}aria-current="page"{% endif %}>Tratamientos capilares</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=manos#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'manos' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'manos' %}aria-current="page"{% endif %}>Nail Care &amp; Beauty</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=pedicure#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'pedicure' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'pedicure' %}aria-current="page"{% endif %}>Pedicure</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=depilaciones#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'depilaciones' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'depilaciones' %}aria-current="page"{% endif %}>Depilación</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=peinados#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'peinados' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'peinados' %}aria-current="page"{% endif %}>Peinados</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=coloracion#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'coloracion' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'coloracion' %}aria-current="page"{% endif %}>Colorimetría</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=podologia#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'podologia' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'podologia' %}aria-current="page"{% endif %}>Podología</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=lash_brow#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'lash_brow' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'lash_brow' %}aria-current="page"{% endif %}>Lash &amp; Brow</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=maquillaje#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'maquillaje' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'maquillaje' %}aria-current="page"{% endif %}>Maquillaje</a>
+                    </div>
+                </div>
                 <a href="{% url 'cliente_productos' %}" title="Productos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
                     <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Productos</span>
                 </a>
@@ -297,8 +328,16 @@
             const toggle = document.getElementById('clientMenuToggle');
             const collapseToggle = document.getElementById('clientSidebarCollapseToggle');
             const backdrop = document.getElementById('clientMenuBackdrop');
-            if (!sidebar || !toggle || !collapseToggle || !backdrop) return;
+            const servicesToggle = document.getElementById('clientServicesToggle');
+            const servicesSubmenu = document.getElementById('clientServicesSubmenu');
+            if (!sidebar || !toggle || !collapseToggle || !backdrop || !servicesToggle || !servicesSubmenu) return;
             const desktop = window.matchMedia('(min-width: 1024px)');
+
+            const setServicesMenuOpen = (open) => {
+                servicesSubmenu.hidden = !open;
+                servicesToggle.setAttribute('aria-expanded', String(open));
+                servicesToggle.querySelector('.client-sidebar-chevron').classList.toggle('rotate-180', open);
+            };
 
             const setMobileOpen = (open) => {
                 sidebar.dataset.open = String(open);
@@ -311,6 +350,7 @@
             };
 
             const setCollapsed = (collapsed) => {
+                if (collapsed) setServicesMenuOpen(false);
                 sidebar.dataset.collapsed = String(collapsed);
                 document.body.dataset.clientSidebarCollapsed = String(collapsed);
                 collapseToggle.setAttribute('aria-expanded', String(!collapsed));
@@ -320,14 +360,23 @@
             };
 
             setCollapsed(false);
+            const browsingServices = !servicesSubmenu.hidden;
+            setServicesMenuOpen(browsingServices);
+            setMobileOpen(!desktop.matches && browsingServices);
             toggle.addEventListener('click', () => setMobileOpen(sidebar.dataset.open !== 'true'));
             collapseToggle.addEventListener('click', () => setCollapsed(sidebar.dataset.collapsed !== 'true'));
+            servicesToggle.addEventListener('click', () => {
+                setServicesMenuOpen(servicesSubmenu.hidden);
+            });
             backdrop.addEventListener('click', () => setMobileOpen(false));
             sidebar.querySelectorAll('a').forEach((link) => {
                 link.addEventListener('click', () => setMobileOpen(false));
             });
             document.addEventListener('keydown', (event) => {
-                if (event.key === 'Escape') setMobileOpen(false);
+                if (event.key === 'Escape') {
+                    setServicesMenuOpen(false);
+                    setMobileOpen(false);
+                }
             });
             desktop.addEventListener('change', () => {
                 setMobileOpen(false);

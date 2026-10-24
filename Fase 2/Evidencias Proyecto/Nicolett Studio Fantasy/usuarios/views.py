@@ -626,6 +626,7 @@ def _vista_cliente(request, template, context=None):
         'coloracion': 'Colorimetría',
         'podologia': 'Podología',
         'lash_brow': 'Lash & Brow',
+        'maquillaje': 'Maquillaje',
     }
     contexto['whatsapp_categoria_urls'] = {
         categoria: _url_whatsapp('56982108409', _mensaje_consulta_cliente(
@@ -858,12 +859,14 @@ def _agrupar_servicios_galeria(servicios: QuerySet) -> dict[str, list[Servicio]]
     categorias = {
         'corte': ('corte', 'estilo'),
         'tratamientos': ('tratamiento', 'capilar', 'keratina'),
-        'manos': ('manicure', 'pedicure', 'uña', 'nail'),
+        'manos': ('manicure', 'uña', 'unas', 'nail'),
+        'pedicure': ('pedicure',),
         'depilaciones': ('depilacion',),
         'peinados': ('peinado',),
         'coloracion': ('colorimetria', 'coloracion', 'tinte', 'balayage'),
         'podologia': ('podologia',),
         'lash_brow': ('lash', 'brow'),
+        'maquillaje': ('maquillaje', 'makeup'),
     }
     agrupados = {categoria: [] for categoria in categorias}
     for servicio in servicios:
@@ -873,10 +876,75 @@ def _agrupar_servicios_galeria(servicios: QuerySet) -> dict[str, list[Servicio]]
         )
         texto = ''.join(caracter for caracter in texto if not unicodedata.combining(caracter))
         texto = texto.casefold()
+        if 'pedicure' in texto:
+            agrupados['pedicure'].append(servicio)
+            continue
         for categoria, terminos in categorias.items():
             if any(termino in texto for termino in terminos):
                 agrupados[categoria].append(servicio)
-    agrupados['depilaciones'].sort(key=lambda servicio: servicio.precio)
+    orden_depilaciones = (
+        'Pierna completa',
+        'Media pierna',
+        'Brazo completo',
+        'Medio brazo',
+        'Axila',
+        'Rebaje completo',
+        'Medio rebaje',
+        'Rostro completo',
+        'Bozo',
+        'Cejas',
+        'Nariz',
+        'Oídos',
+        'Mentón',
+    )
+    prioridad_depilacion = {
+        nombre: posicion
+        for posicion, nombre in enumerate(orden_depilaciones)
+    }
+    agrupados['depilaciones'].sort(
+        key=lambda servicio: prioridad_depilacion.get(
+            servicio.nombre,
+            len(prioridad_depilacion),
+        ),
+    )
+    orden_lash_brow = (
+        'Laminado de cejas',
+        'Lifting coreano',
+        'Extensiones de pestañas rímel o clásica',
+        'Extensiones de pestañas tecnológicas',
+        'Volumen tecnológico',
+    )
+    prioridad_lash_brow = {
+        nombre: posicion
+        for posicion, nombre in enumerate(orden_lash_brow)
+    }
+    agrupados['lash_brow'].sort(
+        key=lambda servicio: prioridad_lash_brow.get(
+            servicio.nombre,
+            len(prioridad_lash_brow),
+        ),
+    )
+    orden_nail_care = (
+        'Permanente',
+        'Ruber',
+        'Kapping Poly Gel',
+        'Soft Gel',
+        'Extensión Poly Gel',
+    )
+    prioridad_nail_care = {
+        nombre: posicion
+        for posicion, nombre in enumerate(orden_nail_care)
+    }
+    agrupados['manos'].sort(
+        key=lambda servicio: (
+            prioridad_nail_care.get(
+                servicio.nombre,
+                len(prioridad_nail_care),
+            ),
+            servicio.nombre.casefold(),
+        ),
+    )
+    agrupados['pedicure'].sort(key=lambda servicio: servicio.nombre.casefold())
     agrupados['peinados'].sort(key=lambda servicio: servicio.precio)
     return agrupados
 
