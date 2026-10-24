@@ -55,6 +55,35 @@
             height: auto;
             object-fit: contain;
         }
+        .depilation-flyer {
+            position: relative;
+            width: 100%;
+        }
+        .depilation-booking-link {
+            position: absolute;
+            z-index: 1;
+            display: block;
+            border-radius: 9999px;
+        }
+        .depilation-booking-link:focus-visible {
+            outline: 3px solid #5a3e27;
+            outline-offset: 2px;
+            background: rgb(90 62 39 / 15%);
+        }
+        .depilation-booking-link--left {
+            left: 39.1%;
+            width: 9.9%;
+        }
+        .depilation-booking-link--right {
+            left: 85.7%;
+            width: 9.9%;
+        }
+        .depilation-booking-link--row-1 { top: 30.8%; height: 5.8%; }
+        .depilation-booking-link--row-2 { top: 42.1%; height: 5.8%; }
+        .depilation-booking-link--row-3 { top: 53.5%; height: 5.8%; }
+        .depilation-booking-link--row-4 { top: 64.7%; height: 5.8%; }
+        .depilation-booking-link--row-5 { top: 76%; height: 5.8%; }
+        .depilation-booking-link--row-6 { top: 87.4%; height: 5.8%; }
         .nail-care-gallery-image {
             display: block;
             width: 100%;
@@ -232,57 +261,36 @@
                                     <p class="px-2 py-3 text-sm text-[#6b5643]">El servicio Pedicure se agregará aquí cuando esté registrado en el catálogo.</p>
                                 {% endfor %}
                             </article>
-                            <article data-service-gallery="all depilaciones" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'depilaciones' %}hidden{% endif %} class="order-4 overflow-hidden rounded-2xl border border-[#c9a56b] bg-[#fffaf0]">
-                                <div class="flex w-full flex-col gap-0">
-                                    <img src="{% static 'img/depilacion_cera_beneficios.png' %}" alt="Beneficios de la cera de abeja hipoalergénica Nicolett Studio Fantasy" class="depilation-gallery-image rounded-xl">
-                                </div>
-                                <div class="mx-2 mb-2 mt-3 border-t border-[#c9a56b] pt-3">
+                            <article data-service-gallery="all depilaciones" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'depilaciones' %}hidden{% endif %} class="order-4 overflow-hidden">
+                                <div class="depilation-flyer">
+                                    <img src="{% static 'img/depilacion_catalogo_afiche.png' %}" alt="Catálogo completo de depilación Nicolett Studio Fantasy con precios y botones para agendar citas" class="depilation-gallery-image">
                                     {% if not vista_admin %}
-                                        <div class="mb-3 flex items-center justify-between gap-2">
-                                            <h2 class="font-semibold text-[#5a3e27]">Agenda tu tratamiento</h2>
-                                            <a href="{{ whatsapp_categoria_urls.depilaciones }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Depilación" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>
-                                        </div>
+                                        {% for servicio in servicios_galeria.depilaciones %}
+                                            {% if servicio.nombre == 'Pierna completa' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--left depilation-booking-link--row-1"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Media pierna' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--right depilation-booking-link--row-1"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Brazo completo' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--left depilation-booking-link--row-2"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Medio brazo' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--right depilation-booking-link--row-2"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Axila' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--left depilation-booking-link--row-3"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Rebaje completo' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--right depilation-booking-link--row-3"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Medio rebaje' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--left depilation-booking-link--row-4"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Rostro completo' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--right depilation-booking-link--row-4"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Bozo' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--left depilation-booking-link--row-5"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Oídos' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--right depilation-booking-link--row-5"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Mentón' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="depilation-booking-link depilation-booking-link--left depilation-booking-link--row-6"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% endif %}
+                                        {% endfor %}
                                     {% endif %}
-                                    <div class="grid gap-x-2 sm:grid-cols-2">
-                                {% for servicio in servicios_galeria.depilaciones %}
-                                    <div class="mb-2 grid grid-cols-[2.5rem_minmax(0,1fr)_auto_auto] items-center gap-1 rounded-full border border-[#d7bd91] bg-white px-2 py-2 last:mb-0">
-                                        {% if servicio.nombre == 'Pierna completa' %}
-                                            <img src="{% static 'img/depilacion/pierna-completa.png' %}" alt="Ilustración de pierna completa" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Media pierna' %}
-                                            <img src="{% static 'img/depilacion/media-pierna.png' %}" alt="Ilustración de media pierna" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Brazo completo' %}
-                                            <img src="{% static 'img/depilacion/brazo-completo.png' %}" alt="Ilustración de brazo completo" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Medio brazo' %}
-                                            <img src="{% static 'img/depilacion/medio-brazo.png' %}" alt="Ilustración de medio brazo" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Axila' %}
-                                            <img src="{% static 'img/depilacion/axila.png' %}" alt="Ilustración de axila" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Rebaje completo' %}
-                                            <img src="{% static 'img/depilacion/rebaje-completo.png' %}" alt="Ilustración de rebaje completo" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Medio rebaje' %}
-                                            <img src="{% static 'img/depilacion/medio-rebaje.png' %}" alt="Ilustración de medio rebaje" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Rostro completo' %}
-                                            <img src="{% static 'img/depilacion/rostro-completo.png' %}" alt="Ilustración de rostro completo" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Bozo' %}
-                                            <img src="{% static 'img/depilacion/bozo.png' %}" alt="Ilustración de bozo" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Cejas' %}
-                                            <img src="{% static 'img/depilacion/cejas.png' %}" alt="Ilustración de cejas" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Nariz' %}
-                                            <img src="{% static 'img/depilacion/nariz.png' %}" alt="Ilustración de nariz" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Oídos' %}
-                                            <img src="{% static 'img/depilacion/oidos.png' %}" alt="Ilustración de oídos" class="size-10 shrink-0 rounded-full">
-                                        {% elif servicio.nombre == 'Mentón' %}
-                                            <img src="{% static 'img/depilacion/menton.png' %}" alt="Ilustración de mentón" class="size-10 shrink-0 rounded-full">
-                                        {% endif %}
-                                        <span class="min-w-0 text-sm font-medium text-[#4b301b]">{{ servicio.nombre }}</span>
-                                        <span class="whitespace-nowrap rounded-full bg-[#f1dfbd] px-2 py-1 text-xs font-semibold text-[#4b301b]">{{ servicio.precio|pesos }}</span>
-                                        {% if not vista_admin %}
-                                            <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="whitespace-nowrap rounded-full bg-[#5a3e27] px-2 py-2 text-center text-[10px] font-semibold text-white no-underline transition hover:bg-[#4b301b]">AGENDAR CITAS</a>
-                                        {% endif %}
-                                    </div>
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
-                                    </div>
                                 </div>
                             </article>
                             <article data-service-gallery="all peinados" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'peinados' %}hidden{% endif %} class="order-5 overflow-hidden border border-[#ead7bc] bg-white p-2">

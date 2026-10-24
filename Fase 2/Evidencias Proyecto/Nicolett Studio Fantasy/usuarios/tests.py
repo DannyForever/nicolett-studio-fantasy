@@ -588,66 +588,43 @@ class RoleAccessTests(TestCase):
             {'categoria': 'depilaciones'},
         )
         self.assertEqual(respuesta.status_code, 200)
-        self.assertNotContains(
-            respuesta,
-            'src="/static/img/depilacion_catalogo_afiche.png"',
-        )
-        self.assertNotContains(
-            respuesta,
-            'src="/static/img/depilacion_encabezado.png"',
-        )
         self.assertContains(
             respuesta,
-            'src="/static/img/depilacion_cera_beneficios.png" alt="Beneficios de la cera de abeja hipoalergénica Nicolett Studio Fantasy" class="depilation-gallery-image rounded-xl"',
+            'src="/static/img/depilacion_catalogo_afiche.png" alt="Catálogo completo de depilación Nicolett Studio Fantasy con precios y botones para agendar citas" class="depilation-gallery-image"',
         )
         self.assertContains(respuesta, 'width: 100%;')
         self.assertContains(respuesta, 'height: auto;')
         self.assertContains(respuesta, 'object-fit: contain;')
         self.assertContains(
             respuesta,
-            'class="order-8 overflow-hidden border border-[#c9a56b] bg-[#fffaf0]"',
+            'data-service-gallery="all depilaciones"',
         )
         self.assertNotContains(
             respuesta,
-            'class="order-8 overflow-hidden rounded-2xl border border-[#c9a56b] bg-[#fffaf0]"',
+            'grid grid-cols-[2.5rem_minmax(0,1fr)_auto_auto]',
         )
-        self.assertLess(
-            respuesta.content.index(b'depilacion_cera_beneficios.png'),
-            respuesta.content.index(b'Pierna completa'),
+        servicios_con_boton_en_afiche = (
+            'Pierna completa',
+            'Media pierna',
+            'Brazo completo',
+            'Medio brazo',
+            'Axila',
+            'Rebaje completo',
+            'Medio rebaje',
+            'Rostro completo',
+            'Bozo',
+            'Oídos',
+            'Mentón',
         )
-        iconos_depilacion = (
-            'pierna-completa',
-            'media-pierna',
-            'brazo-completo',
-            'medio-brazo',
-            'axila',
-            'rebaje-completo',
-            'medio-rebaje',
-            'rostro-completo',
-            'bozo',
-            'cejas',
-            'nariz',
-            'oidos',
-            'menton',
-        )
-        for icono in iconos_depilacion:
-            self.assertContains(
-                respuesta,
-                f'src="/static/img/depilacion/{icono}.png"',
+        for nombre_servicio in servicios_con_boton_en_afiche:
+            servicio = next(
+                servicio
+                for servicio in servicios
+                if servicio.nombre == nombre_servicio
             )
-        self.assertEqual(
-            respuesta.content.count(b'<img src="/static/img/depilacion/'),
-            len(iconos_depilacion),
-        )
-        for servicio in servicios:
             self.assertContains(
                 respuesta,
-                (
-                    f'<a href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}" '
-                    'class="whitespace-nowrap rounded-full bg-[#5a3e27] px-2 py-2 '
-                    'text-center text-[10px] font-semibold text-white no-underline '
-                    'transition hover:bg-[#4b301b]">AGENDAR CITAS</a>'
-                ),
+                f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}" aria-label="Agendar cita para {servicio.nombre}"',
             )
 
     def test_lash_brow_flyer_replaces_repeated_service_list(self):
