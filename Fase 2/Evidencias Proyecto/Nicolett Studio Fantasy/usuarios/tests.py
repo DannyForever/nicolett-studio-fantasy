@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, time
 from types import SimpleNamespace
+from unittest.mock import patch
 from urllib.parse import parse_qs, quote, urlparse
 
 import re
@@ -674,7 +675,8 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(respuesta, 'Pierna completa')
         self.assertNotContains(respuesta, 'AGENDAR CITAS')
 
-    def test_lash_brow_flyer_has_individual_appointments(self):
+    @patch('usuarios.views.servicios_con_horarios_disponibles')
+    def test_lash_brow_flyer_has_individual_appointments(self, servicios_disponibles):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
         categoria = Categoria.objects.get(nombre='Lash & Brow')
@@ -696,6 +698,9 @@ class RoleAccessTests(TestCase):
             {servicio.duracion_minutos for servicio in servicios},
             {120},
         )
+        servicios_disponibles.return_value = [
+            servicio.pk for servicio in servicios
+        ]
 
         respuesta = self.client.get(
             reverse('cliente_servicios'),
@@ -711,17 +716,21 @@ class RoleAccessTests(TestCase):
         self.assertContains(respuesta, 'width: 100%;')
         self.assertContains(respuesta, 'height: auto;')
         self.assertContains(respuesta, 'object-fit: contain;')
-        self.assertContains(
-            respuesta,
-            'No hay servicios ni horas disponibles en esta categoría.',
-        )
+        self.assertContains(respuesta, 'class="lash-brow-flyer"')
+        self.assertNotContains(respuesta, '2 horas')
+        self.assertNotContains(respuesta, 'grid-cols-[minmax(0,1fr)_auto_auto]')
         for servicio in servicios:
-            self.assertNotContains(
+            self.assertContains(
                 respuesta,
                 f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}"',
             )
+            self.assertContains(
+                respuesta,
+                f'aria-label="Agendar cita para {servicio.nombre}"',
+            )
 
-    def test_nail_care_flyer_has_exact_prices_and_individual_appointments(self):
+    @patch('usuarios.views.servicios_con_horarios_disponibles')
+    def test_nail_care_flyer_has_exact_prices_and_individual_appointments(self, servicios_disponibles):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
         servicio_permanente = Servicio.objects.get(nombre='Permanente')
@@ -755,6 +764,9 @@ class RoleAccessTests(TestCase):
             {servicio.duracion_minutos for servicio in servicios},
             {60},
         )
+        servicios_disponibles.return_value = [
+            servicio.pk for servicio in servicios
+        ]
         reglas_disponibles_permanente = Disponibilidad.objects.filter(
             servicio_id=servicio_permanente.pk,
         ).count()
@@ -775,11 +787,31 @@ class RoleAccessTests(TestCase):
             respuesta,
             'src="/static/img/nail_care_precios_afiche.png"',
         )
+        self.assertContains(respuesta, 'class="nail-care-flyer"')
         self.assertContains(
             respuesta,
-            'No hay servicios ni horas disponibles en esta categoría.',
+            'alt="Lista completa de precios de manicura Nicolett Studio Fantasy con servicios y adicionales"',
         )
-        for servicio in servicios:
+        self.assertNotContains(respuesta, 'Uña corta | Un solo tono + 2 diseños simples.')
+        self.assertNotContains(respuesta, 'Francesa o degradé + 2 diseños simples (adicional)')
+        self.assertNotContains(respuesta, 'Diseños aparte (adicional)')
+        for nombre, clase in (
+            ('Permanente', 'nail-care-booking-link--permanente'),
+            ('Ruber', 'nail-care-booking-link--ruber'),
+            ('Extensión Poly Gel', 'nail-care-booking-link--extension'),
+        ):
+            servicio = next(item for item in servicios if item.nombre == nombre)
+            self.assertContains(respuesta, clase)
+            self.assertContains(
+                respuesta,
+                f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}"',
+            )
+            self.assertContains(
+                respuesta,
+                f'aria-label="Agendar cita para {servicio.nombre}"',
+            )
+        for nombre in ('Kapping Poly Gel', 'Soft Gel'):
+            servicio = next(item for item in servicios if item.nombre == nombre)
             self.assertNotContains(
                 respuesta,
                 f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}"',
@@ -818,6 +850,10 @@ class RoleAccessTests(TestCase):
         self.assertContains(
             respuesta,
             f'aria-current="page">{categoria.nombre.replace("&", "&amp;")}</a>',
+        )
+        self.assertContains(
+            respuesta,
+            'data-service-gallery-grid class="grid grid-cols-1 gap-3" aria-live="polite" hidden',
         )
         self.assertNotContains(respuesta, 'Pedicure de prueba')
         self.assertNotContains(
@@ -1273,13 +1309,17 @@ class RoleAccessTests(TestCase):
             {'categoria': 'tratamientos'},
         )
         self.assertNotContains(tratamientos, 'data-service-category-filters')
-        self.assertContains(tratamientos, 'data-service-gallery="all tratamientos"')
+        self.assertContains(tratamientos, 'data-service-gallery="all tratamientos" hidden')
+        self.assertContains(tratamientos, "category === 'tratamientos'")
         self.assertContains(tratamientos, 'data-service-gallery="all corte" hidden')
         self.assertContains(tratamientos, 'src="/static/img/tratamientos_capilares_galeria_brand.png"')
         self.assertContains(tratamientos, 'Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.')
-        self.assertContains(tratamientos, 'TOMAR CITAS')
         self.assertNotContains(tratamientos, 'Tratamiento capilar de prueba')
         self.assertNotContains(tratamientos, 'Hidratación intensiva para un cabello suave y brillante.')
+        self.assertIn(
+            tratamiento_prueba.pk,
+            [servicio.pk for servicio in tratamientos.context['servicios']],
+        )
         self.assertNotContains(
             tratamientos,
             'aria-label="Consultar por WhatsApp sobre Tratamiento capilar de prueba"',
@@ -1383,7 +1423,10 @@ class RoleAccessTests(TestCase):
             'No hay servicios ni horas disponibles en esta categoría.',
         )
         self.assertContains(servicios, 'src="/static/img/nail_care_precios_afiche.png"')
-        self.assertContains(servicios, 'alt="Lista de precios de manicura Nicolett Studio Fantasy"')
+        self.assertContains(
+            servicios,
+            'alt="Lista completa de precios de manicura Nicolett Studio Fantasy con servicios y adicionales"',
+        )
         self.assertContains(
             servicios,
             '<h2 class="font-semibold text-[#281b14]">Nail Care &amp; Beauty</h2>',
@@ -1395,7 +1438,9 @@ class RoleAccessTests(TestCase):
         self.assertContains(servicios, 'width: 100%;')
         self.assertContains(servicios, 'height: auto;')
         self.assertContains(servicios, 'object-fit: contain;')
-        self.assertContains(servicios, 'Los adicionales se cobran aparte según el diseño elegido.')
+        self.assertNotContains(servicios, 'Los adicionales se cobran aparte según el diseño elegido.')
+        self.assertNotContains(servicios, 'src="/static/img/nail_care/permanente.png"')
+        self.assertContains(servicios, 'class="nail-care-flyer"')
         self.assertContains(servicios, 'class="h-auto w-full object-contain"')
         self.assertNotContains(servicios, 'Manicure clásica de prueba')
         self.assertNotContains(servicios, manicure_prueba.descripcion)

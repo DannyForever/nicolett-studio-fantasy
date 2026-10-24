@@ -35,7 +35,10 @@
             box-shadow: none;
         }
         [data-service-gallery][hidden] {
-            display: none;
+            display: none !important;
+        }
+        [data-service-gallery-grid][hidden] {
+            display: none !important;
         }
         [data-service-gallery] > :first-child {
             grid-column: 1;
@@ -89,6 +92,86 @@
             min-height: 32rem;
             max-height: 46rem;
             object-fit: contain;
+        }
+        .nail-care-flyer,
+        .lash-brow-flyer {
+            position: relative;
+            width: 100%;
+        }
+        [data-service-gallery] > :first-child.nail-care-flyer,
+        [data-service-gallery] > :first-child.lash-brow-flyer {
+            height: auto;
+            min-height: 0;
+        }
+        [data-service-gallery] > :first-child.nail-care-flyer > img,
+        [data-service-gallery] > :first-child.lash-brow-flyer > img {
+            display: block;
+            width: 100%;
+            height: auto;
+            min-height: 0;
+            max-height: none;
+            object-fit: contain;
+        }
+        .nail-care-booking-link,
+        .lash-brow-booking-link {
+            position: absolute;
+            z-index: 1;
+            display: block;
+            border-radius: 9999px;
+        }
+        .nail-care-booking-link:focus-visible,
+        .lash-brow-booking-link:focus-visible {
+            outline: 3px solid #5a3e27;
+            outline-offset: 2px;
+            background: rgb(90 62 39 / 15%);
+        }
+        .nail-care-booking-link--permanente {
+            top: 53.7%;
+            left: 40.4%;
+            width: 8.6%;
+            height: 4.5%;
+        }
+        .nail-care-booking-link--ruber {
+            top: 64.5%;
+            left: 40.4%;
+            width: 8.6%;
+            height: 4.5%;
+        }
+        .nail-care-booking-link--extension {
+            top: 75.3%;
+            left: 40.4%;
+            width: 8.6%;
+            height: 4.5%;
+        }
+        .lash-brow-booking-link--brow {
+            top: 58.2%;
+            left: 24%;
+            width: 9%;
+            height: 5%;
+        }
+        .lash-brow-booking-link--lifting {
+            top: 58.2%;
+            left: 55.3%;
+            width: 9%;
+            height: 5%;
+        }
+        .lash-brow-booking-link--classic {
+            top: 58.2%;
+            left: 86.3%;
+            width: 9%;
+            height: 5%;
+        }
+        .lash-brow-booking-link--technical {
+            top: 78.8%;
+            left: 39.2%;
+            width: 9%;
+            height: 5%;
+        }
+        .lash-brow-booking-link--volume {
+            top: 78.8%;
+            left: 86.3%;
+            width: 9%;
+            height: 5%;
         }
         @media (max-width: 767px) {
             [data-service-gallery] {
@@ -145,7 +228,7 @@
                             {% endif %}
                         </div>
                         {% endif %}
-                        <div data-service-gallery-grid class="grid grid-cols-1 gap-3" aria-live="polite">
+                        <div data-service-gallery-grid class="grid grid-cols-1 gap-3" aria-live="polite" {% if request.GET.categoria == 'pedicure' %}hidden{% endif %}>
                             <article data-service-gallery="all corte" {% if categorias_galeria_seleccionadas and 'corte' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="service-gallery-compact order-1 overflow-hidden">
                                 <img src="{% static 'img/cortes_y_estilos_panel.png' %}" alt="Galería de cortes y estilos de cabello de Nicolett Studio Fantasy" class="haircut-photos h-auto w-full object-contain">
                                 <div class="flex items-center justify-between gap-3 px-2 pt-2">
@@ -161,7 +244,7 @@
                                     <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
                                 {% endfor %}
                             </article>
-                            <article data-service-gallery="all tratamientos" {% if categorias_galeria_seleccionadas and 'tratamientos' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="service-gallery-compact order-2 overflow-hidden">
+                            <article data-service-gallery="all tratamientos" {% if request.GET.categoria == 'tratamientos' or categorias_galeria_seleccionadas and 'tratamientos' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="service-gallery-compact order-2 overflow-hidden">
                                 <div class="treatment-gallery-crop">
                                     <img src="{% static 'img/tratamientos_capilares_galeria_brand.png' %}" alt="Tratamientos capilares con logo Nicolett Studio Fantasy">
                                 </div>
@@ -177,64 +260,25 @@
                                 {% endfor %}
                             </article>
                             <article data-service-gallery="all manos" {% if categorias_galeria_seleccionadas and 'manos' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-3 overflow-hidden">
-                                <img src="{% static 'img/nail_care_precios_afiche.png' %}" alt="Lista de precios de manicura Nicolett Studio Fantasy" class="nail-care-gallery-image">
+                                <div class="nail-care-flyer">
+                                    <img src="{% static 'img/nail_care_precios_afiche.png' %}" alt="Lista completa de precios de manicura Nicolett Studio Fantasy con servicios y adicionales" class="nail-care-gallery-image">
+                                    {% if not vista_admin %}
+                                        {% for servicio in servicios_galeria.manos %}
+                                            {% if servicio.nombre == 'Permanente' or servicio.nombre == 'Ruber' or servicio.nombre == 'Extensión Poly Gel' %}
+                                                {% if servicio.nombre == 'Permanente' %}
+                                                    <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="nail-care-booking-link nail-care-booking-link--permanente" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                                {% elif servicio.nombre == 'Ruber' %}
+                                                    <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="nail-care-booking-link nail-care-booking-link--ruber" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                                {% else %}
+                                                    <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="nail-care-booking-link nail-care-booking-link--extension" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Nail Care &amp; Beauty</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.manos }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Manicure y Pedicure" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
-                                </div>
-                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Cada servicio incluye un solo tono y 2 diseños simples. Los adicionales se cobran aparte según el diseño elegido.</p>
-                                <div class="grid gap-x-2 sm:grid-cols-2">
-                                    {% for servicio in servicios_galeria.manos %}
-                                        {% if servicio.categoria.nombre == 'Uñas' or servicio.categoria.nombre == 'Nails' or servicio.categoria.nombre == 'Nail Care & Beauty' %}
-                                            <div class="mb-2 flex min-w-0 flex-col gap-3 rounded-2xl border border-[#d7bd91] bg-white px-4 py-3 last:mb-0">
-                                                <div class="flex min-w-0 items-start justify-between gap-3">
-                                                    <div class="flex min-w-0 items-start gap-3">
-                                                {% if servicio.nombre == 'Permanente' %}
-                                                    <img src="{% static 'img/nail_care/permanente.png' %}" alt="Muestra de uñas para permanente" class="size-10 shrink-0 rounded-full">
-                                                {% elif servicio.nombre == 'Ruber' %}
-                                                    <img src="{% static 'img/nail_care/ruber.png' %}" alt="Muestra de uñas para Ruber" class="size-10 shrink-0 rounded-full">
-                                                {% elif servicio.nombre == 'Kapping Poly Gel' %}
-                                                    <img src="{% static 'img/nail_care/kapping-poly-gel.png' %}" alt="Muestra de uñas para Kapping Poly Gel" class="size-10 shrink-0 rounded-full">
-                                                {% elif servicio.nombre == 'Soft Gel' %}
-                                                    <img src="{% static 'img/nail_care/soft-gel.png' %}" alt="Muestra de uñas para Soft Gel" class="size-10 shrink-0 rounded-full">
-                                                {% elif servicio.nombre == 'Extensión Poly Gel' %}
-                                                    <img src="{% static 'img/nail_care/extension-poly-gel.png' %}" alt="Muestra de uñas para Extensión Poly Gel" class="size-10 shrink-0 rounded-full">
-                                                {% endif %}
-                                                        <div class="min-w-0">
-                                                            <p class="break-words text-sm font-medium text-[#4b301b]">{{ servicio.nombre }}</p>
-                                                            {% if servicio.descripcion %}
-                                                                <details class="mt-2">
-                                                                    <summary class="w-fit cursor-pointer text-xs font-medium text-[#6b5643] underline decoration-[#bd8c43] underline-offset-2">Ver detalles</summary>
-                                                                    <p class="mt-2 whitespace-pre-line break-words text-sm leading-5 text-[#6b5643]">{{ servicio.descripcion }}</p>
-                                                                </details>
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
-                                                    <span class="shrink-0 whitespace-nowrap rounded-full bg-[#f1dfbd] px-2 py-1 text-xs font-semibold text-[#4b301b]">{{ servicio.precio|pesos }}</span>
-                                                </div>
-                                                {% if not vista_admin %}
-                                                    <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="w-full rounded-full bg-[#5a3e27] px-3 py-2.5 text-center text-xs font-semibold text-white no-underline transition hover:bg-[#4b301b]">AGENDAR CITAS</a>
-                                                {% endif %}
-                                            </div>
-                                        {% elif servicio.nombre == 'Manicure clásica de prueba' %}
-                                            {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Manicure clásica de prueba' hide_service_description=True hide_service_whatsapp=True booking_cta=True booking_cta_label='Agendar citas' service_price_prefix='Desde' %}
-                                        {% else %}
-                                            {% include 'usuarios/partials/servicio_galeria_item.html' %}
-                                        {% endif %}
-                                    {% empty %}
-                                        <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
-                                    {% endfor %}
-                                </div>
-                                <div class="mx-2 mb-2 mt-3 rounded-xl border border-[#d7bd91] bg-[#fffaf0] p-3">
-                                    <h3 class="text-center text-sm font-semibold tracking-wide text-[#4b301b]">ADICIONALES</h3>
-                                    <div class="mt-2 flex items-center justify-between gap-2 pt-2 text-sm">
-                                        <span class="text-[#4b301b]">Francesa o degradé + 2 diseños simples (adicional)</span>
-                                        <span class="whitespace-nowrap font-semibold text-[#4b301b]">$5.000</span>
-                                    </div>
-                                    <div class="mt-2 flex items-center justify-between gap-2 pt-2 text-sm">
-                                        <span class="text-[#4b301b]">Diseños aparte (adicional)</span>
-                                        <span class="whitespace-nowrap font-semibold text-[#4b301b]">$1.000 por pieza</span>
-                                    </div>
                                 </div>
                             </article>
                             <article data-service-gallery="all pedicure" {% if categorias_galeria_seleccionadas and 'pedicure' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="service-gallery-compact order-4 overflow-hidden">
@@ -346,32 +390,29 @@
                                 {% endfor %}
                             </article>
                             <article data-service-gallery="all lash_brow" {% if categorias_galeria_seleccionadas and 'lash_brow' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-8 overflow-hidden">
-                                <img src="{% static 'img/lash_brow_afiche.png' %}" alt="Afiche de precios de pestañas y cejas de Nicolett Studio Fantasy" class="lash-brow-gallery-image">
+                                <div class="lash-brow-flyer">
+                                    <img src="{% static 'img/lash_brow_afiche.png' %}" alt="Afiche completo de precios y servicios de pestañas y cejas de Nicolett Studio Fantasy" class="lash-brow-gallery-image">
+                                    {% if not vista_admin %}
+                                        {% for servicio in servicios_galeria.lash_brow %}
+                                            {% if servicio.nombre == 'Laminado de cejas' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" class="lash-brow-booking-link lash-brow-booking-link--brow"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Lifting coreano' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" class="lash-brow-booking-link lash-brow-booking-link--lifting"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Extensiones de pestañas rímel o clásica' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" class="lash-brow-booking-link lash-brow-booking-link--classic"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Extensiones de pestañas tecnológicas' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" class="lash-brow-booking-link lash-brow-booking-link--technical"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% elif servicio.nombre == 'Volumen tecnológico' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" class="lash-brow-booking-link lash-brow-booking-link--volume"><span class="sr-only">Agendar cita: {{ servicio.nombre }}</span></a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Lash &amp; Brow</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.lash_brow }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Lash &amp; Brow" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
                                 </div>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Tratamientos de pestañas y cejas.</p>
-                                {% for servicio in servicios_galeria.lash_brow %}
-                                    {% if vista_admin %}
-                                        {% if servicio.nombre == 'Volumen tecnológico' %}
-                                            {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_description=True service_price_prefix='Desde' service_duration_label='2 horas' %}
-                                        {% else %}
-                                            {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_description=True service_duration_label='2 horas' %}
-                                        {% endif %}
-                                    {% else %}
-                                        <div class="mb-2 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-full border border-[#d7bd91] bg-white px-3 py-2 last:mb-0">
-                                            <span class="min-w-0 text-sm font-medium text-[#4b301b]">{{ servicio.nombre }}</span>
-                                            <div class="flex flex-wrap items-center justify-end gap-2">
-                                                <span class="whitespace-nowrap rounded-full bg-[#f1dfbd] px-2 py-1 text-xs font-semibold text-[#4b301b]">{% if servicio.nombre == 'Volumen tecnológico' %}Desde {% endif %}{{ servicio.precio|pesos }}</span>
-                                                <span class="whitespace-nowrap text-xs text-[#6b5643]">2 horas</span>
-                                            </div>
-                                            <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" class="whitespace-nowrap rounded-full bg-[#5a3e27] px-2 py-2 text-center text-[10px] font-semibold text-white no-underline transition hover:bg-[#4b301b]">AGENDAR CITAS</a>
-                                        </div>
-                                    {% endif %}
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios ni horas disponibles en esta categoría.</p>
-                                {% endfor %}
                             </article>
                             <article data-service-gallery="all cuidado_facial" {% if categorias_galeria_seleccionadas and 'cuidado_facial' not in categorias_galeria_seleccionadas %}hidden{% endif %} class="order-9 overflow-hidden">
                                 <img src="{% static 'img/cuidado_facial_galeria.svg' %}" alt="Ilustración de cuidado facial de Nicolett Studio Fantasy" class="h-auto w-full object-contain">
@@ -582,9 +623,15 @@
                     const terms = categoryTerms[category] || [];
                     selectedCategories = terms.map(normalize);
                     const showAll = category === 'todos' || !category;
+                    const galleryGrid = document.querySelector('[data-service-gallery-grid]');
+                    if (galleryGrid) {
+                        galleryGrid.hidden = category === 'pedicure';
+                    }
                     for (const gallery of galleries) {
                         const galleryCategories = gallery.dataset.serviceGallery.split(/\s+/);
-                        gallery.hidden = !galleryCategories.includes(showAll ? 'all' : category);
+                        gallery.hidden = category === 'pedicure'
+                            || category === 'tratamientos'
+                            || !galleryCategories.includes(showAll ? 'all' : category);
                     }
                 }
 
