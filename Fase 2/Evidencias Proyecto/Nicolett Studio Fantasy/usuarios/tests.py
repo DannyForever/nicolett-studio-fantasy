@@ -590,7 +590,7 @@ class RoleAccessTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(
             respuesta,
-            'src="/static/img/depilacion_catalogo_afiche.png" alt="Catálogo completo de depilación Nicolett Studio Fantasy con precios y botones para agendar citas" class="depilation-gallery-image"',
+            'src="/static/img/depilacion_catalogo_afiche.png?v=20261025c" alt="Catálogo completo de depilación Nicolett Studio Fantasy con precios y botones para agendar citas" class="depilation-gallery-image"',
         )
         self.assertContains(respuesta, 'width: 100%;')
         self.assertContains(respuesta, 'height: auto;')
@@ -730,7 +730,7 @@ class RoleAccessTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(
             respuesta,
-            'src="/static/img/nail_care_precios_afiche.png"',
+            'src="/static/img/manicura_lista_precios.png"',
         )
         self.assertContains(respuesta, 'class="nail-care-flyer"')
         self.assertContains(respuesta, 'Lista completa de precios de manicura')
@@ -865,7 +865,7 @@ class RoleAccessTests(TestCase):
             'class="service-gallery-compact order-1 overflow-hidden border border-[#ead7bc] bg-white p-2"',
         )
 
-    def test_treatments_gallery_is_hidden_but_service_remains_bookable(self):
+    def test_treatments_gallery_shows_flyer_and_service_remains_bookable(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
         categoria = Categoria.objects.create(
@@ -915,11 +915,31 @@ class RoleAccessTests(TestCase):
             {'servicio': servicio.pk},
         )
 
-        self.assertContains(galeria, 'data-service-gallery="all tratamientos" hidden')
+        self.assertContains(galeria, 'data-service-gallery="all tratamientos"')
+        self.assertNotContains(galeria, 'data-service-gallery="all tratamientos" hidden')
+        self.assertContains(
+            galeria,
+            'src="/static/img/tratamientos_capilares_afiche_servicio_actualizado.png?v=20261025d"',
+        )
+        booking_url = f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}"'
+        self.assertEqual(galeria.content.count(booking_url.encode()), 7)
+        self.assertNotContains(galeria, f'id="servicio-{servicio.pk}"')
         self.assertContains(
             agendamiento,
             f'<option value="{servicio.pk}" selected>',
         )
+
+    def test_treatments_flyer_booking_buttons_open_agenda_without_service(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+
+        galeria = self.client.get(
+            reverse('cliente_servicios'),
+            {'categoria': 'tratamientos'},
+        )
+
+        booking_url = f'href="{reverse("cliente_agendamiento")}"'
+        self.assertEqual(galeria.content.count(booking_url.encode()), 7)
 
     def test_service_category_navigation_keeps_services_submenu_open(self):
         cliente = self.crear_cliente()
@@ -945,6 +965,133 @@ class RoleAccessTests(TestCase):
                     respuesta,
                     'aria-label="Servicios disponibles" hidden',
                 )
+
+    def test_podology_flyer_shows_full_image_and_keeps_booking_link(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        categoria, _ = Categoria.objects.get_or_create(
+            nombre='Podología',
+            defaults={'tipo': 'Podología'},
+        )
+        podologia = Servicio.objects.create(
+            nombre='Podología',
+            categoria=categoria,
+            descripcion='Cuidado experto para consentir tus pies y mantenerlos saludables.',
+            precio=20000,
+            duracion_minutos=60,
+            activo=True,
+        )
+        colaborador_role, _ = Rol.objects.get_or_create(nombre='Colaborador')
+        colaborador = Usuario.objects.create_user(
+            email='colaborador.podologia@example.com',
+            password='Colaborador123!',
+            nombre='Profesional',
+            apellido_paterno='Podología',
+            apellido_materno='Prueba',
+            telefono='+56911112222',
+            rol=colaborador_role,
+        )
+        ProfesionalCategoria.objects.create(
+            profesional=colaborador,
+            categoria_id=categoria.pk,
+        )
+        fecha_disponible = timezone.localdate() + timedelta(days=7)
+        Disponibilidad.objects.create(
+            dia_semana=str(fecha_disponible.weekday()),
+            hora_inicio=time(10, 0),
+            hora_fin=time(11, 0),
+            activo=True,
+            profesional=colaborador,
+            servicio_id=podologia.pk,
+            fecha_especifica=fecha_disponible,
+            intervalo_minutos=60,
+        )
+
+        response = self.client.get(reverse('cliente_servicios'))
+
+        self.assertContains(response, 'src="/static/img/podologia_galeria_brand.png?v=20261024f"')
+        self.assertContains(
+            response,
+            'alt="Afiche de podología con tratamientos y niveles de complejidad de uñas encarnadas"',
+        )
+        self.assertContains(response, 'class="podology-flyer"')
+        self.assertNotContains(response, f'id="servicio-{podologia.pk}"')
+        self.assertNotContains(response, '$20.000')
+        self.assertContains(response, 'background: linear-gradient(180deg, #f7f8f9, #cbd0d5);')
+        booking_url = f'href="{reverse("cliente_agendamiento")}?servicio={podologia.pk}"'
+        self.assertEqual(response.content.count(booking_url.encode()), 7)
+        self.assertEqual(
+            response.content.count(b'class="podology-booking-link podology-booking-link--'),
+            7,
+        )
+        agendamiento = self.client.get(
+            reverse('cliente_agendamiento'),
+            {'servicio': podologia.pk},
+        )
+        self.assertContains(agendamiento, f'<option value="{podologia.pk}" selected>')
+
+    def test_colorimetry_flyer_shows_booking_buttons_for_available_service(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        categoria = Categoria.objects.create(nombre='Peluquería', tipo='Peluquería')
+        colorimetria = Servicio.objects.create(
+            nombre='Colorimetría',
+            categoria=categoria,
+            descripcion='Diagnóstico personalizado de color.',
+            precio=20000,
+            duracion_minutos=60,
+            activo=True,
+        )
+        colaborador_role, _ = Rol.objects.get_or_create(nombre='Colaborador')
+        colaborador = Usuario.objects.create_user(
+            email='colaborador.colorimetria@example.com',
+            password='Colaborador123!',
+            nombre='Profesional',
+            apellido_paterno='Colorimetría',
+            apellido_materno='Prueba',
+            telefono='+56911112223',
+            rol=colaborador_role,
+        )
+        ProfesionalCategoria.objects.create(
+            profesional=colaborador,
+            categoria_id=categoria.pk,
+        )
+        fecha_disponible = timezone.localdate() + timedelta(days=7)
+        Disponibilidad.objects.create(
+            dia_semana=str(fecha_disponible.weekday()),
+            hora_inicio=time(10, 0),
+            hora_fin=time(11, 0),
+            activo=True,
+            profesional=colaborador,
+            servicio_id=colorimetria.pk,
+            fecha_especifica=fecha_disponible,
+            intervalo_minutos=60,
+        )
+
+        response = self.client.get(
+            reverse('cliente_servicios'),
+            {'categoria': 'coloracion'},
+        )
+
+        self.assertContains(response, 'src="/static/img/colorimetria_afiche.png?v=20261025b"')
+        self.assertContains(
+            response,
+            'alt="Afiche de servicios de coloración Nicolett Studio Fantasy con opciones y precios"',
+        )
+        self.assertContains(response, 'class="colorimetry-flyer"')
+        self.assertContains(response, 'background: linear-gradient(180deg, #f7f8f9, #cbd0d5);')
+        self.assertNotContains(response, f'id="servicio-{colorimetria.pk}"')
+        booking_url = f'href="{reverse("cliente_agendamiento")}?servicio={colorimetria.pk}"'
+        self.assertEqual(response.content.count(booking_url.encode()), 6)
+        self.assertEqual(
+            response.content.count(b'class="colorimetry-booking-link colorimetry-booking-link--'),
+            6,
+        )
+        agendamiento = self.client.get(
+            reverse('cliente_agendamiento'),
+            {'servicio': colorimetria.pk},
+        )
+        self.assertContains(agendamiento, f'<option value="{colorimetria.pk}" selected>')
 
     def test_customers_only_see_active_services_and_products(self):
         cliente = self.crear_cliente()
@@ -1215,7 +1362,8 @@ class RoleAccessTests(TestCase):
             {'categoria': 'tratamientos'},
         )
         self.assertNotContains(tratamientos, 'data-service-category-filters')
-        self.assertContains(tratamientos, 'data-service-gallery="all tratamientos" hidden')
+        self.assertContains(tratamientos, 'data-service-gallery="all tratamientos"')
+        self.assertNotContains(tratamientos, 'data-service-gallery="all tratamientos" hidden')
         self.assertContains(tratamientos, 'data-service-gallery="all corte" hidden')
         self.assertNotContains(tratamientos, 'Tratamiento capilar de prueba')
         self.assertNotContains(tratamientos, 'Hidratación intensiva para un cabello suave y brillante.')
@@ -1223,7 +1371,7 @@ class RoleAccessTests(TestCase):
             tratamientos,
             'aria-label="Consultar por WhatsApp sobre Tratamiento capilar de prueba"',
         )
-        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_galeria_brand.png"')
+        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_afiche_servicio_actualizado.png?v=20261025d"')
         self.assertContains(servicios, 'Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.')
         cortes = self.client.get(reverse('cliente_servicios'), {'categoria': 'corte'})
         self.assertNotContains(cortes, 'data-service-category-filters')
@@ -1258,12 +1406,12 @@ class RoleAccessTests(TestCase):
             servicios,
             'alt="Galería de cortes y estilos de cabello de Nicolett Studio Fantasy"',
         )
-        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_galeria_brand.png"')
+        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_afiche_servicio_actualizado.png?v=20261025d"')
         corte_image_position = servicios.content.index(b'img/cortes_y_estilos_panel.png')
         corte_title_position = servicios.content.index(
             b'<h2 class="font-semibold text-[#281b14]">Cortes &amp; estilos</h2>',
         )
-        tratamientos_image_position = servicios.content.index(b'img/tratamientos_capilares_galeria_brand.png')
+        tratamientos_image_position = servicios.content.index(b'img/tratamientos_capilares_afiche_servicio_actualizado.png')
         tratamientos_title_position = servicios.content.index(b'Tratamientos capilares</h2>')
         self.assertLess(corte_image_position, corte_title_position)
         self.assertLess(tratamientos_image_position, tratamientos_title_position)
@@ -1272,7 +1420,7 @@ class RoleAccessTests(TestCase):
             servicios.content.index(image.encode())
             for image in (
                 'img/cortes_y_estilos_panel.png',
-                'img/tratamientos_capilares_galeria_brand.png',
+                'img/tratamientos_capilares_afiche_servicio_actualizado.png',
                 'img/nail_care_precios_afiche.png',
                 'img/depilacion_cera_beneficios.png',
                 'img/peinados_galeria_brand.png',
@@ -1303,17 +1451,18 @@ class RoleAccessTests(TestCase):
             servicios.content.count(b'src="/static/img/depilacion_facial_galeria_brand.png"'),
             0,
         )
-        self.assertContains(servicios, 'src="/static/img/podologia_galeria_brand.png"')
+        self.assertContains(servicios, 'src="/static/img/podologia_galeria_brand.png?v=20261024f"')
         self.assertContains(
             servicios,
-            'alt="Tres imágenes de tratamientos de podología con el logo de Nicolett Studio Fantasy en el panel izquierdo"',
+            'alt="Afiche completo de Podología Clínica Nicolett Studio Fantasy con tratamientos, precios y niveles de complejidad"',
         )
-        self.assertContains(servicios, '$20.000')
+        self.assertContains(servicios, 'class="podology-flyer"')
+        self.assertNotContains(servicios, f'id="servicio-{podologia.pk}"')
         self.assertContains(
             servicios,
-            f'href="{reverse("cliente_agendamiento")}?servicio={podologia.pk}"',
+            f'href="{reverse("cliente_agendamiento")}?servicio={podologia.pk}" aria-label="Agendar cita para Podología"',
         )
-        self.assertContains(servicios, 'src="/static/img/nail_care_precios_afiche.png"')
+        self.assertContains(servicios, 'src="/static/img/manicura_lista_precios.png"')
         self.assertContains(
             servicios,
             'alt="Lista completa de precios de manicura Nicolett Studio Fantasy con servicios y adicionales"',
@@ -1343,21 +1492,19 @@ class RoleAccessTests(TestCase):
             f'href="{reverse("cliente_agendamiento")}?servicio={manicure_prueba.pk}"',
         )
         self.assertNotContains(servicios, 'src="/static/img/manicure_pedicure.jpg" alt="Podología"')
-        self.assertContains(servicios, 'src="/static/img/colorimetria_galeria_brand.png"')
+        self.assertContains(servicios, 'src="/static/img/colorimetria_afiche.png?v=20261025b"')
         self.assertContains(
             servicios,
-            'alt="Tres servicios de colorimetría para el cabello con logo Nicolett Studio Fantasy"',
+            'alt="Afiche de servicios de coloración Nicolett Studio Fantasy con opciones y precios"',
         )
         self.assertContains(servicios, '$20.000')
-        self.assertContains(
-            servicios,
-            f'href="{reverse("cliente_agendamiento")}?servicio={colorimetria.pk}"',
+        self.assertEqual(
+            servicios.content.count(
+                f'href="{reverse("cliente_agendamiento")}?servicio={colorimetria.pk}"'.encode(),
+            ),
+            6,
         )
-        self.assertContains(servicios, 'AGENDAR CITAS')
-        self.assertContains(
-            servicios,
-            'Diagnóstico personalizado de color, tinte, balayage y decoloración con productos de alta gama.',
-        )
+        self.assertNotContains(servicios, f'id="servicio-{colorimetria.pk}"')
         self.assertContains(servicios, 'Tratamientos capilares</h2>')
         self.assertContains(servicios, 'src="/static/img/peinados_galeria_brand.png"')
         self.assertContains(servicios, 'Peinados con estilo para realzar tu belleza en cada ocasión.')

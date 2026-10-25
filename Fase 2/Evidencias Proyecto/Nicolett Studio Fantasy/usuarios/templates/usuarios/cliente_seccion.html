@@ -35,19 +35,40 @@
             width: 100%;
         }
         .treatment-gallery-crop {
-            width: 82%;
+            width: 100%;
             max-width: 100%;
-            aspect-ratio: 1.9 / 1;
             margin-inline: auto;
-            overflow: hidden;
         }
         .treatment-gallery-crop > img {
             display: block;
             width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center bottom;
+            height: auto;
+            object-fit: contain;
         }
+        .treatment-flyer {
+            position: relative;
+            width: 100%;
+        }
+        .treatment-booking-link {
+            position: absolute;
+            z-index: 1;
+            display: block;
+            border-radius: 9999px;
+        }
+        .treatment-booking-link:focus-visible {
+            outline: 3px solid #5a3e27;
+            outline-offset: 2px;
+            background: rgb(90 62 39 / 15%);
+        }
+        .treatment-booking-link--left { left: 6.1%; width: 12.5%; }
+        .treatment-booking-link--left-second { left: 23%; width: 12.5%; }
+        .treatment-booking-link--center { left: 44%; width: 12%; }
+        .treatment-booking-link--right { left: 80.5%; width: 12.5%; }
+        .treatment-booking-link--row-1 { top: 43.7%; height: 5.6%; }
+        .treatment-booking-link--row-2 { top: 79.8%; height: 5.6%; }
+        .treatment-booking-link--center-row { top: 79.8%; height: 5.6%; }
+        .treatment-booking-link--right-row-1 { top: 45.5%; height: 5.6%; }
+        .treatment-booking-link--right-row-2 { top: 84.2%; height: 5.6%; }
         .depilation-gallery-image {
             display: block;
             width: 100%;
@@ -84,6 +105,91 @@
         .depilation-booking-link--row-4 { top: 64.7%; height: 5.8%; }
         .depilation-booking-link--row-5 { top: 76%; height: 5.8%; }
         .depilation-booking-link--row-6 { top: 87.4%; height: 5.8%; }
+        .podology-flyer {
+            position: relative;
+            width: 100%;
+        }
+        .podology-flyer > img {
+            display: block;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+        .podology-booking-link {
+            position: absolute;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 22px;
+            border-radius: 1rem;
+            border: 1px solid #aeb4ba;
+            background: linear-gradient(180deg, #f7f8f9, #cbd0d5);
+            box-shadow: 0 1px 2px rgb(63 68 73 / 35%);
+            color: #34383c;
+            font-size: clamp(0.45rem, 1.1vw, 0.7rem);
+            font-weight: 600;
+            line-height: 1;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .podology-booking-link--left-1 { top: 33.5%; left: 15.5%; width: 12%; height: 5%; }
+        .podology-booking-link--left-2 { top: 58.5%; left: 15.5%; width: 12%; height: 5%; }
+        .podology-booking-link--left-3 { top: 83%; left: 15.5%; width: 12%; height: 5%; }
+        .podology-booking-link--center { top: 58.5%; left: 44.5%; width: 12%; height: 5%; }
+        .podology-booking-link--right-1 { top: 33.5%; left: 78%; width: 12%; height: 5%; }
+        .podology-booking-link--right-2 { top: 53.5%; left: 78%; width: 12%; height: 5%; }
+        .podology-booking-link--right-3 { top: 75%; left: 78%; width: 12%; height: 5%; }
+        .podology-booking-link:hover {
+            background: linear-gradient(180deg, #ffffff, #b9c0c7);
+            color: #202428;
+        }
+        .podology-booking-link:focus-visible {
+            outline: 3px solid #5a3e27;
+            outline-offset: 2px;
+        }
+        .colorimetry-flyer {
+            position: relative;
+            width: 100%;
+        }
+        .colorimetry-flyer > img {
+            display: block;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+        .colorimetry-booking-link {
+            position: absolute;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 22px;
+            border: 1px solid #aeb4ba;
+            border-radius: 1rem;
+            background: linear-gradient(180deg, #f7f8f9, #cbd0d5);
+            box-shadow: 0 1px 2px rgb(63 68 73 / 35%);
+            color: #34383c;
+            font-size: clamp(0.45rem, 1.1vw, 0.7rem);
+            font-weight: 600;
+            line-height: 1;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .colorimetry-booking-link:hover {
+            background: linear-gradient(180deg, #ffffff, #b9c0c7);
+            color: #202428;
+        }
+        .colorimetry-booking-link:focus-visible {
+            outline: 3px solid #5a3e27;
+            outline-offset: 2px;
+        }
+        .colorimetry-booking-link--left-1 { top: 33%; left: 16%; width: 12%; height: 5%; }
+        .colorimetry-booking-link--left-2 { top: 58%; left: 16%; width: 12%; height: 5%; }
+        .colorimetry-booking-link--left-3 { top: 82%; left: 16%; width: 12%; height: 5%; }
+        .colorimetry-booking-link--right-1 { top: 33%; left: 78%; width: 12%; height: 5%; }
+        .colorimetry-booking-link--right-2 { top: 56%; left: 78%; width: 12%; height: 5%; }
+        .colorimetry-booking-link--right-3 { top: 85%; left: 78%; width: 12%; height: 5%; }
         .nail-care-gallery-image {
             display: block;
             width: 100%;
@@ -213,24 +319,30 @@
                                     <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
                                 {% endfor %}
                             </article>
-                            <article data-service-gallery="all tratamientos" {% if request.GET.categoria and request.GET.categoria != 'todos' %}hidden{% endif %} class="service-gallery-compact order-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <div class="treatment-gallery-crop">
-                                    <img src="{% static 'img/tratamientos_capilares_galeria_brand.png' %}" alt="Tratamientos capilares con logo Nicolett Studio Fantasy">
+                            <article data-service-gallery="all tratamientos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'tratamientos' %}hidden{% endif %} class="service-gallery-compact order-2 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                                <div class="treatment-flyer">
+                                    <img src="{% static 'img/tratamientos_capilares_afiche_servicio_actualizado.png' %}?v=20261025d" alt="Afiche del servicio de tratamientos capilares Nicolett Studio Fantasy">
+                                    {% if not vista_admin %}
+                                        {% with servicio=servicios_galeria.tratamientos.0 %}
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left treatment-booking-link--row-1" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left-second treatment-booking-link--row-1" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left treatment-booking-link--row-2" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left-second treatment-booking-link--row-2" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--center treatment-booking-link--center-row" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--right treatment-booking-link--right-row-1" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--right treatment-booking-link--right-row-2" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
+                                        {% endwith %}
+                                    {% endif %}
                                 </div>
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Tratamientos capilares</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.tratamientos }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Tratamientos capilares" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
                                 </div>
                                 <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.</p>
-                                {% for servicio in servicios_galeria.tratamientos %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Tratamiento capilar de prueba' hide_service_description=True booking_cta=True %}
-                                {% empty %}
-                                    <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
                             </article>
                             <article data-service-gallery="all manos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'manos' %}hidden{% endif %} class="order-3 overflow-hidden bg-white">
                                 <div class="nail-care-flyer">
-                                    <img src="{% static 'img/nail_care_precios_afiche.png' %}" alt="Lista completa de precios de manicura Nicolett Studio Fantasy con servicios y adicionales" class="nail-care-gallery-image">
+                                    <img src="{% static 'img/manicura_lista_precios.png' %}" alt="Lista completa de precios de manicura Nicolett Studio Fantasy con servicios y adicionales" class="nail-care-gallery-image">
                                     {% if not vista_admin %}
                                         {% for servicio in servicios_galeria.manos %}
                                             {% if servicio.nombre == 'Permanente' or servicio.nombre == 'Ruber' or servicio.nombre == 'Extensión Poly Gel' %}
@@ -263,7 +375,7 @@
                             </article>
                             <article data-service-gallery="all depilaciones" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'depilaciones' %}hidden{% endif %} class="order-4 overflow-hidden">
                                 <div class="depilation-flyer">
-                                    <img src="{% static 'img/depilacion_catalogo_afiche.png' %}" alt="Catálogo completo de depilación Nicolett Studio Fantasy con precios y botones para agendar citas" class="depilation-gallery-image">
+                                    <img src="{% static 'img/depilacion_catalogo_afiche.png' %}?v=20261025c" alt="Catálogo completo de depilación Nicolett Studio Fantasy con precios y botones para agendar citas" class="depilation-gallery-image">
                                     {% if not vista_admin %}
                                         {% for servicio in servicios_galeria.depilaciones %}
                                             {% if servicio.nombre == 'Pierna completa' %}
@@ -311,30 +423,45 @@
                                 {% endfor %}
                             </article>
                             <article data-service-gallery="all coloracion" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'coloracion' %}hidden{% endif %} class="order-6 overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/colorimetria_galeria_brand.png' %}" alt="Tres servicios de colorimetría para el cabello con logo Nicolett Studio Fantasy" class="h-auto w-full object-contain">
-                                <div class="flex items-center justify-between px-2 pt-2">
-                                    <h2 class="font-semibold text-[#281b14]">Colorimetría</h2>
-                                    {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.coloracion }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Colorimetría" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
+                                <div class="colorimetry-flyer">
+                                    <img src="{% static 'img/colorimetria_afiche.png' %}?v=20261025c" alt="Afiche de servicios de coloración Nicolett Studio Fantasy con opciones y precios" class="colorimetry-gallery-image">
+                                    {% if not vista_admin %}
+                                        {% for servicio in servicios_galeria.coloracion %}
+                                            {% if servicio.nombre == 'Colorimetría' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="colorimetry-booking-link colorimetry-booking-link--left-1">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="colorimetry-booking-link colorimetry-booking-link--left-2">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="colorimetry-booking-link colorimetry-booking-link--left-3">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="colorimetry-booking-link colorimetry-booking-link--right-1">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="colorimetry-booking-link colorimetry-booking-link--right-2">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="colorimetry-booking-link colorimetry-booking-link--right-3">AGENDAR CITA</a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
                                 </div>
-                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Diagnóstico personalizado de color, tinte, balayage y decoloración con productos de alta gama.</p>
-                                {% for servicio in servicios_galeria.coloracion %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Colorimetría' hide_service_description=True booking_cta=True booking_cta_label='AGENDAR CITAS' %}
-                                {% empty %}
+                                {% if not servicios_galeria.coloracion %}
                                     <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
+                                {% endif %}
                             </article>
                             <article data-service-gallery="all podologia" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'podologia' %}hidden{% endif %} class="order-7 overflow-hidden border border-[#ead7bc] bg-white p-2">
-                                <img src="{% static 'img/podologia_galeria_brand.png' %}" alt="Tres imágenes de tratamientos de podología con el logo de Nicolett Studio Fantasy en el panel izquierdo" class="h-auto w-full object-contain">
-                                <div class="flex items-center justify-between px-2 pt-2">
-                                    <h2 class="font-semibold text-[#281b14]">Podología</h2>
-                                    {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.podologia }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Podología" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
+                                <div class="podology-flyer">
+                                    <img src="{% static 'img/podologia_galeria_brand.png' %}?v=20261024f" alt="Afiche de podología con tratamientos y niveles de complejidad de uñas encarnadas" class="podology-gallery-image">
+                                    {% if not vista_admin %}
+                                        {% for servicio in servicios_galeria.podologia %}
+                                            {% if servicio.nombre == 'Podología' %}
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="podology-booking-link podology-booking-link--left-1">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="podology-booking-link podology-booking-link--left-2">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="podology-booking-link podology-booking-link--left-3">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="podology-booking-link podology-booking-link--center">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="podology-booking-link podology-booking-link--right-1">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="podology-booking-link podology-booking-link--right-2">AGENDAR CITA</a>
+                                                <a href="{% url 'cliente_agendamiento' %}?servicio={{ servicio.pk }}" aria-label="Agendar cita para {{ servicio.nombre }}" title="Agendar cita para {{ servicio.nombre }}" class="podology-booking-link podology-booking-link--right-3">AGENDAR CITA</a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
                                 </div>
-                                <p class="px-2 pb-1 pt-1 text-sm text-[#6b5643]">Cuidado experto para consentir tus pies y mantenerlos saludables.</p>
-                                {% for servicio in servicios_galeria.podologia %}
-                                    {% include 'usuarios/partials/servicio_galeria_item.html' with hide_service_heading='Podología' hide_service_description=True booking_cta=True booking_cta_label='AGENDAR CITAS' %}
-                                {% empty %}
+                                {% if not servicios_galeria.podologia %}
                                     <p class="px-2 py-3 text-sm text-[#6b5643]">No hay servicios disponibles en esta categoría.</p>
-                                {% endfor %}
+                                {% endif %}
                             </article>
                             <article data-service-gallery="all lash_brow" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'lash_brow' %}hidden{% endif %} class="order-8 overflow-hidden border border-[#c9a56b] bg-[#fffaf0]">
                                 <div class="lash-brow-flyer">
@@ -547,7 +674,6 @@
                     for (const gallery of galleries) {
                         const galleryCategories = gallery.dataset.serviceGallery.split(/\s+/);
                         gallery.hidden = category === 'pedicure'
-                            || category === 'tratamientos'
                             || !galleryCategories.includes(showIntro ? 'all' : category);
                     }
                 }

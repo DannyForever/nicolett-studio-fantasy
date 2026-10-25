@@ -112,7 +112,7 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, "new URLSearchParams(window.location.search).get('categoria')")
         self.assertContains(response, 'src="/static/img/cortes_estilos_galeria_brand.png"')
         self.assertContains(response, 'src="/static/img/depilacion_facial_galeria_brand.png"')
-        self.assertContains(response, 'src="/static/img/tratamientos_capilares_galeria_brand.png"')
+        self.assertContains(response, 'src="/static/img/tratamientos_capilares_afiche_servicio_actualizado.png?v=20261025d"')
         self.assertContains(response, 'src="/static/img/peinados_galeria_brand.png"')
         self.assertContains(response, 'src="/static/img/podologia_pies.png"')
         self.assertContains(response, 'Administrar servicios')
