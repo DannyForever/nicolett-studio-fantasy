@@ -1009,7 +1009,7 @@ class RoleAccessTests(TestCase):
 
         response = self.client.get(reverse('cliente_servicios'))
 
-        self.assertContains(response, 'src="/static/img/podologia_galeria_brand.png?v=20261024f"')
+        self.assertContains(response, 'src="/static/img/podologia_galeria_brand_actualizada.png"')
         self.assertContains(
             response,
             'alt="Afiche de podología con tratamientos y niveles de complejidad de uñas encarnadas"',
@@ -1017,7 +1017,8 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'class="podology-flyer"')
         self.assertNotContains(response, f'id="servicio-{podologia.pk}"')
         self.assertNotContains(response, '$20.000')
-        self.assertContains(response, 'background: linear-gradient(180deg, #f7f8f9, #cbd0d5);')
+        self.assertContains(response, 'font-size: 0;')
+        self.assertContains(response, 'background: rgb(197 138 58 / 18%);')
         booking_url = f'href="{reverse("cliente_agendamiento")}?servicio={podologia.pk}"'
         self.assertEqual(response.content.count(booking_url.encode()), 7)
         self.assertEqual(
@@ -1451,7 +1452,7 @@ class RoleAccessTests(TestCase):
             servicios.content.count(b'src="/static/img/depilacion_facial_galeria_brand.png"'),
             0,
         )
-        self.assertContains(servicios, 'src="/static/img/podologia_galeria_brand.png?v=20261024f"')
+        self.assertContains(servicios, 'src="/static/img/podologia_galeria_brand_actualizada.png"')
         self.assertContains(
             servicios,
             'alt="Afiche completo de Podología Clínica Nicolett Studio Fantasy con tratamientos, precios y niveles de complejidad"',

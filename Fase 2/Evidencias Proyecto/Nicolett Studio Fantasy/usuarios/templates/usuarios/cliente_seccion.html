@@ -118,20 +118,10 @@
         .podology-booking-link {
             position: absolute;
             z-index: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 22px;
-            border-radius: 1rem;
-            border: 1px solid #aeb4ba;
-            background: linear-gradient(180deg, #f7f8f9, #cbd0d5);
-            box-shadow: 0 1px 2px rgb(63 68 73 / 35%);
-            color: #34383c;
-            font-size: clamp(0.45rem, 1.1vw, 0.7rem);
-            font-weight: 600;
-            line-height: 1;
+            display: block;
+            border-radius: 9999px;
             text-decoration: none;
-            white-space: nowrap;
+            font-size: 0;
         }
         .podology-booking-link--left-1 { top: 33.5%; left: 15.5%; width: 12%; height: 5%; }
         .podology-booking-link--left-2 { top: 58.5%; left: 15.5%; width: 12%; height: 5%; }
@@ -141,8 +131,7 @@
         .podology-booking-link--right-2 { top: 53.5%; left: 78%; width: 12%; height: 5%; }
         .podology-booking-link--right-3 { top: 75%; left: 78%; width: 12%; height: 5%; }
         .podology-booking-link:hover {
-            background: linear-gradient(180deg, #ffffff, #b9c0c7);
-            color: #202428;
+            background: rgb(197 138 58 / 18%);
         }
         .podology-booking-link:focus-visible {
             outline: 3px solid #5a3e27;
@@ -444,7 +433,7 @@
                             </article>
                             <article data-service-gallery="all podologia" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'podologia' %}hidden{% endif %} class="order-7 overflow-hidden border border-[#ead7bc] bg-white p-2">
                                 <div class="podology-flyer">
-                                    <img src="{% static 'img/podologia_galeria_brand.png' %}?v=20261024f" alt="Afiche de podología con tratamientos y niveles de complejidad de uñas encarnadas" class="podology-gallery-image">
+                                    <img src="{% static 'img/podologia_galeria_brand_actualizada.png' %}" alt="Afiche de podología con tratamientos y niveles de complejidad de uñas encarnadas" class="podology-gallery-image">
                                     {% if not vista_admin %}
                                         {% for servicio in servicios_galeria.podologia %}
                                             {% if servicio.nombre == 'Podología' %}
