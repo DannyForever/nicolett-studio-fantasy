@@ -528,6 +528,19 @@ class RoleAccessTests(TestCase):
                 self.assertContains(response, 'border border-[#e07a5f]/35 bg-[#e07a5f]/10')
                 self.assertContains(response, 'id="clientServicesToggle"')
                 self.assertContains(response, 'id="clientServicesSubmenu"')
+                if name == 'cliente_gestionar_citas':
+                    self.assertContains(response, 'client-bookings-page')
+                    self.assertContains(response, 'client-bookings-topnav')
+                    self.assertContains(response, '>Servicios y citas</a>')
+                    self.assertContains(response, 'client-bookings-main min-h-[calc(100vh-64px)]')
+                    self.assertContains(response, 'class="client-bookings-frame mx-auto w-full max-w-5xl p-4 sm:p-6"')
+                    self.assertContains(response, 'client-bookings-corner-bottom-right')
+                    self.assertContains(response, 'client-bookings-tabs')
+                    self.assertContains(response, 'client-bookings-empty')
+                    self.assertContains(response, 'client-bookings-cta')
+                    self.assertContains(response, 'client-bookings-download')
+                if name in ('cliente_home', 'cliente_sobre_nosotros'):
+                    self.assertContains(response, 'client-bookings-page')
                 self.assertContains(response, 'aria-label="Servicios disponibles"')
                 self.assertNotContains(response, '>Todos los servicios</a>')
                 self.assertNotContains(response, '?categoria=todos#servicios-semana')
@@ -657,7 +670,23 @@ class RoleAccessTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(
             respuesta,
-            'src="/static/img/lash_brow_afiche.png"',
+            'src="/static/img/lash_brow_afiche_dorado.png"',
+        )
+        self.assertContains(
+            respuesta,
+            'data-service-catalog-main data-full-bleed="true"',
+        )
+        self.assertContains(
+            respuesta,
+            'data-service-catalog-shell data-full-bleed="true"',
+        )
+        self.assertContains(
+            respuesta,
+            'id="servicios-semana" data-full-bleed="true"',
+        )
+        self.assertContains(
+            respuesta,
+            'class="w-full overflow-hidden bg-transparent"',
         )
         self.assertContains(respuesta, 'class="lash-brow-flyer"')
         self.assertContains(respuesta, 'class="lash-brow-gallery-image"')
@@ -816,6 +845,9 @@ class RoleAccessTests(TestCase):
             '[data-service-gallery][hidden] {\n            display: none !important;',
         )
         self.assertContains(respuesta, "galleryGrid.hidden = category === 'pedicure'")
+        self.assertContains(respuesta, "catalogShell.dataset.fullBleed = String(fullBleed)")
+        self.assertContains(respuesta, "catalogMain.dataset.fullBleed = String(fullBleed)")
+        self.assertContains(respuesta, "servicesSection.dataset.fullBleed = String(fullBleed)")
         self.assertContains(respuesta, 'Pedicure de prueba')
         self.assertContains(
             respuesta,
@@ -917,10 +949,20 @@ class RoleAccessTests(TestCase):
 
         self.assertContains(galeria, 'data-service-gallery="all tratamientos"')
         self.assertNotContains(galeria, 'data-service-gallery="all tratamientos" hidden')
+        self.assertContains(galeria, 'class="w-full overflow-hidden bg-transparent"')
+        self.assertContains(galeria, 'data-service-catalog-main data-full-bleed="true"')
+        self.assertContains(galeria, 'data-service-catalog-shell data-full-bleed="true"')
+        self.assertContains(galeria, 'id="servicios-semana" data-full-bleed="true"')
+        self.assertContains(galeria, "catalogMain.dataset.fullBleed = String(fullBleed)")
+        self.assertContains(galeria, "catalogShell.dataset.fullBleed = String(fullBleed)")
+        self.assertContains(galeria, "servicesSection.dataset.fullBleed = String(fullBleed)")
         self.assertContains(
             galeria,
-            'src="/static/img/tratamientos_capilares_afiche_servicio_actualizado.png?v=20261025d"',
+            'src="/static/img/tratamientos_capilares_afiche_dorado.png?v=20261026b"',
         )
+        self.assertContains(galeria, '.treatment-flyer > img')
+        self.assertContains(galeria, 'width: 100%;')
+        self.assertContains(galeria, 'height: auto;')
         booking_url = f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}"'
         self.assertEqual(galeria.content.count(booking_url.encode()), 7)
         self.assertNotContains(galeria, f'id="servicio-{servicio.pk}"')
@@ -1009,10 +1051,10 @@ class RoleAccessTests(TestCase):
 
         response = self.client.get(reverse('cliente_servicios'))
 
-        self.assertContains(response, 'src="/static/img/podologia_galeria_brand_actualizada.png"')
+        self.assertContains(response, 'src="/static/img/podologia_galeria_dorada.png?v=20261026a"')
         self.assertContains(
             response,
-            'alt="Afiche de podología con tratamientos y niveles de complejidad de uñas encarnadas"',
+            'alt="Afiche dorado de podología con tratamientos y niveles de complejidad de uñas encarnadas"',
         )
         self.assertContains(response, 'class="podology-flyer"')
         self.assertNotContains(response, f'id="servicio-{podologia.pk}"')
@@ -1074,19 +1116,19 @@ class RoleAccessTests(TestCase):
             {'categoria': 'coloracion'},
         )
 
-        self.assertContains(response, 'src="/static/img/colorimetria_afiche.png?v=20261025b"')
+        self.assertContains(response, 'src="/static/img/colorimetria_afiche_dorado.png?v=20261026a"')
         self.assertContains(
             response,
-            'alt="Afiche de servicios de coloración Nicolett Studio Fantasy con opciones y precios"',
+            'alt="Afiche dorado de servicios de coloración Nicolett Studio Fantasy con opciones y precios"',
         )
         self.assertContains(response, 'class="colorimetry-flyer"')
-        self.assertContains(response, 'background: linear-gradient(180deg, #f7f8f9, #cbd0d5);')
+        self.assertContains(response, 'background: rgb(197 138 58 / 18%);')
         self.assertNotContains(response, f'id="servicio-{colorimetria.pk}"')
         booking_url = f'href="{reverse("cliente_agendamiento")}?servicio={colorimetria.pk}"'
-        self.assertEqual(response.content.count(booking_url.encode()), 6)
+        self.assertEqual(response.content.count(booking_url.encode()), 7)
         self.assertEqual(
             response.content.count(b'class="colorimetry-booking-link colorimetry-booking-link--'),
-            6,
+            7,
         )
         agendamiento = self.client.get(
             reverse('cliente_agendamiento'),
@@ -1341,12 +1383,9 @@ class RoleAccessTests(TestCase):
         self.assertContains(servicios, 'data-service-gallery="all coloracion"')
         self.assertContains(servicios, 'data-service-gallery="all podologia"')
         self.assertContains(servicios, 'data-service-gallery="all lash_brow"')
-        self.assertContains(servicios, 'src="/static/img/lash_brow_afiche.png"')
+        self.assertContains(servicios, 'src="/static/img/lash_brow_afiche_dorado.png"')
         self.assertContains(servicios, 'class="lash-brow-gallery-image"')
-        self.assertContains(
-            servicios,
-            'Tratamientos de pestañas y cejas.',
-        )
+        self.assertNotContains(servicios, 'Tratamientos de pestañas y cejas.')
         self.assertContains(
             servicios,
             'class="order-8 overflow-hidden border border-[#c9a56b] bg-[#fffaf0]"',
@@ -1372,8 +1411,8 @@ class RoleAccessTests(TestCase):
             tratamientos,
             'aria-label="Consultar por WhatsApp sobre Tratamiento capilar de prueba"',
         )
-        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_afiche_servicio_actualizado.png?v=20261025d"')
-        self.assertContains(servicios, 'Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.')
+        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_afiche_dorado.png?v=20261026b"')
+        self.assertNotContains(servicios, 'Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.')
         cortes = self.client.get(reverse('cliente_servicios'), {'categoria': 'corte'})
         self.assertNotContains(cortes, 'data-service-category-filters')
         self.assertContains(cortes, 'data-service-gallery="all corte"')
@@ -1407,21 +1446,19 @@ class RoleAccessTests(TestCase):
             servicios,
             'alt="Galería de cortes y estilos de cabello de Nicolett Studio Fantasy"',
         )
-        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_afiche_servicio_actualizado.png?v=20261025d"')
+        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_afiche_dorado.png?v=20261026b"')
         corte_image_position = servicios.content.index(b'img/cortes_y_estilos_panel.png')
         corte_title_position = servicios.content.index(
             b'<h2 class="font-semibold text-[#281b14]">Cortes &amp; estilos</h2>',
         )
-        tratamientos_image_position = servicios.content.index(b'img/tratamientos_capilares_afiche_servicio_actualizado.png')
-        tratamientos_title_position = servicios.content.index(b'Tratamientos capilares</h2>')
+        tratamientos_image_position = servicios.content.index(b'img/tratamientos_capilares_afiche_dorado.png')
         self.assertLess(corte_image_position, corte_title_position)
-        self.assertLess(tratamientos_image_position, tratamientos_title_position)
         self.assertLess(corte_image_position, tratamientos_image_position)
         gallery_image_positions = [
             servicios.content.index(image.encode())
             for image in (
                 'img/cortes_y_estilos_panel.png',
-                'img/tratamientos_capilares_afiche_servicio_actualizado.png',
+                'img/tratamientos_capilares_afiche_dorado.png',
                 'img/nail_care_precios_afiche.png',
                 'img/depilacion_cera_beneficios.png',
                 'img/peinados_galeria_brand.png',
@@ -1452,10 +1489,10 @@ class RoleAccessTests(TestCase):
             servicios.content.count(b'src="/static/img/depilacion_facial_galeria_brand.png"'),
             0,
         )
-        self.assertContains(servicios, 'src="/static/img/podologia_galeria_brand_actualizada.png"')
+        self.assertContains(servicios, 'src="/static/img/podologia_galeria_dorada.png?v=20261026a"')
         self.assertContains(
             servicios,
-            'alt="Afiche completo de Podología Clínica Nicolett Studio Fantasy con tratamientos, precios y niveles de complejidad"',
+            'alt="Afiche dorado de podología con tratamientos y niveles de complejidad de uñas encarnadas"',
         )
         self.assertContains(servicios, 'class="podology-flyer"')
         self.assertNotContains(servicios, f'id="servicio-{podologia.pk}"')
@@ -1468,7 +1505,7 @@ class RoleAccessTests(TestCase):
             servicios,
             'alt="Lista completa de precios de manicura Nicolett Studio Fantasy con servicios y adicionales"',
         )
-        self.assertContains(
+        self.assertNotContains(
             servicios,
             '<h2 class="font-semibold text-[#281b14]">Nail Care &amp; Beauty</h2>',
         )
@@ -1493,7 +1530,7 @@ class RoleAccessTests(TestCase):
             f'href="{reverse("cliente_agendamiento")}?servicio={manicure_prueba.pk}"',
         )
         self.assertNotContains(servicios, 'src="/static/img/manicure_pedicure.jpg" alt="Podología"')
-        self.assertContains(servicios, 'src="/static/img/colorimetria_afiche.png?v=20261025b"')
+        self.assertContains(servicios, 'src="/static/img/colorimetria_afiche_dorado.png?v=20261026a"')
         self.assertContains(
             servicios,
             'alt="Afiche de servicios de coloración Nicolett Studio Fantasy con opciones y precios"',
@@ -1506,7 +1543,7 @@ class RoleAccessTests(TestCase):
             6,
         )
         self.assertNotContains(servicios, f'id="servicio-{colorimetria.pk}"')
-        self.assertContains(servicios, 'Tratamientos capilares</h2>')
+        self.assertNotContains(servicios, 'Tratamientos capilares</h2>')
         self.assertContains(servicios, 'src="/static/img/peinados_galeria_brand.png"')
         self.assertContains(servicios, 'Peinados con estilo para realzar tu belleza en cada ocasión.')
         self.assertContains(servicios, 'Cuidado experto para consentir tus pies y mantenerlos saludables.')
@@ -1725,6 +1762,8 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'Nuestro origen')
         self.assertContains(response, 'Nuestra misión')
         self.assertContains(response, 'Nuestra visión')
+        self.assertContains(response, '.client-about-frame::before')
+        self.assertContains(response, '.client-about-card::after')
         self.assertContains(response, 'fa-seedling')
         self.assertContains(response, 'https://www.instagram.com/nicolettstudiofantasy/')
         self.assertContains(response, 'https://wa.me/56940322551')
@@ -1983,6 +2022,12 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'field.disabled = false')
         self.assertContains(response, 'id="cancel-client-profile"')
         self.assertContains(response, 'profileForm.reset();')
+        self.assertContains(response, 'client-settings-main min-h-[calc(100vh-64px)]')
+        self.assertContains(response, '.client-settings-main #datos-contacto')
+        self.assertContains(response, '.client-settings-main #eliminar-cuenta')
+        self.assertContains(response, '.client-settings-main input')
+        self.assertContains(response, 'background: linear-gradient(145deg, #f5dfa0, #e8c66e) !important')
+        self.assertContains(response, 'background-color: #fff1c7 !important')
 
     def test_customer_history_lists_only_their_database_appointments(self):
         cliente = self.crear_cliente()
@@ -2108,10 +2153,16 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'id="btn-register"')
         self.assertContains(response, 'fa-brands fa-instagram')
 
-    def test_login_footer_shows_brand_colored_social_icons_on_dark_background(self):
+    def test_login_uses_ornamental_gold_layout_and_brand_colored_social_icons(self):
         response = self.client.get(reverse('login'))
 
-        self.assertContains(response, 'bg-[#281b14]')
+        self.assertContains(response, 'border: 6px ridge #a77932 !important')
+        self.assertContains(response, 'border: 5px ridge #a6752d')
+        self.assertContains(response, 'border: 8px ridge #a6752d')
+        self.assertContains(response, 'linear-gradient(#e7cc8c, #bc9145) !important')
+        self.assertContains(response, 'linear-gradient(120deg, #24170f, #49301d 48%, #21150f)')
+        self.assertContains(response, 'background: linear-gradient(45deg, #833ab4, #e4405f 55%, #fcaf45)')
+        self.assertContains(response, 'color: #25d366 !important')
         self.assertNotContains(response, '<span>Instagram</span>')
         self.assertNotContains(response, '<span>WhatsApp</span>')
         self.assertContains(response, 'text-2xl')
@@ -2140,7 +2191,7 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'class="auth-page-layout"')
         self.assertContains(response, 'class="auth-form-panel"')
         self.assertContains(response, 'overflow: hidden !important')
-        self.assertContains(response, 'img/login-salon.jpg')
+        self.assertContains(response, 'img/login-salon-color.png')
         self.assertContains(response, 'Ingresa a tu cuenta en')
         self.assertContains(response, 'id="btn-login"')
         self.assertContains(response, 'id="btn-register"')
@@ -2185,7 +2236,7 @@ class RoleAccessTests(TestCase):
         )
         self.assertContains(response, 'Cambiar vista')
         self.assertContains(response, reverse('admin_vista_cliente'))
-        self.assertContains(response, 'dashboard.css?v=20261023-5')
+        self.assertContains(response, 'dashboard.css?v=20261026-1')
 
     def test_customer_can_update_account_details_and_password(self):
         cliente = self.crear_cliente()

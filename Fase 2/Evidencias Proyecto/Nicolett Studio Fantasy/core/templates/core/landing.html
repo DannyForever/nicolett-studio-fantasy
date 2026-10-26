@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="es" class="scroll-smooth">
+<html lang="es" class="scroll-smooth landing-poster-document">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,416 +35,530 @@
         }
     </script>
     <style>
+        .landing-poster-document,
+        .landing-poster-page {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+            overflow-x: hidden;
+        }
+        .landing-poster-document::-webkit-scrollbar,
+        .landing-poster-page::-webkit-scrollbar,
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
         .bg-white {
             background-color: #ffffff !important;
         }
+        .landing-poster-page > header {
+            display: grid;
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 100;
+            border-color: #c49a52 !important;
+            background: linear-gradient(110deg, #f3dfb4, #d6b16c 50%, #f3dfb4) !important;
+            color: #4b2c0b !important;
+            box-shadow: 0 3px 12px rgb(84 51 14 / 20%);
+        }
+        .landing-poster-page > header > a:first-child > div > span {
+            display: block;
+            font-size: 1.5rem;
+            line-height: 1.1;
+            white-space: nowrap;
+        }
+        #nosotras,
+        #servicios,
+        #galeria,
+        #resenas,
+        #contacto {
+            scroll-margin-top: 85px;
+        }
+        @media (max-width: 1023px) {
+            #nosotras,
+            #servicios,
+            #galeria,
+            #resenas,
+            #contacto {
+                scroll-margin-top: 76px;
+            }
+        }
+        @media (min-width: 640px) and (max-width: 1023px) {
+            #nosotras,
+            #servicios,
+            #galeria,
+            #resenas,
+            #contacto {
+                scroll-margin-top: 88px;
+            }
+        }
+        .landing-poster-page > header a,
+        .landing-poster-page > header nav,
+        .landing-poster-page > header button,
+        .landing-poster-page > header span,
+        .landing-poster-page > header p,
+        .landing-poster-page > header i {
+            color: #4b2c0b !important;
+        }
+        .landing-poster-page > header > div > a[aria-label="Ingresar a clientes"],
+        .landing-poster-page > header > div > a[aria-label="Ir a mi cuenta de cliente"] {
+            border: 1px solid #9a702d;
+            background: linear-gradient(#e7cb8f, #c49a52) !important;
+        }
+        #inicio,
         #servicios {
-            background-image: linear-gradient(to bottom, #ffffff 0, #fffaf5 28px, #fae9cf 88px, #fae9cf 100%);
+            display: block;
+            width: 100%;
+            margin: 0;
+        }
+        #inicio {
+            padding: 88px 0 20px;
+        }
+        .landing-poster {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            padding: 88px 0 20px;
+            background:
+                radial-gradient(ellipse at 12% 16%, rgb(255 244 210 / 88%), transparent 38%),
+                linear-gradient(125deg, #e8cc8f, #f8ebc9 48%, #d8b66e);
+        }
+        .landing-poster-artwork {
+            position: relative;
+            width: min(92%, 1400px);
+            aspect-ratio: 1024 / 415;
+            margin: 0 auto;
+            border: 1px solid #a9782d;
+            box-shadow: 0 10px 28px rgb(75 44 11 / 20%);
+        }
+        .landing-poster img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: sepia(0.22) saturate(1.12);
+        }
+        @media (max-width: 1023px) {
+            #inicio {
+                padding-top: 78px;
+            }
+        }
+        @media (min-width: 640px) and (max-width: 1023px) {
+            #inicio {
+                padding-top: 88px;
+            }
+        }
+        .landing-poster-link {
+            position: absolute;
+            z-index: 1;
+            display: block;
+            border-radius: 999px;
+        }
+        .landing-poster-link:focus-visible {
+            outline: 3px solid #4b2c0b;
+            outline-offset: 2px;
+        }
+        .landing-services-poster {
+            position: relative;
+            width: 100%;
+        }
+        .landing-services-poster img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .landing-poster-contact-cta {
+            top: 72%;
+            left: 16%;
+            width: 21%;
+            height: 16%;
         }
         #nosotras {
             background-image: linear-gradient(to bottom, #fae9cf 0, #fffaf5 88px, #fffaf5 100%);
         }
-        #galeria {
-            background-image: linear-gradient(to bottom, #fffaf5 0, #fae9cf 88px, #fae9cf calc(100% - 180px), #49372b 100%);
+        .landing-gallery-section {
+            scroll-margin-top: 85px;
+            background-color: #fae9cf;
         }
-        #contacto {
-            background-image: linear-gradient(to bottom, #49372b 0, #fffaf5 150px, #fffaf5 100%);
+        .landing-contact-section {
+            position: relative;
+            isolation: isolate;
+            padding: clamp(40px, 7vw, 88px) clamp(16px, 5vw, 64px);
+            border-top: 8px solid #956520;
+            border-bottom: 8px solid #956520;
+            background:
+                radial-gradient(ellipse at 10% 12%, rgb(255 244 210 / 82%), transparent 36%),
+                radial-gradient(ellipse at 92% 80%, rgb(199 148 58 / 24%), transparent 38%),
+                linear-gradient(125deg, #e8cc8f, #f8ebc9 48%, #d8b66e);
         }
-        #galeria .instagram-gallery-grid {
+        .landing-contact-section::before {
+            position: absolute;
+            z-index: -1;
+            inset: 8px;
+            border: 1px solid rgb(137 91 25 / 65%);
+            content: "";
+            pointer-events: none;
+        }
+        .landing-contact-content {
+            position: relative;
+            z-index: 0;
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            justify-content: center;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: start;
+            gap: clamp(24px, 4vw, 64px);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .landing-contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .landing-contact-heading,
+        .landing-contact-detail,
+        .landing-contact-form {
+            border: 1px solid #a9782d;
+            box-shadow: 0 8px 22px rgb(75 44 11 / 20%);
+        }
+        .landing-contact-heading {
+            padding: 24px;
+            background: linear-gradient(135deg, #fff5dc, #e7cb8f);
+        }
+        .landing-contact-heading > p:first-child,
+        .landing-contact-form label,
+        .landing-contact-detail > p:first-child {
+            color: #79511c;
+        }
+        .landing-contact-heading h2 {
+            color: #4b2c0b;
+        }
+        .landing-contact-details {
+            display: grid;
+            grid-template-columns: minmax(140px, 0.85fr) minmax(0, 1.6fr);
+            align-items: start;
             gap: 16px;
         }
-
-        #galeria .instagram-gallery-grid > .instagram-media {
-            box-sizing: border-box;
-            width: 100% !important;
-            min-width: 0 !important;
-            max-width: 326px !important;
-            margin: 0 auto !important;
-            border-radius: 6px !important;
-            box-shadow: 0 4px 16px rgba(42, 35, 32, 0.1) !important;
+        .landing-contact-details-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
-
-        @media (max-width: 1099px) {
-            #galeria .instagram-gallery-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+        .landing-contact-detail {
+            padding: 12px 14px;
+            background: linear-gradient(145deg, #60401e, #3b2817);
+            color: #fff4dc;
+        }
+        .landing-contact-detail > p:first-child,
+        .landing-contact-detail > p:last-child {
+            color: #fff4dc;
+        }
+        .landing-contact-map {
+            height: 340px;
+            overflow: hidden;
+            border: 5px solid #9a6a26;
+            background: #fff5dc;
+            box-shadow: 0 5px 16px rgb(75 44 11 / 28%);
+        }
+        .landing-contact-map iframe {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        .landing-contact-map-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            padding: 0 14px;
+            border: 1px solid #9a6a26;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #fff5dc, #e7cb8f);
+            color: #4b2c0b;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .landing-contact-map-link:focus-visible {
+            outline: 3px solid #4b2c0b;
+            outline-offset: 2px;
+        }
+        .landing-contact-account {
+            padding: 24px;
+            border: 1px solid #a9782d;
+            background: linear-gradient(135deg, #fff5dc, #e7cb8f);
+            box-shadow: 0 5px 16px rgb(75 44 11 / 16%);
+        }
+        .landing-contact-account p,
+        .landing-contact-account strong,
+        .landing-contact-account a {
+            color: #4b2c0b;
+        }
+        .landing-contact-form {
+            padding: clamp(20px, 3vw, 36px);
+            background:
+                radial-gradient(ellipse at 100% 0%, rgb(199 148 58 / 14%), transparent 36%),
+                linear-gradient(145deg, #fff8e9, #f0dfb8);
+        }
+        .landing-contact-form input,
+        .landing-contact-form textarea {
+            border-color: #c49a52;
+            background-color: #fffaf0;
+            color: #4b2c0b;
+        }
+        .landing-contact-form input:focus,
+        .landing-contact-form textarea:focus {
+            border-color: #79511c;
+            box-shadow: 0 0 0 2px rgb(196 154 82 / 22%);
+        }
+        .landing-contact-form button {
+            border: 1px solid #8d5e20;
+            background: linear-gradient(110deg, #9a6a26, #c49a52, #9a6a26);
+            color: #fff8e9;
+        }
+        .landing-contact-form button:hover {
+            background: linear-gradient(110deg, #79511c, #a9782d, #79511c);
+        }
+        @media (max-width: 767px) {
+            .landing-contact-content {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .landing-contact-details {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .landing-contact-map {
+                height: 320px;
             }
         }
-
-        @media (max-width: 760px) {
-            #galeria .instagram-gallery-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 20px;
-            }
+        .landing-gallery-section {
+            scroll-margin-top: 85px;
+            padding: 0;
+            background: #fae9cf;
         }
-
-        @media (max-width: 520px) {
-            #galeria .instagram-gallery-grid {
-                grid-template-columns: minmax(0, 326px);
+        .landing-gallery-poster {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+        }
+        .landing-gallery-poster img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .landing-gallery-link {
+            position: absolute;
+            z-index: 1;
+            display: block;
+            border-radius: 6px;
+        }
+        .landing-gallery-link:focus-visible {
+            outline: 3px solid #4b2c0b;
+            outline-offset: 2px;
+        }
+        .landing-gallery-link:hover {
+            background: rgb(255 245 220 / 12%);
+        }
+        .landing-gallery-profile {
+            top: 5%;
+            right: 4%;
+            width: 15%;
+            height: 5%;
+        }
+        .landing-gallery-post {
+            width: 22%;
+            height: 39%;
+        }
+        .landing-gallery-post-1 { top: 11%; left: 5%; }
+        .landing-gallery-post-2 { top: 11%; left: 28.5%; }
+        .landing-gallery-post-3 { top: 11%; left: 51.5%; }
+        .landing-gallery-post-4 { top: 11%; left: 74.5%; }
+        .landing-gallery-post-5 { top: 52.5%; left: 5%; }
+        .landing-gallery-post-6 { top: 52.5%; left: 28.5%; }
+        .landing-gallery-post-7 { top: 52.5%; left: 51.5%; }
+        .landing-gallery-post-8 { top: 52.5%; left: 74.5%; }
+        .landing-reviews-poster {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+        }
+        .landing-reviews-poster img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .landing-reviews-link {
+            position: absolute;
+            top: 30%;
+            width: 28%;
+            height: 64%;
+            border-radius: 2%;
+        }
+        .landing-reviews-link:focus-visible {
+            outline: 3px solid #4b2c0b;
+            outline-offset: -5px;
+        }
+        .landing-reviews-link-1 { left: 6.5%; }
+        .landing-reviews-link-2 { left: 35.8%; }
+        .landing-reviews-link-3 { left: 65%; }
+        @media (max-width: 560px) {
+            .landing-gallery-section {
+                scroll-margin-top: 76px;
             }
         }
     </style>
 </head>
-<body class="bg-customBg text-customDark font-sans antialiased">
+<body class="landing-poster-page bg-customBg text-customDark font-sans antialiased">
 
     {% include 'header.html' %}
 
-    <!-- INICIO  -->
-    <section id="inicio" class="grid grid-cols-1 lg:grid-cols-2 pt-10 pb-24 lg:pt-16 lg:pb-64 items-start bg-white">
-        <div class="flex flex-col justify-start px-8 lg:px-16 pt-4">
-            <p class="text-[11px] tracking-[0.3em] uppercase text-customAccent mb-6">Salón de belleza · Buin, Santiago</p>
-            <h1 class="font-serif text-5xl lg:text-7xl font-bold leading-[1.08] mb-7 text-customDark">
-                El arte de<br /><em class="italic font-light text-customAccent">hacerte sentir</em><br />hermosa
-            </h1>
-            <p class="text-customMuted max-w-md text-sm lg:text-[15px] leading-relaxed mb-12">
-                En Nicolett Studio Fantasy encontrarás un espacio íntimo dedicado al cuidado y realce de tu belleza natural. Profesionales certificadas, productos premium y una experiencia que querrás repetir.
-            </p>
-            <div class="flex space-x-4 flex-wrap gap-y-4">
-                <a href="#contacto" class="bg-customDeep text-customBg text-xs tracking-[0.18em] px-9 py-4 uppercase transition hover:bg-customDark">Contactar</a>
-            </div>
-            <!-- Estadísticas -->
-            <div class="grid grid-cols-3 gap-8 pt-10 border-t border-customBorder mt-12 max-w-lg">
-                <div>
-                    <p class="font-serif text-3xl font-bold text-customDark">8+</p>
-                    <p class="text-[11px] text-customMuted tracking-wider mt-1">Años de experiencia</p>
-                </div>
-                <div>
-                    <p class="font-serif text-3xl font-bold text-customDark">2.400+</p>
-                    <p class="text-[11px] text-customMuted tracking-wider mt-1">Clientas felices</p>
-                </div>
-                <div>
-                    <p class="font-serif text-3xl font-bold text-customDark">6</p>
-                    <p class="text-[11px] text-customMuted tracking-wider mt-1">Especialistas</p>
-                </div>
-            </div>
+    <section id="inicio" class="landing-poster" aria-label="Portada de Nicolett Studio Fantasy">
+        <div class="landing-poster-artwork">
+            <img src="{% static 'img/portada-hero-dorado.png' %}" alt="Portada dorada de Nicolett Studio Fantasy con el logo, una imagen del salón y botón para contactar">
+            <a href="#contacto" class="landing-poster-link landing-poster-contact-cta" aria-label="Contactar al salón"></a>
         </div>
-        <div class="relative h-[420px] lg:h-[540px] bg-customBorder overflow-hidden mt-8 lg:mt-0 mx-8 lg:mx-0">
-            <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=900&h=1100&fit=crop&auto=format" alt="Estilista profesional en Nicolett Studio" class="w-full h-full object-cover">
-            <!-- Nota flotante de agenda -->
-            <div class="absolute bottom-6 left-6 bg-customBg/95 p-4 shadow-md">
-                <p class="font-serif text-xs font-semibold tracking-wide text-customDark mb-1">Agenda abierta</p>
-                <p class="text-[11px] text-customMuted">Lun – Sáb · 9:00 – 20:00</p>
-            </div>
-        </div>
+    </section>
+
+    <!-- NUESTRA HISTORIA -->
+    <section id="nosotras" class="w-full overflow-hidden" aria-label="Nuestra historia">
+        <img
+            src="{% static 'img/nosotras-completo-dorado.png' %}"
+            alt="Nuestra historia en Nicolett Studio Fantasy: creamos belleza con propósito, con diseño ornamental de mármol y marco dorado"
+            class="block h-auto w-full"
+        >
     </section>
 
     <!-- SERVICIOS -->
-    <section id="servicios" class="py-24 px-8 lg:px-16 bg-customAltBg">
-        <div class="max-w-7xl mx-auto">
-            <div class="mb-16">
-                <p class="text-[11px] tracking-[0.3em] text-customAccent uppercase font-semibold mb-4">Lo que ofrecemos</p>
-                <h2 class="text-4xl lg:text-5xl font-serif font-bold text-customDark">Nuestros servicios</h2>
-            </div>
-            <div class="grid grid-cols-1 gap-[1px] border border-customBorder bg-customBorder md:grid-cols-2 lg:grid-cols-3">
-                <!-- Servicio 1 -->
-                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
-                    <div>
-                        <span class="text-s text-customAccent font-serif italic mb-4 block">01</span>
-                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Colorimetría</h3>
-                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Diagnóstico personalizado de color, tinte, balayage y decoloración con productos de alta gama.</p><br>
-                        <img src="/static/img/corte_estilo.jpg" alt="Colorimetría en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
-                    
-                    </div>
-                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $25.000</p>
-                </div>
-                <!-- Servicio 2 -->
-                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
-                    <div>
-                        <span class="text-s text-customAccent font-serif italic mb-4 block">02</span>
-                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Corte & Estilo</h3>
-                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.</p><br>
-                        <img src="/static/img/tratamientos.jpg" alt="Corte y estilo en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
-                    </div>
-                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $12.000</p>
-                </div>
-                <!-- Servicio 3 -->
-                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
-                    <div>
-                        <span class="text-s text-customAccent font-serif italic mb-4 block">03</span>
-                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Tratamientos</h3>
-                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.</p><br>
-                        <img src="/static/img/depilacion.jpg" alt="Tratamientos en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
-                    </div>
-                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $18.000</p>
-                </div>
-                <!-- Servicio 4 -->
-                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
-                    <div>
-                        <span class="text-s text-customAccent font-serif italic mb-4 block">04</span>
-                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Manicure & Pedicure</h3>
-                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Semipermanente, gel, nail art y spa de manos. Uñas que hablan por ti.</p><br>
-                        <img src="/static/img/manicure_pedicure.jpg" alt="Manicure y pedicure en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
-                    </div>
-                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $8.000</p>
-                </div>
-                <!-- Servicio 5 -->
-                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
-                    <div>
-                        <span class="text-s text-customAccent font-serif italic mb-4 block">05</span>
-                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Maquillaje</h3>
-                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Maquillaje social, novia y eventos especiales. Prueba previa incluida en bodas.</p><br>
-                        <img src="/static/img/maquillaje.jpg" alt="Maquillaje en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
-                    </div>
-                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $22.000</p>
-                </div>
-                <!-- Servicio 6 -->
-                <div class="p-9 bg-white flex flex-col justify-between transition-colors hover:bg-customBorder">
-                    <div>
-                        <span class="text-s text-customAccent font-serif italic mb-4 block">06</span>
-                        <h3 class="text-2xl font-serif font-semibold text-customDark mb-3">Depilación</h3>
-                        <p class="text-xs lg:text-sm text-customMuted leading-relaxed">Cera caliente y fría, hilo facial y depilación con láser de diodo. Resultados duraderos.</p><br>
-                        <img src="/static/img/colorimetria.jpg" alt="Depilación en Nicolett Studio" class="w-3/4 max-w-[380px] aspect-square object-cover mb-4 rounded-lg mx-auto">
-                    </div>
-                    <p class="text-xs font-medium tracking-wider text-customDark mt-8 pt-4 border-t border-customBorder/50">Desde $5.000</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- NOSOTROS / HISTORIA -->
-    <section id="nosotras" class="py-24 px-8 lg:px-16">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div class="relative">
-                <div class="aspect-[3/4] bg-customBorder overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1629397685944-7073f5589754?w=700&h=900&fit=crop&auto=format" alt="Estilista con rizador en Nicolett Studio" class="w-full h-full object-cover">
-                </div>
-                <div class="absolute -bottom-6 -right-6 bg-customAccent text-customBg p-7 shadow-lg">
-                    <p class="font-serif text-4xl font-bold">8</p>
-                    <p class="text-[10px] tracking-[0.15em] uppercase mt-1">Años de pasión</p>
-                </div>
-            </div>
-            <div class="space-y-6">
-                <p class="text-[11px] tracking-[0.3em] text-customAccent uppercase font-semibold">Nuestra historia</p>
-                <h2 class="font-serif text-4xl lg:text-5xl font-bold leading-tight text-customDark">
-                    Creamos belleza <em class="italic font-light">con propósito</em>
-                </h2>
-                <p class="text-sm lg:text-[15px] text-customMuted leading-relaxed">
-                    Nicolett Studio Fantasy nació del sueño de crear un espacio donde cada clienta se sienta vista y valorada. Fundado en 2016 en Buin, hemos crecido hasta convertirnos en un referente del bienestar estético en Santiago.
-                </p>
-                <p class="text-sm lg:text-[15px] text-customMuted leading-relaxed">
-                    Nuestro equipo de 6 especialistas se capacita permanentemente en las últimas tendencias y técnicas.
-                </p>
-                <div class="space-y-3 pt-4">
-                    <div class="flex items-center gap-3">
-                        <span class="w-5 h-[1px] bg-customAccent"></span>
-                        <span class="text-sm text-customDark">Productos 100% libres de parabenos</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="w-5 h-[1px] bg-customAccent"></span>
-                        <span class="text-sm text-customDark">Certificadas en colorimetría avanzada</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="w-5 h-[1px] bg-customAccent"></span>
-                        <span class="text-sm text-customDark">Agenda online disponible las 24 horas</span>
-                    </div>
-                </div>
-            </div>
+    <section id="servicios" class="w-full overflow-hidden">
+        <div class="landing-services-poster" aria-label="Sección de servicios de Nicolett Studio Fantasy">
+            <img
+                src="{% static 'img/servicios-contenido-dorado.png' %}"
+                alt="Sección completa de servicios de Nicolett Studio Fantasy con diseño ornamental dorado"
+            >
         </div>
     </section>
 
     <!-- GALERÍA -->
-    <section id="galeria" class="py-24 px-8 lg:px-16 bg-customAltBg">
-        <div class="mx-auto max-w-[1400px]">
-            <div class="flex justify-between items-end mb-14 flex-wrap gap-4">
-                <div>
-                    <p class="text-[11px] tracking-[0.3em] text-customAccent uppercase font-semibold mb-4">Nuestro trabajo</p>
-                    <h2 class="font-serif text-4xl lg:text-5xl font-bold text-customDark">Galería</h2>
-                </div>
-                <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" class="text-xs tracking-[0.15em] uppercase text-customMuted hover:text-customDark border-b border-customAccent pb-1 transition">VER MÁS EN INSTAGRAM →</a>
+    <section id="galeria" class="landing-gallery-section" aria-label="Galería de trabajos de Nicolett Studio Fantasy">
+        <div class="landing-gallery-poster">
+            <img
+                src="{% static 'img/galeria-completa-dorada.png' %}"
+                alt="Galería ornamental dorada de Nicolett Studio Fantasy con ocho publicaciones de Instagram y enlaces para abrirlas"
+            >
+            <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-profile" aria-label="Ver más publicaciones en Instagram"></a>
+            <a href="https://www.instagram.com/reel/Dc0yoC7RNZ6/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-1" aria-label="Abrir publicación 1 de Nicolett Studio Fantasy en Instagram"></a>
+            <a href="https://www.instagram.com/reel/DcZ5hEIRDFF/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-2" aria-label="Abrir publicación 2 de Nicolett Studio Fantasy en Instagram"></a>
+            <a href="https://www.instagram.com/reel/Dd3o_-uRG3X/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-3" aria-label="Abrir publicación 3 de Nicolett Studio Fantasy en Instagram"></a>
+            <a href="https://www.instagram.com/reel/DX_98xzRAlA/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-4" aria-label="Abrir publicación 4 de Nicolett Studio Fantasy en Instagram"></a>
+            <a href="https://www.instagram.com/reel/DXt5_6XkaLY/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-5" aria-label="Abrir publicación 5 de Nicolett Studio Fantasy en Instagram"></a>
+            <a href="https://www.instagram.com/reel/DXt7KGakUtx/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-6" aria-label="Abrir publicación 6 de Nicolett Studio Fantasy en Instagram"></a>
+            <a href="https://www.instagram.com/reel/DYNLW_xRXgW/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-7" aria-label="Abrir publicación 7 de Nicolett Studio Fantasy en Instagram"></a>
+            <a href="https://www.instagram.com/reel/DYNKxxLR-c2/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-8" aria-label="Abrir publicación 8 de Nicolett Studio Fantasy en Instagram"></a>
             </div>
-            <div class="instagram-gallery-grid">
-                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/Dc0yoC7RNZ6/" data-instgrm-version="14" style="background:#ffffff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
-                    <a href="https://www.instagram.com/reel/Dc0yoC7RNZ6/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
-                </blockquote>
-                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DcZ5hEIRDFF/" data-instgrm-version="14" style="background:#ffffff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
-                    <a href="https://www.instagram.com/reel/DcZ5hEIRDFF/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
-                </blockquote>
-                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/Dd3o_-uRG3X/" data-instgrm-version="14" style="background:#ffffff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
-                    <a href="https://www.instagram.com/reel/Dd3o_-uRG3X/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
-                </blockquote>
-                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DX_98xzRAlA/" data-instgrm-version="14" style="background:#ffffff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
-                    <a href="https://www.instagram.com/reel/DX_98xzRAlA/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
-                </blockquote>
-                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DXt5_6XkaLY/" data-instgrm-version="14" style="background:#ffffff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
-                    <a href="https://www.instagram.com/reel/DXt5_6XkaLY/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
-                </blockquote>
-                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DXt7KGakUtx/" data-instgrm-version="14" style="background:#ffffff; border:0; border-radius:3px; box-shadow:0 1px 10px rgba(0,0,0,.12); margin:1px; max-width:540px; width:100%;">
-                    <a href="https://www.instagram.com/reel/DXt7KGakUtx/" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
-                </blockquote>
-                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DYNLW_xRXgW/?utm_source=ig_embed&amp;utm_campaign=loading" data-instgrm-version="14" style="background:#ffffff; border:0; border-radius:6px; box-shadow:0 4px 16px rgba(42,35,32,.1); margin:0; max-width:326px; width:100%;">
-                    <a href="https://www.instagram.com/reel/DYNLW_xRXgW/?utm_source=ig_embed&amp;utm_campaign=loading" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
-                </blockquote>
-                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DYNKxxLR-c2/?utm_source=ig_embed&amp;utm_campaign=loading" data-instgrm-version="14" style="background:#ffffff; border:0; border-radius:6px; box-shadow:0 4px 16px rgba(42,35,32,.1); margin:0; max-width:326px; width:100%;">
-                    <a href="https://www.instagram.com/reel/DYNKxxLR-c2/?utm_source=ig_embed&amp;utm_campaign=loading" target="_blank" rel="noopener noreferrer">Ver esta publicación en Instagram</a>
-                </blockquote>
-            </div>
-            <script async src="https://www.instagram.com/embed.js"></script>
-        </div>
     </section>
 
     <!-- TESTIMONIOS -->
-    <section id="resenas" class="py-24 px-8 lg:px-16 bg-[#49372b] text-customBg">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-16">
-                <p class="text-[11px] tracking-[0.3em] text-[#e0bd7c] uppercase mb-3">Lo que dicen en Google Maps</p>
-                <h2 class="font-serif text-4xl lg:text-5xl font-bold">Nuestras clientas</h2>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                
-                <!-- Reseña 1 -->
-                <a href="https://maps.app.goo.gl/o64JrZsmmMyn3hDNA" target="_blank" class="p-8 bg-white rounded-lg shadow-md hover:shadow-2xl transition duration-300 transform hover:-translate-y-1 hover:scale-105 flex flex-col justify-between space-y-6 block group">
-                    <div>
-                        <!-- Estrellas de Google -->
-                        <div class="flex text-amber-400 space-x-1 mb-4 text-sm">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <p class="text-sm leading-relaxed text-gray-700 italic">"Un lugar muy acogedor y hermoso, la estilista es un amor y su servicio es 10/10 y tiene precios muy convenientes que atraen a la clientela, me encanta 100% recomendado."</p>
-                    </div>
-                    <div class="flex items-center justify-between border-t border-gray-100 pt-4">
-                        <div>
-                            <p class="font-serif font-bold text-sm text-gray-900">María N.</p>
-                            <p class="text-[10px] tracking-widest text-customAccent uppercase mt-1">Cliente verificada</p>
-                        </div>
-                        <i class="fab fa-google text-blue-500 text-lg group-hover:rotate-12 transition-transform"></i>
-                    </div>
-                </a>
-
-                <!-- Reseña 2 -->
-                <a href="https://maps.app.goo.gl/LT6kGLR7xncssqS19" target="_blank" class="p-8 bg-white rounded-lg shadow-md hover:shadow-2xl transition duration-300 transform hover:-translate-y-1 hover:scale-105 flex flex-col justify-between space-y-6 block group">
-                    <div>
-                        <div class="flex text-amber-400 space-x-1 mb-4 text-sm">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <p class="text-sm leading-relaxed text-gray-700 italic">"¡Excelente servicio! ¡Llegué donde Nicolett a prepararme para mi examen de grado y me dejo hermosa! ¡Me realizó corte, tinte y masaje en mi pelito y manicura polygel de buenísima calidad y maravillosas! La recomiendo 100% 🤩 muy acogedora y simpática ella 🥰"</p>
-                    </div>
-                    <div class="flex items-center justify-between border-t border-gray-100 pt-4">
-                        <div>
-                            <p class="font-serif font-bold text-sm text-gray-900">Betsabe V.</p>
-                            <p class="text-[10px] tracking-widest text-customAccent uppercase mt-1">Cliente verificada</p>
-                        </div>
-                        <i class="fab fa-google text-blue-500 text-lg group-hover:rotate-12 transition-transform"></i>
-                    </div>
-                </a>
-
-                <!-- Reseña 3 -->
-                <a href="https://maps.app.goo.gl/Hhd1TDNqLEfaotAp7" target="_blank" class="p-8 bg-white rounded-lg shadow-md hover:shadow-2xl transition duration-300 transform hover:-translate-y-1 hover:scale-105 flex flex-col justify-between space-y-6 block group">
-                    <div>
-                        <div class="flex text-amber-400 space-x-1 mb-4 text-sm">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <p class="text-sm leading-relaxed text-gray-700 italic">"¡Excelente servicio, me realizó la manicura y aparte de lindas son muy buena calidad, 100% recomendable! ¡Y lo mejor que tiene gran variedad de servicios para ofrecer y salir completamente bellas!"</p>
-                    </div>
-                    <div class="flex items-center justify-between border-t border-gray-100 pt-4">
-                        <div>
-                            <p class="font-serif font-bold text-sm text-gray-900">Krishna T.</p>
-                            <p class="text-[10px] tracking-widest text-customAccent uppercase mt-1">Cliente verificada</p>
-                        </div>
-                        <i class="fab fa-google text-blue-500 text-lg group-hover:rotate-12 transition-transform"></i>
-                    </div>
-                </a>
-
-            </div>
+    <section id="resenas" class="landing-reviews-section" aria-label="Reseñas de clientas en Google Maps">
+        <div class="landing-reviews-poster">
+            <img
+                src="{% static 'img/resenas-completas-dorado.png' %}"
+                alt="Reseñas de Google de María N., Betsabe V. y Krishna T. en una composición ornamental dorada"
+            >
+            <a href="https://maps.app.goo.gl/o64JrZsmmMyn3hDNA" target="_blank" rel="noopener noreferrer" class="landing-reviews-link landing-reviews-link-1" aria-label="Leer la reseña de María N. en Google Maps"></a>
+            <a href="https://maps.app.goo.gl/LT6kGLR7xncssqS19" target="_blank" rel="noopener noreferrer" class="landing-reviews-link landing-reviews-link-2" aria-label="Leer la reseña de Betsabe V. en Google Maps"></a>
+            <a href="https://maps.app.goo.gl/Hhd1TDNqLEfaotAp7" target="_blank" rel="noopener noreferrer" class="landing-reviews-link landing-reviews-link-3" aria-label="Leer la reseña de Krishna T. en Google Maps"></a>
         </div>
     </section>
 
-    <!-- CONTACTO Y FOOTER -->
-    <section id="contacto" class="py-32 px-8 lg:px-16">
-        <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-            <!-- Columna izquierda: Info., ubicación y bloque de atención -->
-            <div class="space-y-10">
-                <div>
-                    <p class="text-[11px] tracking-[0.3em] text-customAccent uppercase font-semibold mb-3">Escríbenos</p>
-                    <h2 class="font-serif text-4xl lg:text-5xl font-bold text-customDark">¿Tienes alguna <em class="italic font-italic">consulta</em>?</h2>
-                    <p class="text-xs lg:text-sm text-customMuted mt-4 leading-relaxed">¿Quieres saber más sobre algún servicio, disponibilidad o precios? <br>Rellena el formulario o contáctanos directamente. Respondemos a la brevedad.</p>
+    <!-- CONTACTO -->
+    <section id="contacto" class="landing-contact-section" aria-label="Contacto de Nicolett Studio Fantasy">
+        <div class="landing-contact-content">
+            <div class="landing-contact-info">
+                <div class="landing-contact-heading">
+                    <p class="text-[11px] tracking-[0.3em] uppercase font-semibold mb-3">Escríbenos</p>
+                    <h2 class="font-serif text-4xl lg:text-5xl font-bold">¿Tienes alguna <em class="italic">consulta</em>?</h2>
+                    <p class="text-xs lg:text-sm mt-4 leading-relaxed">¿Quieres saber más sobre algún servicio, disponibilidad o precios? Rellena el formulario o contáctanos directamente. Respondemos a la brevedad.</p>
                 </div>
 
-                <!-- Datos de contacto -->
-                <div class="grid grid-cols-1 gap-5 text-xs text-customDark sm:grid-cols-[minmax(140px,0.85fr)_minmax(0,1.6fr)] lg:text-sm">
-                    <div class="flex flex-col gap-5">
-                        <div class="border-l-2 border-customAccent py-1 pl-4">
-                            <p class="text-[10px] uppercase tracking-widest text-customMuted font-semibold">Dirección</p>
-                            <p class="font-medium mt-0.5">Av. Bernardo O'Higgins 979 <br>Buin, Santiago</p>
+                <div class="landing-contact-details text-xs sm:text-sm">
+                    <div class="landing-contact-details-list">
+                        <div class="landing-contact-detail">
+                            <p class="text-[10px] uppercase tracking-widest font-semibold">Dirección</p>
+                            <p class="font-medium mt-0.5">Av. Bernardo O'Higgins 979<br>Buin, Santiago</p>
                         </div>
-                        <div class="border-l-2 border-customAccent py-1 pl-4">
-                            <p class="text-[10px] uppercase tracking-widest text-customMuted font-semibold">Teléfono / WhatsApp</p>
+                        <div class="landing-contact-detail">
+                            <p class="text-[10px] uppercase tracking-widest font-semibold">Teléfono / WhatsApp</p>
                             <p class="font-medium mt-0.5">+56 9 4032 2551</p>
                         </div>
-                        <div class="border-l-2 border-customAccent py-1 pl-4">
-                            <p class="text-[10px] uppercase tracking-widest text-customMuted font-semibold">Horario</p>
+                        <div class="landing-contact-detail">
+                            <p class="text-[10px] uppercase tracking-widest font-semibold">Horario</p>
                             <p class="font-medium mt-0.5">Lun-Vie 9:00–20:00<br>Sáb 9:00–18:00</p>
                         </div>
                     </div>
 
-                    <!-- Mapa de ubicación -->
-                    <div class="h-[220px] sm:mt-0">
-                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3317.83015622892!2d-70.75218172368841!3d-33.73920777327639!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9663217aed7e0b0d%3A0x4dceec2b8bf5f5b6!2sSal%C3%B3n%20de%20belleza%20Nicolett%20Studio%20Fantasy!5e0!3m2!1ses!2scl!4v1791063769155!5m2!1ses!2scl" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                    <div>
+                        <a
+                            href="https://www.google.com/maps/search/?api=1&amp;query=Av.+Bernardo+O%27Higgins+979%2C+Buin%2C+Santiago"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="landing-contact-map-link mb-3"
+                            aria-label="Abrir la ubicación de Nicolett Studio Fantasy en Google Maps"
+                        >Abrir en Maps <span aria-hidden="true" class="ml-1">↗</span></a>
+                        <div class="landing-contact-map">
+                            <iframe
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3317.83015622892!2d-70.75218172368841!3d-33.73920777327639!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9663217aed7e0b0d%3A0x4dceec2b8bf5f5b6!2sSal%C3%B3n%20de%20belleza%20Nicolett%20Studio%20Fantasy!5e0!3m2!1ses!2scl!4v1791063769155!5m2!1ses!2scl"
+                                title="Ubicación de Nicolett Studio Fantasy en Google Maps"
+                                loading="lazy"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allowfullscreen
+                            ></iframe>
+                        </div>
                     </div>
                 </div>
 
-                <div class="p-6 bg-customAltBg border border-customBorder">
-                    <p class="text-xs text-customMuted leading-relaxed">Para gestionar <strong class="font-semibold text-customDark">historial de servicios, compra de productos y mucho más</strong>, crea una cuenta o inicia sesión. Desde tu perfil podrás gestionar tus citas más fácilmente.</p>
-                    <a href="{% url 'login' %}?tab=register" class="inline-block text-xs font-bold tracking-widest uppercase mt-4 text-customDark hover:text-customAccent transition">Crear cuenta →</a>
+                <div class="landing-contact-account">
+                    <p class="text-xs leading-relaxed">Para gestionar <strong class="font-semibold">historial de servicios, compra de productos y mucho más</strong>, crea una cuenta o inicia sesión. Desde tu perfil podrás gestionar tus citas más fácilmente.</p>
+                    <a href="{% url 'login' %}?tab=register" class="inline-block text-xs font-bold tracking-widest uppercase mt-4 hover:text-customAccent transition">Crear cuenta →</a>
                 </div>
             </div>
 
-            <div class="lg:mt-16">
-                <form method="POST" class="space-y-5 bg-white p-9 border border-customBorder shadow-sm">
+            <div>
+                <form method="POST" class="landing-contact-form space-y-5">
                     {% csrf_token %}
-                    <!-- Fila 1: Nombre y apellido -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Nombre</label>
-                            <input type="text" name="nombre" placeholder="Valentina" class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent">
+                            <label for="contact-nombre" class="block text-[10px] uppercase tracking-widest font-semibold mb-2">Nombre</label>
+                            <input id="contact-nombre" type="text" name="nombre" placeholder="Valentina" class="w-full border p-3.5 text-xs focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Apellido</label>
-                            <input type="text" name="apellido" placeholder="González" class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent">
+                            <label for="contact-apellido" class="block text-[10px] uppercase tracking-widest font-semibold mb-2">Apellido</label>
+                            <input id="contact-apellido" type="text" name="apellido" placeholder="González" class="w-full border p-3.5 text-xs focus:outline-none">
                         </div>
                     </div>
-
-                    <!-- Fila 2: Email y teléfono -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Email de contacto</label>
-                            <input type="email" name="email" placeholder="valentina@ejemplo.cl" class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent">
+                            <label for="contact-email" class="block text-[10px] uppercase tracking-widest font-semibold mb-2">Email de contacto</label>
+                            <input id="contact-email" type="email" name="email" placeholder="valentina@ejemplo.cl" class="w-full border p-3.5 text-xs focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Teléfono de contacto</label>
-                            <input type="tel" name="telefono" placeholder="+56 9 1234 5678" class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent">
+                            <label for="contact-telefono" class="block text-[10px] uppercase tracking-widest font-semibold mb-2">Teléfono de contacto</label>
+                            <input id="contact-telefono" type="tel" name="telefono" placeholder="+56 9 1234 5678" class="w-full border p-3.5 text-xs focus:outline-none">
                         </div>
                     </div>
-
-                    <!-- Asunto -->
                     <div>
-                        <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Asunto</label>
-                        <input type="text" name="asunto" placeholder="Consulta sobre colorimetría" class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent">
+                        <label for="contact-asunto" class="block text-[10px] uppercase tracking-widest font-semibold mb-2">Asunto</label>
+                        <input id="contact-asunto" type="text" name="asunto" placeholder="Consulta sobre colorimetría" class="w-full border p-3.5 text-xs focus:outline-none">
                     </div>
-
-                    <!-- Mensaje -->
                     <div>
-                        <label class="block text-[10px] uppercase tracking-widest text-customMuted font-semibold mb-2">Mensaje</label>
-                        <textarea rows="4" name="mensaje" placeholder="Cuéntanos en qué podemos ayudarte..." class="w-full border border-customBorder p-3.5 text-xs bg-customAltBg/50 focus:outline-none focus:border-customAccent"></textarea>
+                        <label for="contact-mensaje" class="block text-[10px] uppercase tracking-widest font-semibold mb-2">Mensaje</label>
+                        <textarea id="contact-mensaje" rows="5" name="mensaje" placeholder="Cuéntanos en qué podemos ayudarte..." class="w-full border p-3.5 text-xs focus:outline-none"></textarea>
                     </div>
-
-                    <button type="submit" class="w-full bg-customDeep text-customBg text-xs tracking-[0.2em] uppercase py-4 transition hover:bg-customDark">Enviar mensaje</button>
+                    <button type="submit" class="w-full text-xs tracking-[0.2em] uppercase py-4 transition">Enviar mensaje</button>
                 </form>
-                <!-- Bloque para mostrar el mensaje de éxito o error en pantalla -->
                 {% if messages %}
-                    <div class="mt-4">
+                    <div class="mt-4" aria-live="polite">
                         {% for message in messages %}
                             <div class="p-4 text-xs font-medium text-center {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-300{% else %}bg-red-100 text-red-800 border border-red-300{% endif %}">
                                 {{ message }}

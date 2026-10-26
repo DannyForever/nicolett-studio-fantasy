@@ -12,7 +12,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <!-- Nuestro archivo CSS externo y profesional -->
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261023-5">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261026-1">
     {% block extra_head %}{% endblock %}
 </head>
 
@@ -34,10 +34,6 @@
                         <h3 class="text-white">Nicolett</h3>
                         <span class="sidebar-subtitle">Gestión del salón</span>
                     </div>
-                    <button type="button" class="admin-sidebar-collapse-toggle" id="adminSidebarCollapseToggle"
-                            aria-label="Contraer menú" aria-expanded="true" aria-controls="adminSidebar" title="Contraer menú">
-                        <i class="fas fa-bars" aria-hidden="true"></i>
-                    </button>
                 </div>
             </div>
             {% if request.user.rol.nombre == 'Colaborador' %}
@@ -100,6 +96,10 @@
             </form>
         </div>
     </nav>
+    <button type="button" class="admin-sidebar-collapse-toggle" id="adminSidebarCollapseToggle"
+            aria-label="Contraer menú" aria-expanded="true" aria-controls="adminSidebar" title="Contraer menú">
+        <i class="fas fa-bars" aria-hidden="true"></i>
+    </button>
 
     <!-- Contenido principal dinámico -->
     <main class="main-content">
