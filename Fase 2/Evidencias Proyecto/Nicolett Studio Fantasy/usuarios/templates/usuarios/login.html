@@ -237,8 +237,10 @@
         }
         body.auth-page > header {
             border-color: #c49a52 !important;
-            background: linear-gradient(110deg, #f3dfb4, #d6b16c 50%, #f3dfb4) !important;
-            color: #4b2c0b !important;
+            background:
+                radial-gradient(ellipse at 50% 0%, rgb(116 75 36 / 36%), transparent 62%),
+                linear-gradient(120deg, #24170f, #49301d 48%, #21150f) !important;
+            color: #f3dfb4 !important;
             box-shadow: 0 3px 12px rgb(84 51 14 / 20%);
         }
         body.auth-page > header > a:first-child > div > span {
@@ -255,7 +257,7 @@
         body.auth-page > header button i,
         body.auth-page > header i,
         body.auth-page > header > div {
-            color: #4b2c0b !important;
+            color: #f3dfb4 !important;
         }
         body.auth-page > header > div > a[aria-label="Ingresar a clientes"],
         body.auth-page > header > div > a[aria-label="Ir a mi cuenta de cliente"] {
@@ -806,12 +808,12 @@
             width: min(96%, 1480px);
             margin: 0 auto;
             border: 1px solid #c49a52 !important;
-            border-radius: 18px;
+            border-radius: 0 0 18px 18px;
         }
         .auth-page .auth-page-layout {
             width: min(96%, 1480px) !important;
             max-width: 1480px;
-            margin: 16px auto;
+            margin: 0 auto;
             overflow: hidden !important;
             border-radius: 22px;
             box-shadow: 0 8px 26px rgb(75 44 11 / 12%);
@@ -824,9 +826,9 @@
             flex: 0 0 auto;
             padding: 32px 64px !important;
             gap: normal;
-            margin: 0 auto 16px;
+            margin: 0 auto;
             border: 1px solid #60401e !important;
-            border-radius: 18px;
+            border-radius: 18px 18px 0 0;
         }
         @media (max-width: 1023px) {
             body.auth-page > footer {
@@ -849,6 +851,263 @@
                 margin-top: 1rem;
             }
         }
+        body.auth-page {
+            background: #f5eee2 !important;
+        }
+        body.auth-page > header {
+            border: 0 !important;
+            box-shadow: 0 4px 16px rgb(30 19 11 / 18%);
+        }
+        body.auth-page > header > div > a[aria-label="Ingresar a clientes"] {
+            border-color: transparent !important;
+            color: #3b250e !important;
+            font-weight: 700;
+        }
+        body.auth-page > header > div > a[aria-label="Ingresar a clientes"] span,
+        body.auth-page > header > div > a[aria-label="Ingresar a clientes"] i {
+            color: #3b250e !important;
+        }
+        .auth-page .auth-page-layout {
+            flex: 1 1 auto !important;
+            height: 0;
+            min-height: 0;
+            overflow: hidden !important;
+            background: #fffdf9 !important;
+            box-shadow: 0 18px 48px rgb(48 31 16 / 18%);
+            border-radius: 22px;
+        }
+        .auth-page .login-deco {
+            flex: 0 0 40% !important;
+            width: 40% !important;
+            padding: 0 !important;
+            background: #5a3920 !important;
+        }
+        .auth-page .login-deco::before {
+            display: none;
+        }
+        .auth-page .login-deco > img {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            border-radius: 0;
+            object-position: center;
+            box-shadow: none;
+        }
+        .auth-page .login-deco > div:last-child {
+            display: block;
+            padding: 32px clamp(22px, 4vw, 52px);
+            background: linear-gradient(0deg, rgb(36 23 15 / 82%), transparent 100%);
+        }
+        .auth-page .auth-form-panel {
+            flex: 1 1 60% !important;
+            width: 60%;
+            padding: clamp(12px, 1.5vw, 18px) clamp(24px, 4vw, 56px) !important;
+            background: #fffdf9 !important;
+            overflow-y: auto !important;
+            scrollbar-color: #9a6a26 #f5e9d0;
+            scrollbar-width: thin;
+        }
+        .auth-page .auth-form-panel.is-register {
+            overflow-y: auto !important;
+        }
+        .auth-page .auth-form-card {
+            max-width: 560px !important;
+            padding: 0 !important;
+            border: 0;
+            border-radius: 0;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+        .auth-page .auth-form-card > div[style*="border-bottom"] {
+            display: flex;
+            gap: 8px;
+            margin: 0 0 28px !important;
+            padding: 5px;
+            border: 0 !important;
+            border-radius: 999px;
+            background: #f4ecdf !important;
+        }
+        .auth-page #btn-login,
+        .auth-page #btn-register {
+            min-height: 44px;
+            border: 0 !important;
+            border-radius: 999px;
+            font-size: 0.78rem !important;
+            letter-spacing: 0.08em !important;
+            font-weight: 600;
+            transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+        }
+        .auth-page #btn-login[aria-selected="true"],
+        .auth-page #btn-register[aria-selected="true"] {
+            background: linear-gradient(120deg, #6e471e, #b78a43) !important;
+            color: #fffaf0 !important;
+            box-shadow: 0 4px 12px rgb(75 44 11 / 18%);
+        }
+        .auth-page #btn-login[aria-selected="false"],
+        .auth-page #btn-register[aria-selected="false"] {
+            background: transparent !important;
+            color: #765a37 !important;
+        }
+        .auth-page .auth-brand {
+            margin-bottom: 12px;
+        }
+        .auth-page .auth-brand p {
+            margin-bottom: 6px;
+            color: #8d744f;
+            letter-spacing: 0.12em;
+        }
+        .auth-page .auth-brand h1 {
+            color: #49301d;
+            font-size: clamp(1.8rem, 3vw, 2.4rem);
+        }
+        .auth-page .auth-brand span {
+            color: #a9782d;
+        }
+        .auth-page #section-login > p {
+            display: none !important;
+        }
+        .auth-page #section-login form {
+            gap: 20px !important;
+        }
+        .auth-page #section-login form label {
+            color: #755a36 !important;
+            font-size: 11px !important;
+            letter-spacing: 0.15em !important;
+            text-transform: uppercase;
+        }
+        .auth-page #section-login form .form-input,
+        .auth-page #section-register .form-input {
+            min-height: 48px;
+            border: 0 !important;
+            border-bottom: 1px solid #d6c6ab !important;
+            border-radius: 0;
+            background: #fffdf9 !important;
+            color: #38291a;
+        }
+        .auth-page #section-login form .form-input:focus,
+        .auth-page #section-register .form-input:focus {
+            border-bottom-color: #9a6a26 !important;
+            box-shadow: 0 1px 0 #9a6a26 !important;
+        }
+        .auth-page #section-login form div[style*="justify-content: space-between"] a {
+            color: #9a6a26 !important;
+        }
+        .auth-page .auth-submit-button {
+            min-height: 48px;
+            border: 0 !important;
+            border-radius: 999px;
+            background: linear-gradient(120deg, #6e471e, #b78a43) !important;
+            color: #fffaf0 !important;
+            box-shadow: 0 6px 16px rgb(75 44 11 / 20%) !important;
+        }
+        .auth-page .registration-card {
+            padding: 0;
+            border: 0;
+            background: transparent;
+        }
+        .auth-page .registration-brand {
+            margin-bottom: 8px;
+        }
+        .auth-page .registration-brand-label {
+            margin: 0 0 6px;
+            color: #8d744f !important;
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .auth-page .registration-description,
+        .auth-page .registration-card label {
+            color: #6b5643 !important;
+        }
+        .auth-page .registration-brand-name {
+            margin: 0;
+            color: #49301d !important;
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(1.8rem, 3vw, 2.4rem);
+            font-weight: 700;
+            line-height: 1.15;
+        }
+        .auth-page #form-register {
+            gap: 12px !important;
+            padding-bottom: 0 !important;
+        }
+        .auth-page #section-register #form-register .form-input {
+            min-height: 48px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            font-size: 14px;
+            background: #fffdf9 !important;
+            text-align: left;
+        }
+        .auth-page #form-register label {
+            margin-bottom: 6px !important;
+            font-size: 11px !important;
+            line-height: 1.35;
+        }
+        .auth-page #section-register .registration-description {
+            display: none !important;
+        }
+        .auth-page #form-register .registration-feedback {
+            padding: 7px 10px !important;
+            font-size: 11px !important;
+        }
+        .auth-page #form-register .auth-submit-button {
+            min-height: 48px;
+        }
+        .auth-page .registration-brand {
+            margin-bottom: 12px;
+        }
+        @media (max-width: 700px) {
+            body.auth-page {
+                height: auto !important;
+                min-height: 100vh;
+                overflow-y: auto !important;
+            }
+            .auth-page .auth-page-layout {
+                flex-direction: column;
+                flex: 0 0 68dvh !important;
+                height: 68dvh !important;
+                min-height: 480px;
+                max-height: 620px;
+                overflow: hidden !important;
+                border-radius: 22px;
+            }
+            .auth-page .login-deco {
+                flex: 0 0 230px !important;
+                width: 100% !important;
+                height: 230px !important;
+            }
+            .auth-page .login-deco > div:last-child {
+                padding: 20px 24px;
+            }
+            .auth-page .auth-form-panel {
+                flex: 1 1 auto !important;
+                width: 100%;
+                min-height: 0 !important;
+                padding: 28px clamp(20px, 7vw, 48px) !important;
+                overflow-y: auto !important;
+            }
+        }
+        @media (max-width: 560px) {
+            body.auth-page {
+                height: auto !important;
+                min-height: 100vh;
+                overflow-y: auto !important;
+            }
+            .auth-page .auth-page-layout {
+                flex: 0 0 68dvh !important;
+                margin-top: 0;
+                margin-bottom: 0;
+                overflow: hidden !important;
+            }
+            .auth-page .login-deco {
+                flex-basis: 190px !important;
+                height: 190px !important;
+            }
+            .auth-page .auth-form-panel {
+                min-height: 0;
+            }
+        }
     </style>
 </head>
 <body class="bg-customBg font-sans text-customDark antialiased{% if exito %} registration-success-page{% else %} auth-page{% endif %}" style="display: flex; flex-direction: column; height: 100vh; overflow: hidden; margin: 0;">
@@ -860,7 +1119,7 @@
         
         <!-- DECO / IMAGEN IZQUIERDA -->
         <div style="flex: 0 0 42%; min-height: 0; position: relative; overflow: hidden; background-color: #ead7bc;" class="login-deco">
-            <img src="{% static 'img/login-salon-color.png' %}" alt="" aria-hidden="true" style="width: 100%; height: 100%; object-fit: cover;" />
+            <img src="{% static 'img/login/fondo_login.jpg' %}" alt="" aria-hidden="true" style="width: 100%; height: 100%; object-fit: cover;" />
             <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(42,35,32,0.72) 0%, rgba(201,169,155,0.3) 100%);"></div>
             <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 32px 40px;">
                 <a href="{% url 'home' %}" style="text-decoration: none; color: #fffaf5;">
@@ -918,10 +1177,6 @@
                     </div>
                     {% endif %}
                     {% endif %}
-                    <p style="{% if exito %}display: none;{% endif %} font-size: 13px; color: #6b5643; margin-bottom: 24px; line-height: 1.6;">
-                        Ingresa con tu cuenta para gestionar tus citas, ver tu historial y acceder a promociones exclusivas.
-                    </p>
-
                     <!-- CAJITA DE ÉXITO CUANDO SE REGISTRA -->
                     <!-- CAJITA DE ERROR SI LLEGA A HABERLO -->
                     {% if error %}
@@ -958,18 +1213,16 @@
                 <!-- SECCIÓN CREAR CUENTA -->
                 <div id="section-register" style="display: {% if mostrar_registro %}block{% else %}none{% endif %};">
                     <div class="registration-card">
-                    <div class="registration-brand">
-                        <p class="registration-brand-label">Crea una cuenta en</p>
-                        <h1 class="registration-brand-name">Nicolett Studio Fantasy</h1>
+                    <div class="auth-brand registration-brand">
+                        <p>Crea una cuenta en</p>
+                        <h1>Nicolett</h1>
+                        <span>Studio Fantasy</span>
                     </div>
                     {% if error and mostrar_registro %}
                     <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #f8d7da; border-left: 3px solid #dc3545; color: #721c24; font-size: 12px; line-height: 1.5;">
                         {{ error }}
                     </div>
                     {% endif %}
-                    <p class="registration-description" style="font-size: 13px; color: #6b5643; margin-bottom: 20px; line-height: 1.6;">
-                        Crea tu cuenta y disfruta de venta de productos, agendamiento online con seguimiento e historial de servicios ya realizados.
-                    </p>
                     <form id="form-register" method="POST" action="{% url 'register' %}" onsubmit="return validarRegister(event)" style="display: flex; flex-direction: column; gap: 14px; padding-bottom: 16px;">
                         {% csrf_token %}
                         

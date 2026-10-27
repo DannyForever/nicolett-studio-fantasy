@@ -569,7 +569,7 @@ class RoleAccessTests(TestCase):
     def test_depilation_menu_has_individual_appointments(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
-        categoria = Categoria.objects.get(nombre='Depilación Trilaser')
+        categoria = Categoria.objects.get(nombre='Depilación', tipo='servicio')
         precios = {
             'Pierna completa': 15000,
             'Media pierna': 7000,
@@ -648,7 +648,7 @@ class RoleAccessTests(TestCase):
     def test_lash_brow_flyer_replaces_repeated_service_list(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
-        categoria = Categoria.objects.get(nombre='Lash & Brow')
+        categoria = Categoria.objects.get(nombre='Lash & brow', tipo='servicio')
         precios = {
             'Laminado de cejas': 20000,
             'Lifting coreano': 25000,
@@ -1156,19 +1156,31 @@ class RoleAccessTests(TestCase):
     def test_customers_only_see_active_services_and_products(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
-        categoria = Categoria.objects.create(nombre='Cabello', tipo='Tratamientos')
-        categoria_depilacion, _ = Categoria.objects.get_or_create(
-            nombre='Depilación Trilaser',
-            defaults={'tipo': 'Depilación Trilaser'},
+        categoria = Categoria.objects.get(nombre='Cortes & estilos', tipo='servicio')
+        categoria_tratamientos = Categoria.objects.get(
+            nombre='Tratamientos capilares',
+            tipo='servicio',
+        )
+        categoria_manos = Categoria.objects.get(
+            nombre='Nail care & beauty',
+            tipo='servicio',
+        )
+        categoria_colorimetria = Categoria.objects.get(
+            nombre='Colorimetría',
+            tipo='servicio',
+        )
+        categoria_depilacion = Categoria.objects.get(
+            nombre='Depilación',
+            tipo='servicio',
         )
         depilacion_facial = Servicio.objects.get(
             nombre='Rostro completo',
             categoria=categoria_depilacion,
         )
-        categoria_peluqueria = Categoria.objects.get(nombre='Peluquería')
+        categoria_peinados = Categoria.objects.get(nombre='Peinados', tipo='servicio')
         peinado_sencillo, _ = Servicio.objects.get_or_create(
             nombre='Peinado sencillo',
-            categoria=categoria_peluqueria,
+            categoria=categoria_peinados,
             defaults={
                 'descripcion': 'Peinado sencillo para una ocasión especial.',
                 'precio': 10000,
@@ -1178,7 +1190,7 @@ class RoleAccessTests(TestCase):
         )
         manicure_prueba = Servicio.objects.create(
             nombre='Manicure clásica de prueba',
-            categoria=categoria_peluqueria,
+            categoria=categoria_manos,
             descripcion='Limado, cuidado de cutículas y esmaltado tradicional.',
             precio=15000,
             duracion_minutos=60,
@@ -1186,16 +1198,13 @@ class RoleAccessTests(TestCase):
         )
         colorimetria = Servicio.objects.create(
             nombre='Colorimetría',
-            categoria=categoria_peluqueria,
+            categoria=categoria_colorimetria,
             descripcion='Diagnóstico personalizado de color, tinte, balayage y decoloración con productos de alta gama.',
             precio=20000,
             duracion_minutos=60,
             activo=True,
         )
-        categoria_podologia, _ = Categoria.objects.get_or_create(
-            nombre='Podología',
-            defaults={'tipo': 'Podología'},
-        )
+        categoria_podologia = Categoria.objects.get(nombre='Podología', tipo='servicio')
         podologia = Servicio.objects.create(
             nombre='Podología',
             categoria=categoria_podologia,
@@ -1216,7 +1225,7 @@ class RoleAccessTests(TestCase):
         )
         tratamiento_prueba = Servicio.objects.create(
             nombre='Tratamiento capilar de prueba',
-            categoria=categoria,
+            categoria=categoria_tratamientos,
             descripcion='Hidratación intensiva para un cabello suave y brillante.',
             precio=22000,
             duracion_minutos=50,
@@ -1258,6 +1267,14 @@ class RoleAccessTests(TestCase):
         ProfesionalCategoria.objects.create(
             profesional=profesional,
             categoria_id=categoria.pk,
+        )
+        ProfesionalCategoria.objects.get_or_create(
+            profesional=profesional,
+            categoria_id=categoria_tratamientos.pk,
+        )
+        ProfesionalCategoria.objects.get_or_create(
+            profesional=profesional,
+            categoria_id=categoria_colorimetria.pk,
         )
         ProfesionalCategoria.objects.get_or_create(
             profesional=profesional,
@@ -1319,9 +1336,13 @@ class RoleAccessTests(TestCase):
             fecha_especifica=fecha,
             intervalo_minutos=60,
         )
+        categoria_producto = Categoria.objects.create(
+            nombre='Cuidado capilar',
+            tipo='producto',
+        )
         producto = Producto.objects.create(
             nombre='Shampoo de prueba',
-            categoria=categoria,
+            categoria=categoria_producto,
             descripcion='Producto de prueba para clientes.',
             precio=9900,
             stock=5,
@@ -1330,7 +1351,7 @@ class RoleAccessTests(TestCase):
         )
         Producto.objects.create(
             nombre='Producto oculto',
-            categoria=categoria,
+            categoria=categoria_producto,
             descripcion='No debe aparecer al cliente.',
             precio=5000,
             stock=1,
@@ -1338,7 +1359,7 @@ class RoleAccessTests(TestCase):
         )
         Producto.objects.create(
             nombre='Producto sin stock',
-            categoria=categoria,
+            categoria=categoria_producto,
             descripcion='No debe aparecer sin stock.',
             precio=5000,
             stock=0,
@@ -1708,7 +1729,7 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(productos, 'Producto oculto')
         self.assertNotContains(productos, 'Producto sin stock')
         self.assertContains(productos, 'id="catalog-search"')
-        self.assertContains(productos, 'data-category-filter="Cabello"')
+        self.assertContains(productos, 'data-category-filter="Cuidado capilar"')
         self.assertNotContains(productos, 'data-category-filter="Tratamientos"')
         self.assertContains(productos, 'border-[#ead7bc]')
         self.assertContains(productos, 'Producto de prueba para clientes.')
@@ -1976,7 +1997,7 @@ class RoleAccessTests(TestCase):
         self.assertEqual(start['Location'], reverse('cliente_home'))
         self.assertEqual(home.status_code, 200)
         self.assertContains(home, 'Vista previa de colaborador')
-        self.assertContains(home, 'Volver a Mi agenda')
+        self.assertContains(home, 'Volver a Vista colaborador')
         self.assertNotContains(home, 'id="cart-summary-toggle"')
         self.assertEqual(products.status_code, 200)
         self.assertContains(products, 'Mascarilla demostración')
@@ -2151,8 +2172,9 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'max-width: 700px !important')
         self.assertContains(
             response,
-            'linear-gradient(110deg, #f3dfb4, #d6b16c 50%, #f3dfb4) !important',
+            'linear-gradient(120deg, #24170f, #49301d 48%, #21150f) !important',
         )
+        self.assertContains(response, 'color: #f3dfb4 !important;')
         self.assertContains(response, 'background: linear-gradient(45deg, #833ab4, #e4405f 55%, #fcaf45)')
         self.assertContains(response, 'color: #25d366 !important')
         self.assertNotContains(response, '<span>Instagram</span>')
@@ -2175,18 +2197,33 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'id="section-register" style="display: block;"')
         self.assertContains(response, 'class="auth-form-panel is-register"')
         self.assertContains(response, 'aria-selected="true"')
+        self.assertContains(response, '.auth-page #section-register #form-register .form-input {\n            min-height: 48px;')
+        self.assertContains(response, 'class="auth-brand registration-brand"')
+        self.assertContains(response, '<h1>Nicolett</h1>')
+        self.assertContains(response, '<span>Studio Fantasy</span>')
+        self.assertNotContains(response, 'auth-page-register')
+        self.assertNotContains(response, 'Crea tu cuenta y disfruta de venta de productos')
+        self.assertNotContains(response, 'Ingresa con tu cuenta para gestionar tus citas')
+        self.assertContains(response, 'border-radius: 22px;')
+        self.assertContains(response, 'overflow-y: auto !important;')
+        self.assertContains(response, 'margin: 0 auto;')
 
     def test_login_page_uses_requested_salon_background_without_schedule_overlay(self):
         response = self.client.get(reverse('login'))
 
         self.assertContains(response, 'class="auth-page')
         self.assertContains(response, 'class="auth-page-layout"')
+        self.assertContains(response, 'margin: 0 auto;')
         self.assertContains(response, 'class="auth-form-panel"')
         self.assertContains(response, 'overflow: hidden !important')
-        self.assertContains(response, 'img/login-salon-color.png')
+        self.assertContains(response, 'img/login/fondo_login.jpg')
+        self.assertContains(response, 'flex: 0 0 40% !important;')
+        self.assertContains(response, 'background: #fffdf9 !important;')
         self.assertContains(response, 'Ingresa a tu cuenta en')
         self.assertContains(response, 'id="btn-login"')
         self.assertContains(response, 'id="btn-register"')
+        self.assertContains(response, 'border-radius: 0 0 18px 18px;')
+        self.assertContains(response, 'border-radius: 18px 18px 0 0;')
         self.assertNotContains(response, 'Agenda abierta')
 
     def test_authenticated_client_header_hides_sign_in_and_registration_buttons(self):
@@ -2224,11 +2261,15 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'aria-current="page"')
         self.assertContains(
             response,
-            'href="{}" title="Servicios" aria-label="Servicios" class="nav-link active"'.format(reverse('listar_servicios')),
+            '<summary class="nav-link active" aria-label="Desplegar categorías de servicios" aria-current="page">',
+        )
+        self.assertContains(
+            response,
+            f'class="sidebar-catalog-action active" href="{reverse("listar_servicios")}" aria-current="page">Ver todos</a>',
         )
         self.assertContains(response, 'Cambiar vista')
         self.assertContains(response, reverse('admin_vista_cliente'))
-        self.assertContains(response, 'dashboard.css?v=20261026-1')
+        self.assertContains(response, 'dashboard.css?v=20261027-5')
 
     def test_customer_can_update_account_details_and_password(self):
         cliente = self.crear_cliente()

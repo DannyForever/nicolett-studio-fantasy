@@ -5,19 +5,39 @@ from django.urls import reverse
 
 
 class LandingPageNavigationTests(TestCase):
-    def test_landing_gallery_uses_the_golden_composition_with_clickable_instagram_links(self):
+    def test_landing_gallery_shows_three_image_carousel_with_instagram_profile_link(self):
         response = self.client.get(reverse('home'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<section id="galeria" class="landing-gallery-section"')
-        self.assertContains(response, 'img/galeria-completa-dorada.png')
         self.assertContains(response, 'class="landing-gallery-poster"')
-        self.assertEqual(response.content.count(b'class="landing-gallery-link landing-gallery-post'), 8)
-        self.assertContains(response, 'aria-label="Ver más publicaciones en Instagram"')
-        self.assertNotContains(response, 'DbiomKORWY7')
-        self.assertNotContains(response, 'DbioRK0R5ze')
-        self.assertContains(response, 'https://www.instagram.com/reel/DYNLW_xRXgW/')
-        self.assertContains(response, 'https://www.instagram.com/reel/DYNKxxLR-c2/')
+        self.assertContains(response, '<p class="landing-gallery-kicker">Nuestro trabajo</p>')
+        self.assertContains(response, '<h2>Galería</h2>')
+        self.assertContains(response, "img/pag_principal/galeria/fondo_galeria.jpg")
+        self.assertContains(response, 'data-gallery-carousel role="region" aria-label="Trabajos recientes" tabindex="0"')
+        self.assertContains(response, 'data-gallery-track')
+        self.assertEqual(response.content.count(b'data-gallery-slide aria-label="Ver trabajo'), 6)
+        self.assertContains(response, 'flex: 0 0 var(--gallery-slide-width, 32%);')
+        self.assertContains(response, 'align-items: flex-start;')
+        self.assertContains(response, 'bottom: 14%;')
+        self.assertContains(response, 'border-radius: 0;')
+        self.assertContains(response, 'box-shadow: none;')
+        self.assertNotContains(response, 'data-gallery-previous')
+        self.assertNotContains(response, 'data-gallery-next')
+        self.assertContains(response, 'href="https://www.instagram.com/nicolettstudiofantasy"')
+        self.assertContains(response, 'Ver más en Instagram')
+        works = (
+            ('trabajo_01.jpg', 'Dc0yoC7RNZ6'),
+            ('trabajo_02.jpg', 'DYNKxxLR-c2'),
+            ('trabajo_03.jpg', 'DXt7KGakUtx'),
+            ('trabajo_04.jpg', 'C8bEEJUO_5d'),
+            ('trabajo_05.jpg', 'DHWlL0ZyEOl'),
+            ('trabajo_06.jpg', 'DXt5W3nEdZa'),
+        )
+        for image, reel in works:
+            self.assertContains(response, f'img/pag_principal/galeria/{image}')
+            self.assertContains(response, f'https://www.instagram.com/reels/{reel}/')
+        self.assertNotContains(response, 'img/galeria-completa-dorada.png')
         self.assertEqual(response.content.count(b'https://www.instagram.com/embed.js'), 0)
 
     def test_landing_reviews_navigation_targets_google_reviews_section(self):
@@ -26,7 +46,8 @@ class LandingPageNavigationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'href="#resenas"')
         self.assertContains(response, '<section id="resenas" class="landing-reviews-section"')
-        self.assertContains(response, 'background-image: url("/static/img/pag_principal/resenas/fondo_resenas.jpg")')
+        self.assertContains(response, 'linear-gradient(125deg, #e8cc8f, #f8ebc9 48%, #d8b66e)')
+        self.assertNotContains(response, 'img/pag_principal/resenas/fondo_resenas.jpg')
         self.assertContains(response, 'img/pag_principal/resenas/marco_resena.png')
         self.assertNotContains(response, 'resenas_marcos.jpg')
         self.assertEqual(response.content.count(b'class="landing-review-card landing-review-card-'), 3)
@@ -34,6 +55,9 @@ class LandingPageNavigationTests(TestCase):
         self.assertEqual(response.content.count(b'class="landing-review-google-g"'), 3)
         self.assertNotContains(response, 'Ver reseña en Google Maps')
         self.assertContains(response, 'Lo que dicen en Google Maps')
+        self.assertContains(response, 'padding: clamp(34px, 5vw, 64px) 0 clamp(36px, 5vw, 64px);')
+        self.assertContains(response, 'font-size: clamp(1.05rem, 1.6vw, 1.4rem);')
+        self.assertContains(response, 'font-size: 1.15rem;')
         self.assertContains(response, 'Nuestras clientas')
         self.assertContains(response, 'servicio es 10/10')
         self.assertContains(response, 'Leer en Google Maps la reseña de María N.')
@@ -42,7 +66,10 @@ class LandingPageNavigationTests(TestCase):
         self.assertContains(response, 'https://maps.app.goo.gl/o64JrZsmmMyn3hDNA')
         self.assertContains(response, 'https://maps.app.goo.gl/LT6kGLR7xncssqS19')
         self.assertContains(response, 'https://maps.app.goo.gl/Hhd1TDNqLEfaotAp7')
-        self.assertContains(response, '.landing-gallery-section {\n            scroll-margin-top: 85px;\n            padding: 0;\n            background: #fae9cf;')
+        self.assertContains(
+            response,
+            '.landing-gallery-section {\n            scroll-margin-top: 85px;\n            padding: clamp(14px, 2vw, 24px);\n            background: #f7f3ed;',
+        )
 
     def test_full_width_hero_precedes_about_and_services_posters(self):
         response = self.client.get(reverse('home'))
@@ -53,6 +80,7 @@ class LandingPageNavigationTests(TestCase):
             '#inicio,\n        #nosotras,\n        #servicios,\n        #galeria,\n        #resenas,\n        #contacto {\n            width: min(96%, 1480px);\n            max-width: 1480px;\n            margin: clamp(14px, 2vw, 24px) auto;',
         )
         self.assertContains(response, 'width: min(96%, 1480px);')
+        self.assertContains(response, '.landing-poster-page > footer {\n            width: min(96%, 1480px);\n            max-width: 1480px;\n            margin: 0 auto;')
         self.assertContains(response, 'border-radius: 22px;')
         self.assertContains(response, 'background-image: url("/static/img/pag_principal/inicio/fondo_inicio.jpg")')
         content = response.content.decode()
@@ -69,8 +97,10 @@ class LandingPageNavigationTests(TestCase):
         self.assertContains(response, 'width: min(100%, 1480px);')
         self.assertContains(response, 'background: #fffaf5 !important;')
         self.assertContains(response, 'top: 0;')
-        self.assertContains(response, 'margin: 0 auto 16px;')
+        self.assertContains(response, 'margin: 0 auto;')
         self.assertContains(response, 'linear-gradient(120deg, #24170f, #49301d 48%, #21150f)')
+        self.assertContains(response, 'color: #f3dfb4 !important;')
+        self.assertContains(response, 'radial-gradient(ellipse at 50% 0%, rgb(116 75 36 / 36%), transparent 62%)')
         self.assertContains(response, 'height: auto;')
         self.assertContains(response, 'flex-direction: column;')
         self.assertContains(response, 'margin-left: auto;')
@@ -79,12 +109,14 @@ class LandingPageNavigationTests(TestCase):
         self.assertContains(response, 'body.auth-page > footer {')
         self.assertContains(response, 'class="accessibility-widget"')
 
-    def test_landing_hero_hides_scrollbar_and_keeps_navigation_functional(self):
+    def test_landing_hero_uses_saloon_colored_scrollbar_and_keeps_navigation_functional(self):
         response = self.client.get(reverse('home'))
 
         self.assertContains(response, '<html lang="es" class="scroll-smooth landing-poster-document">')
-        self.assertContains(response, '.landing-poster-document,\n        .landing-poster-page {\n            scrollbar-width: none !important;')
-        self.assertContains(response, 'html::-webkit-scrollbar,\n        body::-webkit-scrollbar {\n            display: none !important;\n            width: 0 !important;\n            height: 0 !important;')
+        self.assertContains(response, 'scrollbar-color: #9a6a26 #f5e9d0;')
+        self.assertContains(response, 'scrollbar-width: thin;')
+        self.assertContains(response, '.landing-poster-document::-webkit-scrollbar-thumb,\n        .landing-poster-page::-webkit-scrollbar-thumb {')
+        self.assertNotContains(response, 'display: none !important;\n            width: 0 !important;\n            height: 0 !important;')
         self.assertContains(response, 'overflow-x: hidden;')
         self.assertContains(response, 'href="#servicios" class="text-customDark transition hover:text-customAccent"')
         self.assertContains(response, 'href="#galeria" class="text-customDark transition hover:text-customAccent"')
@@ -143,7 +175,7 @@ class LandingPageNavigationTests(TestCase):
         self.assertNotContains(response, 'img/portada-completa-dorada.png')
         self.assertNotContains(response, 'landing-poster-services"')
 
-    def test_landing_services_use_the_golden_ornamental_design(self):
+    def test_landing_services_use_a_responsive_manual_and_automatic_carousel(self):
         response = self.client.get(reverse('home'))
 
         self.assertContains(response, 'id="servicios" class="landing-services-section"')
@@ -151,18 +183,35 @@ class LandingPageNavigationTests(TestCase):
         self.assertContains(response, '<p class="landing-services-eyebrow">Lo que ofrecemos</p>')
         self.assertContains(response, 'Nuestros servicios')
         self.assertEqual(response.content.decode().count('class="landing-service-card"'), 6)
-        self.assertEqual(response.content.decode().count('img/pag_principal/servicios/marco_servicio.png'), 6)
-        self.assertContains(response, 'width: min(100%, 400px);')
-        self.assertContains(response, 'top: 51%;\n            left: 31%;\n            width: 38%;')
-        self.assertContains(response, 'z-index: 2;\n            top: 23%;\n            left: 34%;')
-        self.assertContains(response, 'grid-template-columns: repeat(3, minmax(0, 1fr));')
+        self.assertEqual(response.content.decode().count('aria-roledescription="diapositiva"'), 6)
+        self.assertContains(response, 'data-service-carousel role="region" aria-roledescription="carrusel"')
+        self.assertContains(response, 'max-width: 1180px;')
         self.assertContains(response, 'grid-template-columns: repeat(2, minmax(0, 1fr));')
         self.assertContains(response, 'grid-template-columns: minmax(0, 1fr);')
+        self.assertContains(response, 'height: clamp(460px, 40vw, 520px);')
+        self.assertContains(response, '-webkit-line-clamp: 6;')
+        self.assertContains(response, '-webkit-line-clamp: 4;')
+        self.assertContains(response, 'data-service-previous aria-label="Servicio anterior"')
+        self.assertContains(response, 'data-service-next aria-label="Servicio siguiente"')
+        self.assertContains(response, 'data-service-toggle')
+        self.assertContains(response, '}, 10000);')
+        self.assertNotContains(response, 'img/pag_principal/servicios/marco_servicio.png')
+        self.assertEqual(response.content.decode().count('class="landing-service-detail"'), 12)
+        for value in (
+            'Desde $35.000',
+            'Desde $10.000',
+            'Desde $20.000',
+            'Desde $15.000',
+            'Desde $3.000',
+            'Desde $22.000',
+        ):
+            self.assertContains(response, value)
+        self.assertContains(response, 'Los precios y tiempos son referenciales.')
 
     def test_services_grid_coexists_with_shared_navigation(self):
         response = self.client.get(reverse('home'))
 
-        self.assertContains(response, 'class="landing-services-grid"')
+        self.assertContains(response, 'class="landing-services-carousel"')
         self.assertNotContains(response, 'class="landing-services-link')
         for section in ('servicios', 'nosotras', 'galeria', 'resenas', 'contacto'):
             self.assertContains(response, f'href="#{section}"')
@@ -194,9 +243,9 @@ class LandingPageNavigationTests(TestCase):
         for image in images:
             self.assertContains(response, f'img/pag_principal/servicios/{image}')
         self.assertEqual(content.count('<div class="landing-service-copy">'), 6)
-        self.assertContains(response, 'Asesoría de color personalizada')
-        self.assertContains(response, 'Cuidados capilares para nutrir, hidratar')
-        self.assertContains(response, 'Maquillaje social para eventos')
+        self.assertContains(response, 'Una evaluación personalizada de tu tono de piel')
+        self.assertContains(response, 'Tratamientos orientados a las necesidades de tu cabello')
+        self.assertContains(response, 'Maquillaje social adaptado a tu ocasión')
 
     def test_landing_about_section_uses_selectable_copy_and_requested_images(self):
         response = self.client.get(reverse('home'))
@@ -214,7 +263,7 @@ class LandingPageNavigationTests(TestCase):
         self.assertNotContains(response, 'img/nosotras-completo-dorado.png')
         self.assertNotContains(response, 'images.unsplash.com/photo-1629397685944-7073f5589754')
 
-    def test_contact_section_has_a_functional_form_and_full_embedded_map(self):
+    def test_contact_section_uses_a_rounded_split_layout_and_keeps_its_functional_form(self):
         response = self.client.get(reverse('home'))
 
         self.assertContains(
@@ -224,13 +273,18 @@ class LandingPageNavigationTests(TestCase):
         self.assertContains(response, '<form method="POST" class="landing-contact-form space-y-5">')
         self.assertContains(response, 'name="email"')
         self.assertContains(response, 'name="mensaje"')
+        self.assertContains(response, 'name="nombre"')
+        self.assertContains(response, 'name="apellido"')
+        self.assertContains(response, 'name="telefono"')
+        self.assertContains(response, 'name="asunto"')
         self.assertContains(response, '<button type="submit"')
+        self.assertContains(response, 'grid-template-columns: repeat(2, minmax(0, 1fr));')
+        self.assertContains(response, 'class="landing-contact-info"')
         self.assertContains(response, 'class="landing-contact-map"')
-        self.assertContains(response, 'height: 340px;')
-        self.assertContains(response, 'title="Ubicación de Nicolett Studio Fantasy en Google Maps"')
-        self.assertContains(response, 'aria-label="Abrir la ubicación de Nicolett Studio Fantasy en Google Maps"')
-        self.assertContains(response, 'https://www.google.com/maps/search/?api=1&amp;query=Av.+Bernardo+O%27Higgins+979%2C+Buin%2C+Santiago')
+        self.assertContains(response, 'class="landing-contact-account"')
         self.assertContains(response, 'www.google.com/maps/embed')
+        self.assertContains(response, 'border-radius: inherit;')
+        self.assertContains(response, 'border-radius: 20px;')
         self.assertNotContains(response, 'img/contacto-completo-dorado.png')
 
     def test_landing_keeps_existing_backgrounds_outside_services_section(self):
@@ -314,12 +368,11 @@ class LandingPageNavigationTests(TestCase):
         self.assertContains(response, 'text-[#25D366]')
         self.assertContains(response, 'from-[#833AB4] via-[#E4405F] to-[#FCAF45]')
 
-    def test_contact_section_keeps_live_registration_and_message_controls(self):
+    def test_contact_section_keeps_form_controls_and_restored_panels(self):
         response = self.client.get(reverse('home'))
 
-        self.assertContains(
-            response,
-            f'href="{reverse("login")}?tab=register" class="inline-block',
-        )
         self.assertContains(response, 'name="email"')
         self.assertContains(response, 'name="mensaje"')
+        self.assertContains(response, '<div class="landing-contact-map">')
+        self.assertContains(response, '<div class="landing-contact-account">')
+        self.assertContains(response, f'href="{reverse("login")}?tab=register"')

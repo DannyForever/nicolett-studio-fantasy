@@ -38,17 +38,23 @@
     <style>
         .landing-poster-document,
         .landing-poster-page {
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
+            scrollbar-color: #9a6a26 #f5e9d0;
+            scrollbar-width: thin;
             overflow-x: hidden;
         }
         .landing-poster-document::-webkit-scrollbar,
-        .landing-poster-page::-webkit-scrollbar,
-        html::-webkit-scrollbar,
-        body::-webkit-scrollbar {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
+        .landing-poster-page::-webkit-scrollbar {
+            width: 13px;
+        }
+        .landing-poster-document::-webkit-scrollbar-track,
+        .landing-poster-page::-webkit-scrollbar-track {
+            background: #f5e9d0;
+        }
+        .landing-poster-document::-webkit-scrollbar-thumb,
+        .landing-poster-page::-webkit-scrollbar-thumb {
+            border: 3px solid #f5e9d0;
+            border-radius: 999px;
+            background: linear-gradient(180deg, #c49a52, #79511c);
         }
         .bg-white {
             background-color: #ffffff !important;
@@ -62,11 +68,13 @@
             z-index: 100;
             width: min(96%, 1480px);
             transform: translateX(-50%);
-            border: 1px solid #c49a52 !important;
-            border-radius: 18px;
-            background: linear-gradient(110deg, #f3dfb4, #d6b16c 50%, #f3dfb4) !important;
-            color: #4b2c0b !important;
-            box-shadow: 0 3px 12px rgb(84 51 14 / 20%);
+            border: 0 !important;
+            border-radius: 0 0 18px 18px;
+            background:
+                radial-gradient(ellipse at 50% 0%, rgb(116 75 36 / 36%), transparent 62%),
+                linear-gradient(120deg, #24170f, #49301d 48%, #21150f) !important;
+            color: #f3dfb4 !important;
+            box-shadow: 0 4px 16px rgb(30 19 11 / 18%);
         }
         .landing-poster-page > header > a:first-child > div > span {
             display: block;
@@ -105,12 +113,22 @@
         .landing-poster-page > header span,
         .landing-poster-page > header p,
         .landing-poster-page > header i {
-            color: #4b2c0b !important;
+            color: #f3dfb4 !important;
         }
         .landing-poster-page > header > div > a[aria-label="Ingresar a clientes"],
         .landing-poster-page > header > div > a[aria-label="Ir a mi cuenta de cliente"] {
             border: 1px solid #9a702d;
             background: linear-gradient(#e7cb8f, #c49a52) !important;
+            color: #4b2c0b !important;
+        }
+        .landing-poster-page > header > div > a[aria-label="Ingresar a clientes"] i,
+        .landing-poster-page > header > div > a[aria-label="Ir a mi cuenta de cliente"] i {
+            color: #4b2c0b !important;
+        }
+        .landing-poster-page > header > div > a[aria-label="Ingresar a clientes"] span,
+        .landing-poster-page > header > div > a[aria-label="Ir a mi cuenta de cliente"] span {
+            color: #3b250e !important;
+            font-weight: 700;
         }
         #inicio,
         #servicios {
@@ -283,9 +301,9 @@
         .landing-poster-page > footer {
             width: min(96%, 1480px);
             max-width: 1480px;
-            margin: 0 auto 16px;
+            margin: 0 auto;
             border: 1px solid #60401e;
-            border-radius: 18px;
+            border-radius: 18px 18px 0 0;
         }
         @media (max-width: 1023px) {
             .landing-poster {
@@ -353,91 +371,257 @@
             text-align: center;
             text-transform: uppercase;
         }
-        .landing-services-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: clamp(22px, 3vw, 44px) clamp(18px, 2.5vw, 36px);
-            max-width: 1280px;
+        .landing-services-carousel {
+            max-width: 1180px;
             margin: 0 auto;
+            overflow: hidden;
+            border: 1px solid rgba(189, 140, 67, 0.35);
+            border-radius: clamp(22px, 3vw, 36px);
+            background: #fffdf9;
+            box-shadow: 0 24px 70px rgba(65, 43, 22, 0.2);
         }
         .landing-service-card {
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+            height: clamp(460px, 40vw, 520px);
             min-width: 0;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
+            animation: landing-service-appear 420ms ease both;
         }
-        .landing-service-art {
-            position: relative;
-            width: min(100%, 400px);
-            aspect-ratio: 4 / 5;
-            margin: 0 auto;
+        .landing-service-card[hidden] {
+            display: none;
         }
-        .landing-service-photo,
-        .landing-service-frame {
-            position: absolute;
-            display: block;
+        @keyframes landing-service-appear {
+            from {
+                opacity: 0.55;
+                transform: translateX(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .landing-service-media {
+            min-height: 100%;
+            overflow: hidden;
+            background: #ead7bc;
         }
         .landing-service-photo {
-            z-index: 2;
-            top: 23%;
-            left: 34%;
-            width: 32%;
-            height: 26%;
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: 360px;
             object-fit: cover;
             object-position: center;
         }
-        .landing-service-frame {
-            z-index: 1;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            pointer-events: none;
-        }
         .landing-service-copy {
-            position: absolute;
-            z-index: 2;
-            top: 51%;
-            left: 31%;
-            width: 38%;
-            min-height: 25%;
-            padding: 8px 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 0;
+            overflow: hidden;
+            padding: clamp(28px, 5vw, 72px);
             color: #4d3929;
-            text-align: center;
+            text-align: left;
+        }
+        .landing-service-number {
+            margin: 0 0 18px;
+            color: #9c7435;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
         }
         .landing-service-copy h3 {
-            margin: 0 0 6px;
+            margin: 0 0 18px;
             color: #4b2c0b;
             font-family: "Playfair Display", Georgia, serif;
-            font-size: clamp(0.95rem, 1.35vw, 1.2rem);
-            line-height: 1.2;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1.08;
         }
-        .landing-service-copy p {
+        .landing-service-copy > p:not(.landing-service-number) {
+            display: -webkit-box;
+            overflow: hidden;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 6;
             margin: 0;
             color: #4d3929;
-            font-size: clamp(0.72rem, 0.85vw, 0.82rem);
-            line-height: 1.4;
+            font-size: clamp(1rem, 1.35vw, 1.2rem);
+            line-height: 1.75;
         }
-        @media (max-width: 1023px) {
-            .landing-services-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                max-width: 780px;
+        .landing-service-details {
+            display: grid;
+            width: 100%;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin: clamp(24px, 3vw, 38px) 0 0;
+        }
+        .landing-service-detail {
+            min-width: 0;
+            padding: 14px 16px;
+            border: 1px solid #e8dccb;
+            border-radius: 14px;
+            background: #fffaf1;
+        }
+        .landing-service-detail dt {
+            margin-bottom: 5px;
+            color: #8d744f;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .landing-service-detail dd {
+            margin: 0;
+            color: #4b2c0b;
+            font-size: clamp(0.9rem, 1.2vw, 1.05rem);
+            font-weight: 600;
+        }
+        .landing-services-note {
+            max-width: 1180px;
+            margin: 18px auto 0;
+            color: #4d3929;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            text-align: center;
+        }
+        .landing-services-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(16px, 3vw, 32px);
+            max-width: 1180px;
+            margin: 24px auto 0;
+        }
+        .landing-services-control {
+            display: inline-flex;
+            min-width: 48px;
+            min-height: 48px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #9c7435;
+            border-radius: 999px;
+            background: #fffdf9;
+            color: #4b2c0b;
+            cursor: pointer;
+            transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+        }
+        .landing-services-control:hover {
+            transform: translateY(-2px);
+            background: #4b2c0b;
+            color: #fffdf9;
+        }
+        .landing-services-control:focus-visible,
+        .landing-services-indicator:focus-visible {
+            outline: 3px solid #4b2c0b;
+            outline-offset: 4px;
+        }
+        .landing-services-indicators {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .landing-services-indicator {
+            width: 10px;
+            height: 10px;
+            padding: 0;
+            border: 0;
+            border-radius: 999px;
+            background: #b7a58d;
+            cursor: pointer;
+            transition: width 180ms ease, background-color 180ms ease;
+        }
+        .landing-services-indicator[aria-current="true"] {
+            width: 28px;
+            background: #9c7435;
+        }
+        .landing-services-play-toggle {
+            min-width: 108px;
+            padding: 0 16px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .landing-service-card,
+            .landing-services-control,
+            .landing-services-indicator {
+                animation: none;
+                transition: none;
+            }
+        }
+        @media (max-width: 700px) {
+            .landing-service-card {
+                grid-template-columns: minmax(0, 1fr);
+                height: 610px;
+                grid-template-rows: clamp(220px, 58vw, 300px) minmax(0, 1fr);
+            }
+            .landing-service-media {
+                min-height: 0;
+                height: clamp(220px, 58vw, 340px);
+            }
+            .landing-service-photo {
+                min-height: 0;
+            }
+            .landing-service-copy {
+                min-height: 0;
+                padding: clamp(24px, 7vw, 42px);
+            }
+            .landing-service-number {
+                margin-bottom: 12px;
+            }
+            .landing-service-copy h3 {
+                margin-bottom: 12px;
+                font-size: clamp(1.8rem, 8vw, 2.6rem);
+            }
+            .landing-service-copy > p:not(.landing-service-number) {
+                -webkit-line-clamp: 4;
+                font-size: 1rem;
+                line-height: 1.6;
+            }
+            .landing-service-details {
+                gap: 8px;
+                margin-top: 20px;
+            }
+            .landing-service-detail {
+                padding: 12px;
+            }
+            .landing-service-detail dt {
+                font-size: 0.65rem;
+            }
+            .landing-service-detail dd {
+                font-size: 0.88rem;
+            }
+            .landing-services-controls {
+                gap: 12px;
             }
         }
         @media (max-width: 560px) {
             .landing-services-section {
                 padding: 28px 16px;
             }
-            .landing-services-grid {
-                grid-template-columns: minmax(0, 1fr);
-                gap: 24px;
+            .landing-services-controls {
+                gap: 8px;
             }
-            .landing-service-copy h3 {
-                font-size: clamp(0.95rem, 4vw, 1.1rem);
+            .landing-services-control {
+                min-width: 42px;
+                min-height: 42px;
             }
-            .landing-service-copy p {
-                font-size: clamp(0.7rem, 3vw, 0.78rem);
+            .landing-services-play-toggle {
+                min-width: 88px;
+                padding: 0 10px;
+                font-size: 0.74rem;
+            }
+            .landing-services-indicators {
+                gap: 7px;
+            }
+            .landing-services-indicator {
+                width: 8px;
+                height: 8px;
+            }
+            .landing-services-indicator[aria-current="true"] {
+                width: 20px;
             }
         }
         .landing-about-section {
@@ -555,88 +739,75 @@
                 font-size: clamp(2rem, 9vw, 3rem);
             }
         }
-        .landing-gallery-section {
-            scroll-margin-top: 85px;
-            background-color: #fae9cf;
-        }
         .landing-contact-section {
-            position: relative;
-            isolation: isolate;
-            padding: clamp(40px, 7vw, 88px) clamp(16px, 5vw, 64px);
-            border-top: 8px solid #956520;
-            border-bottom: 8px solid #956520;
-            background:
-                radial-gradient(ellipse at 10% 12%, rgb(255 244 210 / 82%), transparent 36%),
-                radial-gradient(ellipse at 92% 80%, rgb(199 148 58 / 24%), transparent 38%),
-                linear-gradient(125deg, #e8cc8f, #f8ebc9 48%, #d8b66e);
-        }
-        .landing-contact-section::before {
-            position: absolute;
-            z-index: -1;
-            inset: 8px;
-            border: 1px solid rgb(137 91 25 / 65%);
-            content: "";
-            pointer-events: none;
+            padding: 0;
+            overflow: hidden;
+            border-radius: 22px;
+            background: #49301d;
         }
         .landing-contact-content {
-            position: relative;
-            z-index: 0;
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            align-items: start;
-            gap: clamp(24px, 4vw, 64px);
-            max-width: 1480px;
-            margin: 0 auto;
+            align-items: stretch;
+            width: 100%;
+            margin: 0;
+            overflow: hidden;
+            border: 1px solid rgb(154 106 38 / 28%);
+            border-radius: inherit;
+            background: #fffdf8;
+            box-shadow: 0 20px 50px rgb(75 44 11 / 16%);
         }
         .landing-contact-info {
             display: flex;
             flex-direction: column;
             gap: 24px;
-        }
-        .landing-contact-heading,
-        .landing-contact-detail,
-        .landing-contact-form {
-            border: 1px solid #a9782d;
-            box-shadow: 0 8px 22px rgb(75 44 11 / 20%);
+            min-width: 0;
+            padding: clamp(24px, 4vw, 48px);
+            background:
+                radial-gradient(circle at 100% 100%, rgb(232 204 143 / 20%), transparent 34%),
+                linear-gradient(145deg, #49301d, #24170f);
+            color: #fff4dc;
         }
         .landing-contact-heading {
-            padding: 24px;
-            background: linear-gradient(135deg, #fff5dc, #e7cb8f);
+            padding: 0;
+            background: transparent;
         }
         .landing-contact-heading > p:first-child,
-        .landing-contact-form label,
         .landing-contact-detail > p:first-child {
-            color: #79511c;
+            color: #e7cb8f;
         }
         .landing-contact-heading h2 {
-            color: #4b2c0b;
+            color: #fff4dc;
+        }
+        .landing-contact-heading > p:last-child {
+            color: rgb(255 244 220 / 82%);
         }
         .landing-contact-details {
             display: grid;
-            grid-template-columns: minmax(140px, 0.85fr) minmax(0, 1.6fr);
+            grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
             align-items: start;
-            gap: 16px;
+            gap: 18px;
         }
         .landing-contact-details-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
         }
         .landing-contact-detail {
-            padding: 12px 14px;
-            background: linear-gradient(145deg, #60401e, #3b2817);
-            color: #fff4dc;
+            padding: 12px 0;
+            border-bottom: 1px solid rgb(231 203 143 / 28%);
+            background: transparent;
         }
-        .landing-contact-detail > p:first-child,
         .landing-contact-detail > p:last-child {
-            color: #fff4dc;
+            color: #fffaf0;
         }
         .landing-contact-map {
-            height: 340px;
+            height: clamp(230px, 24vw, 340px);
             overflow: hidden;
-            border: 5px solid #9a6a26;
+            border: 3px solid #d5b36c;
+            border-radius: 14px;
             background: #fff5dc;
-            box-shadow: 0 5px 16px rgb(75 44 11 / 28%);
+            box-shadow: 0 8px 20px rgb(0 0 0 / 18%);
         }
         .landing-contact-map iframe {
             display: block;
@@ -644,124 +815,235 @@
             height: 100%;
             border: 0;
         }
-        .landing-contact-map-link {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 40px;
-            padding: 0 14px;
-            border: 1px solid #9a6a26;
-            border-radius: 4px;
-            background: linear-gradient(135deg, #fff5dc, #e7cb8f);
-            color: #4b2c0b;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .landing-contact-map-link:focus-visible {
-            outline: 3px solid #4b2c0b;
-            outline-offset: 2px;
-        }
         .landing-contact-account {
-            padding: 24px;
-            border: 1px solid #a9782d;
-            background: linear-gradient(135deg, #fff5dc, #e7cb8f);
-            box-shadow: 0 5px 16px rgb(75 44 11 / 16%);
+            margin-top: auto;
+            padding: 18px;
+            border: 1px solid #d5b36c;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #fff8e8, #e8d2a4);
+            box-shadow: 0 8px 20px rgb(0 0 0 / 14%);
         }
         .landing-contact-account p,
-        .landing-contact-account strong,
-        .landing-contact-account a {
+        .landing-contact-account strong {
             color: #4b2c0b;
         }
+        .landing-contact-account a {
+            color: #79511c;
+        }
         .landing-contact-form {
-            padding: clamp(20px, 3vw, 36px);
-            background:
-                radial-gradient(ellipse at 100% 0%, rgb(199 148 58 / 14%), transparent 36%),
-                linear-gradient(145deg, #fff8e9, #f0dfb8);
+            align-self: center;
+            width: calc(100% - clamp(36px, 6vw, 88px));
+            margin: clamp(24px, 4vw, 48px) auto;
+            padding: clamp(22px, 4vw, 48px);
+            border: 1px solid #eee2ca;
+            border-radius: 20px;
+            background: linear-gradient(145deg, #fffefa, #fbf5e9);
+            box-shadow: 0 12px 32px rgb(75 44 11 / 8%);
+        }
+        .landing-contact-form label {
+            color: #79511c;
         }
         .landing-contact-form input,
         .landing-contact-form textarea {
-            border-color: #c49a52;
-            background-color: #fffaf0;
-            color: #4b2c0b;
+            border: 0;
+            border-bottom: 1px solid #c7a86c;
+            border-radius: 0;
+            background: transparent;
+            color: #3b250e;
         }
         .landing-contact-form input:focus,
         .landing-contact-form textarea:focus {
-            border-color: #79511c;
-            box-shadow: 0 0 0 2px rgb(196 154 82 / 22%);
+            border-bottom-color: #79511c;
+            box-shadow: 0 1px 0 #79511c;
         }
         .landing-contact-form button {
-            border: 1px solid #8d5e20;
-            background: linear-gradient(110deg, #9a6a26, #c49a52, #9a6a26);
-            color: #fff8e9;
+            min-height: 48px;
+            padding: 0 24px;
+            border: 0;
+            border-radius: 999px;
+            background: linear-gradient(110deg, #79511c, #c49a52);
+            color: #fffaf0;
+            box-shadow: 0 8px 18px rgb(121 81 28 / 22%);
         }
         .landing-contact-form button:hover {
-            background: linear-gradient(110deg, #79511c, #a9782d, #79511c);
+            background: linear-gradient(110deg, #6e471e, #a9782d);
         }
-        @media (max-width: 767px) {
+        .landing-contact-form-column {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            justify-content: center;
+            background: #fffdf8;
+        }
+        @media (max-width: 900px) {
             .landing-contact-content {
                 grid-template-columns: minmax(0, 1fr);
+            }
+            .landing-contact-details {
+                grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+            }
+            .landing-contact-info {
+                padding: 28px;
+            }
+            .landing-contact-form {
+                width: calc(100% - 56px);
+                margin: 28px auto;
+            }
+            .landing-contact-form-column {
+                padding: 0 0 18px;
+            }
+        }
+        @media (max-width: 560px) {
+            .landing-contact-info {
+                padding: 24px 20px;
             }
             .landing-contact-details {
                 grid-template-columns: minmax(0, 1fr);
             }
             .landing-contact-map {
-                height: 320px;
+                height: 260px;
+            }
+            .landing-contact-form {
+                width: calc(100% - 40px);
+                margin: 16px auto;
+                padding: 24px 18px;
             }
         }
         .landing-gallery-section {
             scroll-margin-top: 85px;
-            padding: 0;
-            background: #fae9cf;
+            padding: clamp(14px, 2vw, 24px);
+            background: #f7f3ed;
         }
         .landing-gallery-poster {
             position: relative;
-            width: 100%;
-            overflow: hidden;
-        }
-        .landing-gallery-poster img {
             display: block;
             width: 100%;
-            height: auto;
+            min-height: clamp(600px, 58vw, 800px);
+            padding: clamp(34px, 5vw, 70px);
+            overflow: hidden;
+            border: 1px solid #e8ddcc;
+            border-radius: 24px;
+            background:
+                linear-gradient(90deg, rgb(255 253 249 / 28%), transparent 58%),
+                url("{% static 'img/pag_principal/galeria/fondo_galeria.jpg' %}") center / cover no-repeat;
+            box-shadow: 0 16px 40px rgb(75 44 11 / 10%);
+        }
+        .landing-gallery-heading {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+            width: min(38%, 430px);
+            margin-top: clamp(8px, 2vw, 24px);
+            color: #3a2819;
+            text-align: left;
+        }
+        .landing-gallery-kicker {
+            margin: 0;
+            color: #9a6a26;
+            font-size: clamp(0.75rem, 1vw, 0.95rem);
+            font-weight: 600;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+        }
+        .landing-gallery-heading h2 {
+            margin: 0;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(2.4rem, 4.5vw, 4.4rem);
+            font-weight: 700;
+            line-height: 1.02;
+        }
+        .landing-gallery-grid {
+            --gallery-gap: clamp(12px, 2vw, 24px);
+            position: absolute;
+            right: 6%;
+            bottom: 14%;
+            left: 6%;
+            width: 88%;
+            max-width: 1160px;
+            height: clamp(270px, 34vw, 410px);
+            margin: auto;
+            overflow: hidden;
+        }
+        .landing-gallery-track {
+            display: flex;
+            align-items: center;
+            gap: var(--gallery-gap);
+            height: 100%;
+            will-change: transform;
+            transition: transform 650ms cubic-bezier(0.22, 0.61, 0.36, 1);
         }
         .landing-gallery-link {
-            position: absolute;
-            z-index: 1;
             display: block;
-            border-radius: 6px;
+            flex: 0 0 var(--gallery-slide-width, 32%);
+            height: 82%;
+            overflow: hidden;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+            opacity: 0.9;
+            transform: scale(0.78);
+            transition: opacity 650ms ease, transform 650ms ease;
         }
         .landing-gallery-link:focus-visible {
-            outline: 3px solid #4b2c0b;
-            outline-offset: 2px;
+            outline: 3px solid #79511c;
+            outline-offset: 3px;
         }
-        .landing-gallery-link:hover {
-            background: rgb(255 245 220 / 12%);
+        .landing-gallery-link.is-active {
+            z-index: 1;
+            opacity: 1;
+            transform: scale(1.12);
+            box-shadow: none;
         }
-        .landing-gallery-profile {
-            top: 5%;
-            right: 4%;
-            width: 15%;
-            height: 5%;
+        .landing-gallery-link img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 400ms ease;
         }
-        .landing-gallery-post {
-            width: 22%;
-            height: 39%;
+        .landing-gallery-link:hover img {
+            transform: scale(1.06);
         }
-        .landing-gallery-post-1 { top: 11%; left: 5%; }
-        .landing-gallery-post-2 { top: 11%; left: 28.5%; }
-        .landing-gallery-post-3 { top: 11%; left: 51.5%; }
-        .landing-gallery-post-4 { top: 11%; left: 74.5%; }
-        .landing-gallery-post-5 { top: 52.5%; left: 5%; }
-        .landing-gallery-post-6 { top: 52.5%; left: 28.5%; }
-        .landing-gallery-post-7 { top: 52.5%; left: 51.5%; }
-        .landing-gallery-post-8 { top: 52.5%; left: 74.5%; }
+        .landing-gallery-instagram {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 4px;
+            padding: 12px 20px;
+            border: 1px solid #b78a4b;
+            border-radius: 999px;
+            background: linear-gradient(110deg, #79511c, #c49a52);
+            color: #fffaf0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 8px 18px rgb(121 81 28 / 18%);
+            transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+        .landing-gallery-instagram:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 22px rgb(121 81 28 / 24%);
+        }
+        .landing-gallery-instagram:focus-visible {
+            outline: 3px solid #9a6a26;
+            outline-offset: 4px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .landing-gallery-track,
+            .landing-gallery-link,
+            .landing-gallery-instagram {
+                transition: none;
+            }
+        }
         .landing-reviews-section {
             overflow: hidden;
-            padding-bottom: clamp(20px, 3vw, 40px);
-            background-image: url("{% static 'img/pag_principal/resenas/fondo_resenas.jpg' %}");
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: cover;
+            padding: clamp(34px, 5vw, 64px) 0 clamp(36px, 5vw, 64px);
+            background:
+                radial-gradient(ellipse at 10% 12%, rgb(255 244 210 / 82%), transparent 36%),
+                radial-gradient(ellipse at 92% 80%, rgb(199 148 58 / 24%), transparent 38%),
+                linear-gradient(125deg, #e8cc8f, #f8ebc9 48%, #d8b66e);
         }
         .landing-reviews-poster {
             width: min(96%, 1500px);
@@ -773,7 +1055,7 @@
             gap: clamp(8px, 1.4vw, 18px);
         }
         .landing-reviews-heading {
-            padding: clamp(16px, 2vw, 24px) 16px 0;
+            padding: 0 16px clamp(8px, 1vw, 14px);
             color: #4b2c0b;
             text-align: center;
         }
@@ -834,7 +1116,7 @@
         }
         .landing-review-stars {
             color: #b87913;
-            font-size: clamp(0.68rem, 1.1vw, 1rem);
+            font-size: clamp(1.05rem, 1.6vw, 1.4rem);
             letter-spacing: 0.08em;
             line-height: 1;
         }
@@ -888,7 +1170,7 @@
                 aspect-ratio: 1 / 1;
             }
             .landing-review-stars {
-                font-size: 0.9rem;
+                font-size: 1.15rem;
             }
             .landing-review-quote {
                 font-size: clamp(0.78rem, 2vw, 0.9rem);
@@ -898,9 +1180,56 @@
                 font-size: 1rem;
             }
         }
+        @media (max-width: 900px) {
+            .landing-gallery-poster {
+                min-height: 640px;
+                padding: 34px;
+            }
+            .landing-gallery-heading {
+                width: min(48%, 390px);
+            }
+            .landing-gallery-grid {
+                right: 4%;
+                bottom: 13%;
+                left: 4%;
+                width: 92%;
+                height: clamp(280px, 43vw, 370px);
+            }
+        }
         @media (max-width: 560px) {
             .landing-gallery-section {
                 scroll-margin-top: 76px;
+                padding: 12px;
+            }
+            .landing-gallery-poster {
+                min-height: 620px;
+                padding: 26px 22px;
+                background-position: 58% center;
+            }
+            .landing-gallery-heading {
+                width: min(100%, 340px);
+                margin-top: 0;
+            }
+            .landing-gallery-heading h2 {
+                font-size: clamp(2.5rem, 12vw, 3.8rem);
+            }
+            .landing-gallery-kicker {
+                font-size: 0.72rem;
+            }
+            .landing-gallery-instagram {
+                padding: 10px 16px;
+                font-size: 0.82rem;
+            }
+            .landing-gallery-grid {
+                --gallery-gap: 8px;
+                right: 2%;
+                bottom: 14%;
+                left: 2%;
+                width: 96%;
+                height: 260px;
+            }
+            .landing-gallery-link {
+                height: 72%;
             }
         }
         @media (max-width: 639px) {
@@ -989,87 +1318,145 @@
     <section id="servicios" class="landing-services-section" aria-labelledby="landing-services-title">
         <p class="landing-services-eyebrow">Lo que ofrecemos</p>
         <h2 id="landing-services-title" class="landing-services-title">Nuestros servicios</h2>
-        <div class="landing-services-grid">
-            <article class="landing-service-card">
-                <div class="landing-service-art">
-                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/colorimetria.jpg' %}" alt="Servicio de colorimetría">
-                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+        <div class="landing-services-carousel" data-service-carousel role="region" aria-roledescription="carrusel" aria-label="Servicios">
+            <div class="landing-services-viewport" data-service-viewport aria-live="off">
+                <article class="landing-service-card" data-service-slide role="group" aria-roledescription="diapositiva" aria-label="1 de 6">
+                    <div class="landing-service-media">
+                        <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/colorimetria.jpg' %}" alt="Servicio de colorimetría">
+                    </div>
                     <div class="landing-service-copy">
+                        <p class="landing-service-number">Servicio 01</p>
                         <h3>Colorimetría</h3>
-                        <p>Asesoría de color personalizada para encontrar los tonos que mejor realzan tu estilo y belleza natural.</p>
+                        <p>Una evaluación personalizada de tu tono de piel, rasgos y base capilar nos ayuda a elegir colores que armonicen contigo. Realizamos técnicas de coloración y aclarado cuidando el cabello en cada etapa; el valor final depende del largo y del trabajo requerido.</p>
+                        <dl class="landing-service-details">
+                            <div class="landing-service-detail"><dt>Precio aprox.</dt><dd>Desde $35.000</dd></div>
+                            <div class="landing-service-detail"><dt>Duración aprox.</dt><dd>2 a 4 horas</dd></div>
+                        </dl>
                     </div>
-                </div>
-            </article>
-            <article class="landing-service-card">
-                <div class="landing-service-art">
-                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/corte_estilo.jpg' %}" alt="Servicio de corte y peinado">
-                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                </article>
+                <article class="landing-service-card" data-service-slide role="group" aria-roledescription="diapositiva" aria-label="2 de 6" hidden>
+                    <div class="landing-service-media">
+                        <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/corte_estilo.jpg' %}" alt="Servicio de corte y peinado">
+                    </div>
                     <div class="landing-service-copy">
+                        <p class="landing-service-number">Servicio 02</p>
                         <h3>Corte &amp; estilo</h3>
-                        <p>Cortes y peinados adaptados a tu tipo de cabello, tus preferencias y la ocasión.</p>
+                        <p>Renovamos tu look con un corte pensado para la forma de tu rostro, la textura de tu cabello y el mantenimiento que prefieres. También podemos complementar el servicio con lavado y peinado para que disfrutes el resultado desde el primer momento.</p>
+                        <dl class="landing-service-details">
+                            <div class="landing-service-detail"><dt>Precio aprox.</dt><dd>Desde $10.000</dd></div>
+                            <div class="landing-service-detail"><dt>Duración aprox.</dt><dd>45 a 60 min</dd></div>
+                        </dl>
                     </div>
-                </div>
-            </article>
-            <article class="landing-service-card">
-                <div class="landing-service-art">
-                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/tratamientos.jpg' %}" alt="Tratamiento capilar">
-                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                </article>
+                <article class="landing-service-card" data-service-slide role="group" aria-roledescription="diapositiva" aria-label="3 de 6" hidden>
+                    <div class="landing-service-media">
+                        <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/tratamientos.jpg' %}" alt="Tratamiento capilar">
+                    </div>
                     <div class="landing-service-copy">
+                        <p class="landing-service-number">Servicio 03</p>
                         <h3>Tratamientos</h3>
-                        <p>Cuidados capilares para nutrir, hidratar y devolver suavidad y brillo a tu cabello.</p>
+                        <p>Tratamientos orientados a las necesidades de tu cabello, como hidratación, nutrición y reparación. Revisamos su estado y te recomendamos la alternativa adecuada para recuperar suavidad y brillo, junto con cuidados sencillos para mantener el resultado en casa.</p>
+                        <dl class="landing-service-details">
+                            <div class="landing-service-detail"><dt>Precio aprox.</dt><dd>Desde $20.000</dd></div>
+                            <div class="landing-service-detail"><dt>Duración aprox.</dt><dd>1 a 2 horas</dd></div>
+                        </dl>
                     </div>
-                </div>
-            </article>
-            <article class="landing-service-card">
-                <div class="landing-service-art">
-                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/manicure_pedicure.jpg' %}" alt="Servicio de manicure y pedicure">
-                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                </article>
+                <article class="landing-service-card" data-service-slide role="group" aria-roledescription="diapositiva" aria-label="4 de 6" hidden>
+                    <div class="landing-service-media">
+                        <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/manicure_pedicure.jpg' %}" alt="Servicio de manicure y pedicure">
+                    </div>
                     <div class="landing-service-copy">
+                        <p class="landing-service-number">Servicio 04</p>
                         <h3>Manicure &amp; pedicure</h3>
-                        <p>Cuidado y embellecimiento de manos y pies con acabados prolijos y personalizados.</p>
+                        <p>Un momento de cuidado para tus manos o pies, con preparación, prolijidad y un acabado elegido según tu estilo. Puedes consultar por alternativas clásicas, permanentes y servicios de pedicure; el precio varía según la técnica y los adicionales.</p>
+                        <dl class="landing-service-details">
+                            <div class="landing-service-detail"><dt>Precio aprox.</dt><dd>Desde $15.000</dd></div>
+                            <div class="landing-service-detail"><dt>Duración aprox.</dt><dd>60 a 90 min</dd></div>
+                        </dl>
                     </div>
-                </div>
-            </article>
-            <article class="landing-service-card">
-                <div class="landing-service-art">
-                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/depilacion.jpg' %}" alt="Servicio de depilación">
-                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                </article>
+                <article class="landing-service-card" data-service-slide role="group" aria-roledescription="diapositiva" aria-label="5 de 6" hidden>
+                    <div class="landing-service-media">
+                        <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/depilacion.jpg' %}" alt="Servicio de depilación">
+                    </div>
                     <div class="landing-service-copy">
+                        <p class="landing-service-number">Servicio 05</p>
                         <h3>Depilación</h3>
-                        <p>Depilación cuidadosa y precisa para una piel suave y una sensación de bienestar.</p>
+                        <p>Sesiones de depilación por zona, realizadas con atención y cuidado para que te sientas cómoda durante el servicio. El tiempo y el valor dependen del área que quieras tratar; puedes combinar zonas al reservar tu hora.</p>
+                        <dl class="landing-service-details">
+                            <div class="landing-service-detail"><dt>Precio aprox.</dt><dd>Desde $3.000</dd></div>
+                            <div class="landing-service-detail"><dt>Duración aprox.</dt><dd>30 min por zona</dd></div>
+                        </dl>
                     </div>
-                </div>
-            </article>
-            <article class="landing-service-card">
-                <div class="landing-service-art">
-                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/maquillaje.jpg' %}" alt="Servicio de maquillaje">
-                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                </article>
+                <article class="landing-service-card" data-service-slide role="group" aria-roledescription="diapositiva" aria-label="6 de 6" hidden>
+                    <div class="landing-service-media">
+                        <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/maquillaje.jpg' %}" alt="Servicio de maquillaje">
+                    </div>
                     <div class="landing-service-copy">
+                        <p class="landing-service-number">Servicio 06</p>
                         <h3>Maquillaje</h3>
-                        <p>Maquillaje social para eventos y ocasiones especiales, realzando tu belleza con un estilo único.</p>
+                        <p>Maquillaje social adaptado a tu ocasión, preferencias y estilo personal, con una preparación de piel que ayuda a lograr un acabado armonioso y duradero. Si tienes una referencia o idea en mente, la revisamos contigo antes de comenzar.</p>
+                        <dl class="landing-service-details">
+                            <div class="landing-service-detail"><dt>Precio aprox.</dt><dd>Desde $22.000</dd></div>
+                            <div class="landing-service-detail"><dt>Duración aprox.</dt><dd>60 a 90 min</dd></div>
+                        </dl>
                     </div>
-                </div>
-            </article>
+                </article>
+            </div>
         </div>
+        <div class="landing-services-controls" aria-label="Controles de servicios">
+            <button type="button" class="landing-services-control" data-service-previous aria-label="Servicio anterior">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            </button>
+            <div class="landing-services-indicators" aria-label="Elegir servicio">
+                {% for service_number in "123456" %}
+                    <button type="button" class="landing-services-indicator" data-service-indicator="{{ forloop.counter0 }}" aria-label="Mostrar servicio {{ forloop.counter }}" aria-current="{% if forloop.first %}true{% else %}false{% endif %}"></button>
+                {% endfor %}
+            </div>
+            <button type="button" class="landing-services-control landing-services-play-toggle" data-service-toggle aria-label="Pausar avance automático">Pausar</button>
+            <button type="button" class="landing-services-control" data-service-next aria-label="Servicio siguiente">
+                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+        </div>
+        <p class="landing-services-note">Los precios y tiempos son referenciales. El valor final puede variar según la evaluación, el largo del cabello, la técnica y los adicionales; confirma los detalles al reservar.</p>
     </section>
 
     <!-- GALERÍA -->
     <section id="galeria" class="landing-gallery-section" aria-label="Galería de trabajos de Nicolett Studio Fantasy">
         <div class="landing-gallery-poster">
-            <img
-                src="{% static 'img/galeria-completa-dorada.png' %}"
-                alt="Galería ornamental dorada de Nicolett Studio Fantasy con ocho publicaciones de Instagram y enlaces para abrirlas"
-            >
-            <a href="https://www.instagram.com/nicolettstudiofantasy/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-profile" aria-label="Ver más publicaciones en Instagram"></a>
-            <a href="https://www.instagram.com/reel/Dc0yoC7RNZ6/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-1" aria-label="Abrir publicación 1 de Nicolett Studio Fantasy en Instagram"></a>
-            <a href="https://www.instagram.com/reel/DcZ5hEIRDFF/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-2" aria-label="Abrir publicación 2 de Nicolett Studio Fantasy en Instagram"></a>
-            <a href="https://www.instagram.com/reel/Dd3o_-uRG3X/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-3" aria-label="Abrir publicación 3 de Nicolett Studio Fantasy en Instagram"></a>
-            <a href="https://www.instagram.com/reel/DX_98xzRAlA/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-4" aria-label="Abrir publicación 4 de Nicolett Studio Fantasy en Instagram"></a>
-            <a href="https://www.instagram.com/reel/DXt5_6XkaLY/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-5" aria-label="Abrir publicación 5 de Nicolett Studio Fantasy en Instagram"></a>
-            <a href="https://www.instagram.com/reel/DXt7KGakUtx/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-6" aria-label="Abrir publicación 6 de Nicolett Studio Fantasy en Instagram"></a>
-            <a href="https://www.instagram.com/reel/DYNLW_xRXgW/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-7" aria-label="Abrir publicación 7 de Nicolett Studio Fantasy en Instagram"></a>
-            <a href="https://www.instagram.com/reel/DYNKxxLR-c2/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link landing-gallery-post landing-gallery-post-8" aria-label="Abrir publicación 8 de Nicolett Studio Fantasy en Instagram"></a>
+            <div class="landing-gallery-heading">
+                <p class="landing-gallery-kicker">Nuestro trabajo</p>
+                <h2>Galería</h2>
+                <a class="landing-gallery-instagram" href="https://www.instagram.com/nicolettstudiofantasy" target="_blank" rel="noopener noreferrer">
+                    Ver más en Instagram
+                    <i class="fa-brands fa-instagram" aria-hidden="true"></i>
+                </a>
             </div>
+            <div class="landing-gallery-grid" data-gallery-carousel role="region" aria-label="Trabajos recientes" tabindex="0">
+                <div class="landing-gallery-track" data-gallery-track>
+                    <a href="https://www.instagram.com/reels/Dc0yoC7RNZ6/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link" data-gallery-slide aria-label="Ver trabajo 1 en Instagram">
+                        <img src="{% static 'img/pag_principal/galeria/trabajo_01.jpg' %}" alt="Trabajo de manicure con diseño rosado">
+                    </a>
+                    <a href="https://www.instagram.com/reels/DYNKxxLR-c2/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link" data-gallery-slide aria-label="Ver trabajo 2 en Instagram">
+                        <img src="{% static 'img/pag_principal/galeria/trabajo_02.jpg' %}" alt="Peinado con trenzas y ondas">
+                    </a>
+                    <a href="https://www.instagram.com/reels/DXt7KGakUtx/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link" data-gallery-slide aria-label="Ver trabajo 3 en Instagram">
+                        <img src="{% static 'img/pag_principal/galeria/trabajo_03.jpg' %}" alt="Manicure con uñas decoradas en tonos oscuros">
+                    </a>
+                    <a href="https://www.instagram.com/reels/C8bEEJUO_5d/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link" data-gallery-slide aria-label="Ver trabajo 4 en Instagram">
+                        <img src="{% static 'img/pag_principal/galeria/trabajo_04.jpg' %}" alt="Corte bob en tono plateado">
+                    </a>
+                    <a href="https://www.instagram.com/reels/DHWlL0ZyEOl/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link" data-gallery-slide aria-label="Ver trabajo 5 en Instagram">
+                        <img src="{% static 'img/pag_principal/galeria/trabajo_05.jpg' %}" alt="Manicure francesa con detalles brillantes">
+                    </a>
+                    <a href="https://www.instagram.com/reels/DXt5W3nEdZa/" target="_blank" rel="noopener noreferrer" class="landing-gallery-link" data-gallery-slide aria-label="Ver trabajo 6 en Instagram">
+                        <img src="{% static 'img/pag_principal/galeria/trabajo_06.jpg' %}" alt="Peinado largo con ondas rubias">
+                    </a>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- TESTIMONIOS -->
@@ -1117,7 +1504,6 @@
                     <h2 class="font-serif text-4xl lg:text-5xl font-bold">¿Tienes alguna <em class="italic">consulta</em>?</h2>
                     <p class="text-xs lg:text-sm mt-4 leading-relaxed">¿Quieres saber más sobre algún servicio, disponibilidad o precios? Rellena el formulario o contáctanos directamente. Respondemos a la brevedad.</p>
                 </div>
-
                 <div class="landing-contact-details text-xs sm:text-sm">
                     <div class="landing-contact-details-list">
                         <div class="landing-contact-detail">
@@ -1133,35 +1519,23 @@
                             <p class="font-medium mt-0.5">Lun-Vie 9:00–20:00<br>Sáb 9:00–18:00</p>
                         </div>
                     </div>
-
-                    <div>
-                        <a
-                            href="https://www.google.com/maps/search/?api=1&amp;query=Av.+Bernardo+O%27Higgins+979%2C+Buin%2C+Santiago"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="landing-contact-map-link mb-3"
-                            aria-label="Abrir la ubicación de Nicolett Studio Fantasy en Google Maps"
-                        >Abrir en Maps <span aria-hidden="true" class="ml-1">↗</span></a>
-                        <div class="landing-contact-map">
-                            <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3317.83015622892!2d-70.75218172368841!3d-33.73920777327639!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9663217aed7e0b0d%3A0x4dceec2b8bf5f5b6!2sSal%C3%B3n%20de%20belleza%20Nicolett%20Studio%20Fantasy!5e0!3m2!1ses!2scl!4v1791063769155!5m2!1ses!2scl"
-                                title="Ubicación de Nicolett Studio Fantasy en Google Maps"
-                                loading="lazy"
-                                referrerpolicy="strict-origin-when-cross-origin"
-                                allowfullscreen
-                            ></iframe>
-                        </div>
+                    <div class="landing-contact-map">
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3317.83015622892!2d-70.75218172368841!3d-33.73920777327639!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9663217aed7e0b0d%3A0x4dceec2b8bf5f5b6!2sSal%C3%B3n%20de%20belleza%20Nicolett%20Studio%20Fantasy!5e0!3m2!1ses!2scl!4v1791063769155!5m2!1ses!2scl"
+                            title="Ubicación de Nicolett Studio Fantasy en Google Maps"
+                            loading="lazy"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen
+                        ></iframe>
                     </div>
                 </div>
-
                 <div class="landing-contact-account">
                     <p class="text-xs leading-relaxed">Para gestionar <strong class="font-semibold">historial de servicios, compra de productos y mucho más</strong>, crea una cuenta o inicia sesión. Desde tu perfil podrás gestionar tus citas más fácilmente.</p>
                     <a href="{% url 'login' %}?tab=register" class="inline-block text-xs font-bold tracking-widest uppercase mt-4 hover:text-customAccent transition">Crear cuenta →</a>
                 </div>
             </div>
-
-            <div>
-                <form method="POST" class="landing-contact-form space-y-5">
+            <div class="landing-contact-form-column">
+            <form method="POST" class="landing-contact-form space-y-5">
                     {% csrf_token %}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -1192,20 +1566,229 @@
                         <textarea id="contact-mensaje" rows="5" name="mensaje" placeholder="Cuéntanos en qué podemos ayudarte..." class="w-full border p-3.5 text-xs focus:outline-none"></textarea>
                     </div>
                     <button type="submit" class="w-full text-xs tracking-[0.2em] uppercase py-4 transition">Enviar mensaje</button>
-                </form>
-                {% if messages %}
-                    <div class="mt-4" aria-live="polite">
-                        {% for message in messages %}
-                            <div class="p-4 text-xs font-medium text-center {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-300{% else %}bg-red-100 text-red-800 border border-red-300{% endif %}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            </form>
+            {% if messages %}
+                <div class="mt-4" aria-live="polite">
+                    {% for message in messages %}
+                        <div class="p-4 text-xs font-medium text-center {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-300{% else %}bg-red-100 text-red-800 border border-red-300{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
             </div>
         </div>
     </section>
 
+    <script>
+        (() => {
+            const carousel = document.querySelector('[data-service-carousel]');
+            if (!carousel) return;
+
+            const section = carousel.closest('.landing-services-section');
+            const slides = Array.from(carousel.querySelectorAll('[data-service-slide]'));
+            const indicators = Array.from(section.querySelectorAll('[data-service-indicator]'));
+            const viewport = carousel.querySelector('[data-service-viewport]');
+            const previousButton = section.querySelector('[data-service-previous]');
+            const nextButton = section.querySelector('[data-service-next]');
+            const toggleButton = section.querySelector('[data-service-toggle]');
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+            let activeIndex = 0;
+            let rotationEnabled = !reducedMotion.matches;
+            let pointerIsOver = false;
+            let rotationTimer;
+
+            const updateRotationControl = () => {
+                toggleButton.textContent = rotationEnabled ? 'Pausar' : 'Reanudar';
+                toggleButton.setAttribute(
+                    'aria-label',
+                    rotationEnabled ? 'Pausar avance automático' : 'Reanudar avance automático',
+                );
+                viewport.setAttribute('aria-live', rotationEnabled ? 'off' : 'polite');
+            };
+
+            const showSlide = (index) => {
+                activeIndex = (index + slides.length) % slides.length;
+                slides.forEach((slide, slideIndex) => {
+                    const isActive = slideIndex === activeIndex;
+                    slide.hidden = !isActive;
+                    slide.setAttribute('aria-hidden', String(!isActive));
+                    slide.setAttribute('aria-label', `${slideIndex + 1} de ${slides.length}`);
+                    indicators[slideIndex].setAttribute('aria-current', String(isActive));
+                });
+            };
+
+            const clearRotationTimer = () => {
+                window.clearInterval(rotationTimer);
+                rotationTimer = undefined;
+            };
+
+            const scheduleRotation = () => {
+                clearRotationTimer();
+                if (rotationEnabled && !pointerIsOver && !document.hidden) {
+                    rotationTimer = window.setInterval(() => {
+                        showSlide(activeIndex + 1);
+                    }, 10000);
+                }
+            };
+
+            const stopRotation = () => {
+                rotationEnabled = false;
+                clearRotationTimer();
+                updateRotationControl();
+            };
+
+            previousButton.addEventListener('click', () => {
+                stopRotation();
+                showSlide(activeIndex - 1);
+            });
+            nextButton.addEventListener('click', () => {
+                stopRotation();
+                showSlide(activeIndex + 1);
+            });
+            indicators.forEach((indicator, index) => {
+                indicator.addEventListener('click', () => {
+                    stopRotation();
+                    showSlide(index);
+                });
+            });
+            toggleButton.addEventListener('click', () => {
+                rotationEnabled = !rotationEnabled;
+                updateRotationControl();
+                scheduleRotation();
+            });
+            carousel.addEventListener('pointerenter', () => {
+                pointerIsOver = true;
+                clearRotationTimer();
+            });
+            carousel.addEventListener('pointerleave', () => {
+                pointerIsOver = false;
+                scheduleRotation();
+            });
+            section.addEventListener('focusin', stopRotation);
+            section.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowLeft') {
+                    event.preventDefault();
+                    stopRotation();
+                    showSlide(activeIndex - 1);
+                } else if (event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    stopRotation();
+                    showSlide(activeIndex + 1);
+                }
+            });
+            document.addEventListener('visibilitychange', scheduleRotation);
+
+            showSlide(activeIndex);
+            updateRotationControl();
+            scheduleRotation();
+        })();
+
+        (() => {
+            const carousel = document.querySelector('[data-gallery-carousel]');
+            const track = carousel?.querySelector('[data-gallery-track]');
+            if (!carousel || !track) return;
+
+            const originalSlides = Array.from(track.querySelectorAll('[data-gallery-slide]'));
+            if (originalSlides.length < 3) return;
+
+            const cloneSlide = (slide) => {
+                const clone = slide.cloneNode(true);
+                clone.removeAttribute('data-gallery-slide');
+                clone.setAttribute('aria-hidden', 'true');
+                clone.setAttribute('tabindex', '-1');
+                clone.removeAttribute('aria-label');
+                clone.style.pointerEvents = 'none';
+                return clone;
+            };
+            const beforeClones = originalSlides.map(cloneSlide);
+            const afterClones = originalSlides.map(cloneSlide);
+            const beforeFragment = document.createDocumentFragment();
+            beforeClones.forEach((slide) => beforeFragment.appendChild(slide));
+            track.insertBefore(beforeFragment, track.firstChild);
+            afterClones.forEach((slide) => track.appendChild(slide));
+
+            const slides = Array.from(track.children);
+            const firstOriginalIndex = originalSlides.length;
+            const lastOriginalIndex = firstOriginalIndex + originalSlides.length - 1;
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+            let currentIndex = firstOriginalIndex;
+            let rotationTimer;
+            let pointerIsOver = false;
+            let focusIsWithin = false;
+            let resizeFrame;
+
+            const updateActiveSlide = () => {
+                slides.forEach((slide, index) => {
+                    slide.classList.toggle('is-active', index === currentIndex);
+                });
+            };
+            const updatePosition = (animate = true) => {
+                const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
+                const slideWidth = (carousel.clientWidth - gap * 2) / 3;
+                track.style.setProperty('--gallery-slide-width', `${slideWidth}px`);
+                track.style.transition = animate && !reducedMotion.matches ? '' : 'none';
+                track.style.transform = `translateX(-${(currentIndex - 1) * (slideWidth + gap)}px)`;
+                updateActiveSlide();
+            };
+            const moveTo = (index) => {
+                currentIndex = index;
+                updatePosition();
+            };
+            const scheduleRotation = () => {
+                window.clearInterval(rotationTimer);
+                if (!pointerIsOver && !focusIsWithin && !document.hidden && !reducedMotion.matches) {
+                    rotationTimer = window.setInterval(() => moveTo(currentIndex + 1), 4000);
+                }
+            };
+            const wrapAround = () => {
+                if (currentIndex > lastOriginalIndex) {
+                    currentIndex = firstOriginalIndex;
+                    updatePosition(false);
+                } else if (currentIndex < firstOriginalIndex) {
+                    currentIndex = lastOriginalIndex;
+                    updatePosition(false);
+                }
+            };
+
+            track.addEventListener('transitionend', wrapAround);
+            carousel.addEventListener('pointerenter', () => {
+                pointerIsOver = true;
+                window.clearInterval(rotationTimer);
+            });
+            carousel.addEventListener('pointerleave', () => {
+                pointerIsOver = false;
+                scheduleRotation();
+            });
+            carousel.addEventListener('focusin', () => {
+                focusIsWithin = true;
+                window.clearInterval(rotationTimer);
+            });
+            carousel.addEventListener('focusout', (event) => {
+                if (!carousel.contains(event.relatedTarget)) {
+                    focusIsWithin = false;
+                    scheduleRotation();
+                }
+            });
+            carousel.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    window.clearInterval(rotationTimer);
+                    moveTo(currentIndex + (event.key === 'ArrowRight' ? 1 : -1));
+                    scheduleRotation();
+                }
+            });
+            window.addEventListener('resize', () => {
+                window.cancelAnimationFrame(resizeFrame);
+                resizeFrame = window.requestAnimationFrame(() => updatePosition(false));
+            });
+            document.addEventListener('visibilitychange', scheduleRotation);
+            reducedMotion.addEventListener('change', scheduleRotation);
+
+            updatePosition(false);
+            scheduleRotation();
+        })();
+    </script>
     {% include 'footer.html' %}
     {% include 'accessibility_widget.html' %}
 </body>

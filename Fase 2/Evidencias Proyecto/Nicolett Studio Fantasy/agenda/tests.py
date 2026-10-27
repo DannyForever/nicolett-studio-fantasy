@@ -120,6 +120,9 @@ class AgendaTests(TestCase):
         response = self.client.get(reverse('admin_agenda'))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<title>Calendario | Nicolett Studio</title>')
+        self.assertContains(response, '<h1 class="h2 mb-1">Calendario</h1>')
+        self.assertContains(response, 'aria-label="Calendario"')
         self.assertContains(response, f'value="{self.servicio.pk}"')
         self.assertEqual(
             [item['id'] for item in self.client.get(

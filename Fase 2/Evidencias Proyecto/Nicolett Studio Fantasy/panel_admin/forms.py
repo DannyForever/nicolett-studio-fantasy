@@ -53,6 +53,16 @@ class ServicioForm(forms.ModelForm):
             'activo': 'Disponibilidad',
         }
 
+    def __init__(self, *args, category_scope=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if category_scope:
+            self.fields['categoria'].queryset = Categoria.objects.filter(
+                activa=True,
+                tipo=category_scope,
+            ).exclude(
+                nombre__iexact='Sin categoría',
+            ).order_by('nombre')
+
     def clean(self):
         cleaned = super().clean()
         nombre = cleaned.get('nombre')
@@ -132,9 +142,14 @@ class ProductoForm(forms.ModelForm):
             'activo': 'Disponibilidad',
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, category_scope=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['categoria'].queryset = Categoria.objects.filter(activa=True).order_by('nombre')
+        categorias = Categoria.objects.filter(activa=True)
+        if category_scope:
+            categorias = categorias.filter(tipo=category_scope).exclude(
+                nombre__iexact='Sin categoría',
+            )
+        self.fields['categoria'].queryset = categorias.order_by('nombre')
         self.fields['imagen_url'].required = not bool(self.instance.pk)
 
     def clean(self):
@@ -183,13 +198,7 @@ class CategoriaForm(forms.ModelForm):
         fields = ('nombre', 'tipo')
 
     def clean_nombre(self):
-        nombre = self.cleaned_data['nombre'].strip()
-        duplicada = Categoria.objects.filter(nombre__iexact=nombre)
-        if self.instance.pk:
-            duplicada = duplicada.exclude(pk=self.instance.pk)
-        if duplicada.exists():
-            raise forms.ValidationError('Ya existe una categoría con ese nombre.')
-        return nombre
+        return self.cleaned_data['nombre'].strip()
 
     def clean_tipo(self):
         return self.cleaned_data['tipo'].strip()
@@ -274,6 +283,9 @@ class PersonalForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['especializaciones'].queryset = Categoria.objects.filter(
             activa=True,
+            tipo='servicio',
+        ).exclude(
+            nombre__iexact='Sin categoría',
         ).order_by('nombre')
         self.fields['correo_contacto'].required = True
         self.order_fields([

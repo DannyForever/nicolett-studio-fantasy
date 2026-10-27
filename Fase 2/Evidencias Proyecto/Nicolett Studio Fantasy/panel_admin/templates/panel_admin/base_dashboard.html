@@ -12,7 +12,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <!-- Nuestro archivo CSS externo y profesional -->
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261026-7">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261027-5">
     {% include 'accessibility_styles.html' %}
     {% block extra_head %}{% endblock %}
 </head>
@@ -39,19 +39,47 @@
             </div>
             {% if request.user.rol.nombre == 'Colaborador' %}
             <ul class="sidebar-menu">
-                <li class="nav-item"><a href="{% url 'colaborador_mi_agenda' %}" title="Mi agenda" aria-label="Mi agenda" class="nav-link{% if request.resolver_match.url_name == 'colaborador_mi_agenda' %} active{% endif %}"{% if request.resolver_match.url_name == 'colaborador_mi_agenda' %} aria-current="page"{% endif %}><i class="fas fa-calendar-check me-2"></i><span class="nav-label">Mi agenda</span></a></li>
+                <li class="nav-item"><a href="{% url 'colaborador_mi_agenda' %}" title="Vista colaborador" aria-label="Vista colaborador" class="nav-link{% if request.resolver_match.url_name == 'colaborador_mi_agenda' %} active{% endif %}"{% if request.resolver_match.url_name == 'colaborador_mi_agenda' %} aria-current="page"{% endif %}><i class="fas fa-user-clock me-2"></i><span class="nav-label">Vista colaborador</span></a></li>
                 <li class="nav-item"><a href="{% url 'admin_citas' %}" title="Mis citas" aria-label="Mis citas" class="nav-link{% if request.resolver_match.url_name in 'admin_citas crear_reserva_manual reagendar_cita cancelar_cita' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_citas crear_reserva_manual reagendar_cita cancelar_cita' %} aria-current="page"{% endif %}><i class="fas fa-calendar-check me-2"></i><span class="nav-label">Mis citas</span></a></li>
-                <li class="nav-item"><a href="{% url 'admin_agenda' %}" title="Agendamientos" aria-label="Agendamientos" class="nav-link{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo' %} aria-current="page"{% endif %}><i class="fas fa-calendar-alt me-2"></i><span class="nav-label">Agendamientos</span></a></li>
+                <li class="nav-item"><a href="{% url 'admin_agenda' %}" title="Calendario" aria-label="Calendario" class="nav-link{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo' %} aria-current="page"{% endif %}><i class="fas fa-calendar-alt me-2"></i><span class="nav-label">Calendario</span></a></li>
                 <li class="nav-item"><a href="{% url 'admin_recordatorios' %}" title="Recordatorios" aria-label="Recordatorios" class="nav-link{% if request.resolver_match.url_name in 'admin_recordatorios programar_recordatorio' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_recordatorios programar_recordatorio' %} aria-current="page"{% endif %}><i class="fas fa-bell me-2"></i><span class="nav-label">Recordatorios</span></a></li>
                 <li class="nav-item"><a href="{% url 'colaborador_configuracion' %}" title="Configuración" aria-label="Configuración" class="nav-link{% if request.resolver_match.url_name == 'colaborador_configuracion' %} active{% endif %}"{% if request.resolver_match.url_name == 'colaborador_configuracion' %} aria-current="page"{% endif %}><i class="fas fa-user-cog me-2"></i><span class="nav-label">Configuración</span></a></li>
             </ul>
             {% else %}
             <ul class="sidebar-menu">
                 <li class="nav-item"><a href="{% url 'admin_dashboard' %}" title="Dashboard" aria-label="Dashboard" class="nav-link{% if request.resolver_match.url_name == 'admin_dashboard' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_dashboard' %} aria-current="page"{% endif %}><i class="fas fa-home me-2"></i><span class="nav-label">Dashboard</span></a></li>
-                <li class="nav-item"><a href="{% url 'listar_servicios' %}" title="Servicios" aria-label="Servicios" class="nav-link{% if request.resolver_match.url_name in 'admin_servicios_semana listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_servicios_semana listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} aria-current="page"{% endif %}><i class="fas fa-spa me-2"></i><span class="nav-label">Servicios</span></a></li>
-                <li class="nav-item"><a href="{% url 'admin_productos' %}" title="Productos" aria-label="Productos" class="nav-link{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} aria-current="page"{% endif %}><i class="fas fa-box me-2"></i><span class="nav-label">Productos</span></a></li>
+                <li class="nav-item sidebar-catalog-item">
+                    <details class="sidebar-catalog-menu"{% if request.resolver_match.url_name in 'listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} open{% endif %}>
+                        <summary class="nav-link{% if request.resolver_match.url_name in 'listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} active{% endif %}" aria-label="Desplegar categorías de servicios"{% if request.resolver_match.url_name in 'listar_servicios crear_servicio editar_servicio eliminar_servicio cambiar_estado_servicio crear_categoria editar_categoria eliminar_categoria' %} aria-current="page"{% endif %}>
+                            <i class="fas fa-spa me-2"></i><span class="nav-label">Servicios</span><i class="fas fa-chevron-down sidebar-catalog-chevron" aria-hidden="true"></i>
+                        </summary>
+                        <div class="sidebar-catalog-options">
+                            {% for categoria in admin_service_categories %}
+                                <a class="sidebar-category-link{% if request.resolver_match.url_name == 'listar_servicios' and request.GET.categoria == categoria.pk|stringformat:'s' %} active{% endif %}" href="{% url 'listar_servicios' %}?categoria={{ categoria.pk }}"{% if request.resolver_match.url_name == 'listar_servicios' and request.GET.categoria == categoria.pk|stringformat:'s' %} aria-current="page"{% endif %}>{{ categoria.nombre }}</a>
+                            {% empty %}
+                                <span class="sidebar-category-empty">Aún no hay categorías con servicios.</span>
+                            {% endfor %}
+                            <a class="sidebar-catalog-action{% if request.resolver_match.url_name == 'listar_servicios' and not request.GET.categoria and request.GET.todos != '1' %} active{% endif %}" href="{% url 'listar_servicios' %}"{% if request.resolver_match.url_name == 'listar_servicios' and not request.GET.categoria and request.GET.todos != '1' %} aria-current="page"{% endif %}>Ver todos</a>
+                        </div>
+                    </details>
+                </li>
+                <li class="nav-item sidebar-catalog-item">
+                    <details class="sidebar-catalog-menu"{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} open{% endif %}>
+                        <summary class="nav-link{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} active{% endif %}" aria-label="Desplegar categorías de productos"{% if request.resolver_match.url_name in 'admin_productos crear_producto editar_producto eliminar_producto cambiar_estado_producto' %} aria-current="page"{% endif %}>
+                            <i class="fas fa-box me-2"></i><span class="nav-label">Productos</span><i class="fas fa-chevron-down sidebar-catalog-chevron" aria-hidden="true"></i>
+                        </summary>
+                        <div class="sidebar-catalog-options">
+                            {% for categoria in admin_product_categories %}
+                                <a class="sidebar-category-link{% if request.resolver_match.url_name == 'admin_productos' and request.GET.categoria == categoria.pk|stringformat:'s' %} active{% endif %}" href="{% url 'admin_productos' %}?categoria={{ categoria.pk }}"{% if request.resolver_match.url_name == 'admin_productos' and request.GET.categoria == categoria.pk|stringformat:'s' %} aria-current="page"{% endif %}>{{ categoria.nombre }}</a>
+                            {% empty %}
+                                <span class="sidebar-category-empty">Aún no hay categorías con productos.</span>
+                            {% endfor %}
+                            <a class="sidebar-catalog-action{% if request.resolver_match.url_name == 'admin_productos' and not request.GET.categoria and request.GET.todos != '1' %} active{% endif %}" href="{% url 'admin_productos' %}"{% if request.resolver_match.url_name == 'admin_productos' and not request.GET.categoria and request.GET.todos != '1' %} aria-current="page"{% endif %}>Ver todos</a>
+                        </div>
+                    </details>
+                </li>
                 <li class="nav-item"><a href="{% url 'admin_citas' %}" title="Citas" aria-label="Citas" class="nav-link{% if request.resolver_match.url_name in 'admin_citas crear_reserva_manual reagendar_cita cancelar_cita' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_citas crear_reserva_manual reagendar_cita cancelar_cita' %} aria-current="page"{% endif %}><i class="fas fa-calendar-check me-2"></i><span class="nav-label">Citas</span></a></li>
-                <li class="nav-item"><a href="{% url 'admin_agenda' %}" title="Agendamientos" aria-label="Agendamientos" class="nav-link{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia' %} aria-current="page"{% endif %}><i class="fas fa-calendar-alt me-2"></i><span class="nav-label">Agendamientos</span></a></li>
+                <li class="nav-item"><a href="{% url 'admin_agenda' %}" title="Calendario" aria-label="Calendario" class="nav-link{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_agenda agenda_horas_disponibles agenda_profesionales_por_servicio guardar_disponibilidad_dia editar_disponibilidad_dia eliminar_disponibilidad_grupo cerrar_dia abrir_dia' %} aria-current="page"{% endif %}><i class="fas fa-calendar-alt me-2"></i><span class="nav-label">Calendario</span></a></li>
                 <li class="nav-item"><a href="{% url 'admin_ventas' %}" title="Ventas y pagos" aria-label="Ventas y pagos" class="nav-link{% if request.resolver_match.url_name in 'admin_ventas admin_detalle_venta' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_ventas admin_detalle_venta' %} aria-current="page"{% endif %}><i class="fas fa-cash-register me-2"></i><span class="nav-label">Ventas y pagos</span></a></li>
                 <li class="nav-item"><a href="{% url 'admin_recordatorios' %}" title="Recordatorios" aria-label="Recordatorios" class="nav-link{% if request.resolver_match.url_name == 'admin_recordatorios' %} active{% endif %}"{% if request.resolver_match.url_name == 'admin_recordatorios' %} aria-current="page"{% endif %}><i class="fas fa-bell me-2"></i><span class="nav-label">Recordatorios</span></a></li>
                 <li class="nav-item"><a href="{% url 'admin_personal' %}" title="Personal" aria-label="Personal" class="nav-link{% if request.resolver_match.url_name in 'admin_personal crear_personal editar_personal eliminar_personal desactivar_personal' %} active{% endif %}"{% if request.resolver_match.url_name in 'admin_personal crear_personal editar_personal eliminar_personal desactivar_personal' %} aria-current="page"{% endif %}><i class="fas fa-users-cog me-2"></i><span class="nav-label">Personal</span></a></li>
@@ -79,7 +107,7 @@
                     </summary>
                     <div class="account-switch-options">
                         {% if request.user.rol.nombre == 'Colaborador' %}
-                            <a href="{% url 'colaborador_mi_agenda' %}"><i class="fas fa-calendar-check me-2" aria-hidden="true"></i><span class="nav-label">Mi agenda</span></a>
+                            <a href="{% url 'colaborador_mi_agenda' %}"{% if request.resolver_match.url_name == 'colaborador_mi_agenda' %} aria-current="page"{% endif %}><i class="fas fa-user-clock me-2" aria-hidden="true"></i><span class="nav-label">Vista colaborador</span></a>
                         {% else %}
                             <a href="{% url 'admin_dashboard' %}"><i class="fas fa-user-shield me-2" aria-hidden="true"></i><span class="nav-label">Administración</span></a>
                         {% endif %}
@@ -121,6 +149,11 @@
             const desktop = window.matchMedia('(min-width: 1024px)');
             const setCollapsed = (collapsed) => {
                 document.body.classList.toggle('admin-sidebar-collapsed', collapsed);
+                if (collapsed) {
+                    sidebar.querySelectorAll('.sidebar-catalog-menu[open]').forEach((menu) => {
+                        menu.open = false;
+                    });
+                }
                 collapseToggle.setAttribute('aria-expanded', String(!collapsed));
                 collapseToggle.setAttribute('aria-label', collapsed ? 'Expandir menú' : 'Contraer menú');
                 collapseToggle.title = collapsed ? 'Expandir menú' : 'Contraer menú';
@@ -155,7 +188,218 @@
                     toggle.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i>';
                 }
             });
+
+            const positionCatalogPopover = (menu) => {
+                if (!document.body.classList.contains('admin-sidebar-collapsed') || !menu.open) return;
+                const options = menu.querySelector('.sidebar-catalog-options');
+                const summary = menu.querySelector('summary');
+                const bounds = summary.getBoundingClientRect();
+                options.style.top = `${Math.max(8, Math.min(bounds.top, window.innerHeight - options.offsetHeight - 8))}px`;
+                options.style.left = `${sidebar.getBoundingClientRect().right + 10}px`;
+            };
+            const catalogMenus = sidebar.querySelectorAll('.sidebar-catalog-menu');
+            catalogMenus.forEach((menu) => {
+                menu.addEventListener('toggle', () => positionCatalogPopover(menu));
+                menu.querySelector('summary').addEventListener('click', () => {
+                    window.requestAnimationFrame(() => positionCatalogPopover(menu));
+                });
+            });
+            window.addEventListener('resize', () => catalogMenus.forEach(positionCatalogPopover));
+            sidebar.addEventListener('scroll', () => catalogMenus.forEach(positionCatalogPopover));
+            document.addEventListener('click', (event) => {
+                if (!document.body.classList.contains('admin-sidebar-collapsed')) return;
+                catalogMenus.forEach((menu) => {
+                    if (menu.open && !menu.contains(event.target) && !menu.querySelector('.sidebar-catalog-options').contains(event.target)) {
+                        menu.open = false;
+                    }
+                });
+            });
+            collapseToggle.addEventListener('click', () => {
+                window.requestAnimationFrame(() => catalogMenus.forEach(positionCatalogPopover));
+            });
         })();
+
+        document.querySelectorAll('[data-catalog-sort]').forEach((select) => {
+            const grid = document.querySelector(select.dataset.catalogSort);
+            if (!grid) return;
+
+            const storageKey = `nicolett-category-order-${select.dataset.catalogType}`;
+            const supportsNativeDrag = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+            const items = () => Array.from(grid.querySelectorAll('[data-sortable-category]'));
+            const customOrder = () => {
+                const current = items();
+                let saved = [];
+                try {
+                    const stored = JSON.parse(window.localStorage.getItem(storageKey) || '[]');
+                    saved = Array.isArray(stored) ? stored : [];
+                } catch (error) {
+                    window.localStorage.removeItem(storageKey);
+                }
+                const byId = new Map(current.map((item) => [item.dataset.categoryId, item]));
+                const ordered = saved.map((id) => byId.get(String(id))).filter(Boolean);
+                current.forEach((item) => {
+                    if (!ordered.includes(item)) ordered.push(item);
+                });
+                return ordered;
+            };
+            const saveCustomOrder = () => {
+                window.localStorage.setItem(storageKey, JSON.stringify(items().map((item) => item.dataset.categoryId)));
+            };
+            const arrange = (mode) => {
+                const cards = items();
+                if (mode === 'custom') {
+                    customOrder().forEach((card) => grid.insertBefore(card, grid.querySelector('[data-category-create-card]')));
+                    cards.forEach((card) => {
+                        card.draggable = supportsNativeDrag;
+                        card.classList.add('is-custom-sort');
+                    });
+                    return;
+                }
+                const compareText = (a, b) => a.dataset.categoryName.localeCompare(b.dataset.categoryName, 'es', {sensitivity: 'base'});
+                cards.sort((a, b) => {
+                    if (mode === 'az') return compareText(a, b);
+                    if (mode === 'za') return compareText(b, a);
+                    const countDifference = Number(a.dataset.categoryCount) - Number(b.dataset.categoryCount);
+                    if (mode === 'count-asc') return countDifference || compareText(a, b);
+                    return -countDifference || compareText(a, b);
+                }).forEach((card) => {
+                    card.draggable = false;
+                    card.classList.remove('is-custom-sort', 'is-dragging');
+                    grid.insertBefore(card, grid.querySelector('[data-category-create-card]'));
+                });
+            };
+            const moveCardWithAnimation = (card, reference, after) => {
+                const positions = new Map(items().map((item) => [item, item.getBoundingClientRect()]));
+                grid.insertBefore(card, after ? reference.nextElementSibling : reference);
+                items().forEach((item) => {
+                    if (item === card || !positions.has(item)) return;
+                    const previous = positions.get(item);
+                    const current = item.getBoundingClientRect();
+                    const deltaX = previous.left - current.left;
+                    const deltaY = previous.top - current.top;
+                    if (!deltaX && !deltaY) return;
+                    item.style.transition = 'none';
+                    item.style.translate = `${deltaX}px ${deltaY}px`;
+                    item.getBoundingClientRect();
+                    window.requestAnimationFrame(() => {
+                        item.style.transition = 'translate 220ms cubic-bezier(0.2, 0.75, 0.25, 1)';
+                        item.style.translate = '0 0';
+                        item.addEventListener('transitionend', () => {
+                            item.style.removeProperty('transition');
+                            item.style.removeProperty('translate');
+                        }, {once: true});
+                    });
+                });
+            };
+
+            if (!window.localStorage.getItem(storageKey)) saveCustomOrder();
+            select.addEventListener('change', () => arrange(select.value));
+            arrange(select.value);
+
+            let draggedCard = null;
+            let dropTarget = null;
+            let holdTimer = null;
+            let didDrag = false;
+            let touchDragging = false;
+            grid.addEventListener('pointerdown', (event) => {
+                if (select.value !== 'custom' || !event.isPrimary || event.pointerType === 'mouse') return;
+                const card = event.target.closest('[data-sortable-category]');
+                if (!card) return;
+                holdTimer = window.setTimeout(() => {
+                    draggedCard = card;
+                    didDrag = false;
+                    touchDragging = true;
+                    card.classList.add('is-dragging');
+                }, 220);
+            });
+            document.addEventListener('pointermove', (event) => {
+                if (!draggedCard || !touchDragging) return;
+                const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-sortable-category]');
+                if (!target || target === draggedCard) return;
+                const bounds = target.getBoundingClientRect();
+                const after = event.clientY > bounds.top + bounds.height / 2
+                    || (event.clientY >= bounds.top && event.clientY <= bounds.bottom && event.clientX > bounds.left + bounds.width / 2);
+                if (dropTarget && dropTarget !== target) dropTarget.classList.remove('is-drop-target');
+                dropTarget = target;
+                dropTarget.classList.add('is-drop-target');
+                moveCardWithAnimation(draggedCard, target, after);
+                didDrag = true;
+            });
+            const finishDrag = (event) => {
+                window.clearTimeout(holdTimer);
+                if (!draggedCard || !touchDragging) return;
+                draggedCard.classList.remove('is-dragging');
+                if (dropTarget) dropTarget.classList.remove('is-drop-target');
+                dropTarget = null;
+                touchDragging = false;
+                draggedCard = null;
+                if (didDrag) saveCustomOrder();
+            };
+            document.addEventListener('pointerup', finishDrag);
+            document.addEventListener('pointercancel', finishDrag);
+            grid.addEventListener('dragstart', (event) => {
+                if (select.value !== 'custom') {
+                    event.preventDefault();
+                    return;
+                }
+                const card = event.target.closest('[data-sortable-category]');
+                if (!card) return;
+                window.clearTimeout(holdTimer);
+                draggedCard = card;
+                didDrag = false;
+                touchDragging = false;
+                card.classList.add('is-dragging');
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', card.dataset.categoryId);
+                const bounds = card.getBoundingClientRect();
+                const preview = card.cloneNode(true);
+                preview.classList.add('catalog-category-drag-preview');
+                preview.style.width = `${bounds.width}px`;
+                preview.style.height = `${bounds.height}px`;
+                preview.style.background = window.getComputedStyle(card).background;
+                document.body.appendChild(preview);
+                event.dataTransfer.setDragImage(
+                    preview,
+                    Math.min(event.offsetX, bounds.width),
+                    Math.min(event.offsetY, bounds.height)
+                );
+                window.setTimeout(() => preview.remove(), 0);
+            });
+            grid.addEventListener('dragover', (event) => {
+                if (!draggedCard || event.pointerType === 'touch') return;
+                event.preventDefault();
+                const target = event.target.closest('[data-sortable-category]');
+                if (!target || target === draggedCard) return;
+                const bounds = target.getBoundingClientRect();
+                const after = event.clientY > bounds.top + bounds.height / 2
+                    || (event.clientY >= bounds.top && event.clientY <= bounds.bottom && event.clientX > bounds.left + bounds.width / 2);
+                if (dropTarget && dropTarget !== target) dropTarget.classList.remove('is-drop-target');
+                dropTarget = target;
+                dropTarget.classList.add('is-drop-target');
+                moveCardWithAnimation(draggedCard, target, after);
+                didDrag = true;
+            });
+            grid.addEventListener('drop', (event) => {
+                if (!draggedCard) return;
+                event.preventDefault();
+                saveCustomOrder();
+            });
+            grid.addEventListener('dragend', (event) => {
+                if (!draggedCard) return;
+                draggedCard.classList.remove('is-dragging');
+                if (dropTarget) dropTarget.classList.remove('is-drop-target');
+                dropTarget = null;
+                touchDragging = false;
+                draggedCard = null;
+                if (didDrag) saveCustomOrder();
+            });
+            grid.addEventListener('click', (event) => {
+                if (!didDrag) return;
+                event.preventDefault();
+                event.stopPropagation();
+                didDrag = false;
+            }, true);
+        });
 
         document.querySelectorAll('[data-live-filter]').forEach((filters) => {
             const table = document.querySelector(filters.dataset.liveFilter);
@@ -191,6 +435,105 @@
             if (search) search.addEventListener('input', applyFilters);
             controls.forEach((control) => control.addEventListener('change', applyFilters));
             applyFilters();
+        });
+
+        document.querySelectorAll('[data-category-create-trigger]').forEach((button) => {
+            button.addEventListener('click', () => {
+                button.classList.add('d-none');
+                const form = button.closest('[data-category-create-card]').querySelector('[data-category-create-form]');
+                form.classList.remove('d-none');
+                form.querySelector('[name="nombre"]').focus();
+            });
+        });
+
+        document.querySelectorAll('[data-category-edit]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const card = button.closest('[data-category-card]');
+                card.querySelector('.catalog-category-link').classList.add('d-none');
+                card.querySelector('.catalog-category-tools').classList.add('d-none');
+                const form = card.querySelector('[data-category-edit-form]');
+                form.classList.remove('d-none');
+                form.querySelector('[name="nombre"]').focus();
+            });
+        });
+
+        document.querySelectorAll('[data-category-cancel]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const card = button.closest('.catalog-category-card');
+                const editForm = card.querySelector('[data-category-edit-form]');
+                const createForm = card.querySelector('[data-category-create-form]');
+                if (editForm) {
+                    editForm.classList.add('d-none');
+                    card.querySelector('.catalog-category-link').classList.remove('d-none');
+                    card.querySelector('.catalog-category-tools').classList.remove('d-none');
+                }
+                if (createForm) {
+                    createForm.reset();
+                    createForm.classList.add('d-none');
+                    card.querySelector('[data-category-create-trigger]').classList.remove('d-none');
+                }
+            });
+        });
+
+        const sendCategoryRequest = async (url, body, csrfToken) => {
+            const response = await fetch(url, {
+                method: 'POST',
+                body,
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
+            return {response, data};
+        };
+
+        document.querySelectorAll('[data-category-create-form], [data-category-edit-form]').forEach((form) => {
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const submit = form.querySelector('[type="submit"]');
+                submit.disabled = true;
+                try {
+                    const {response, data} = await sendCategoryRequest(
+                        form.action,
+                        new FormData(form),
+                        form.querySelector('[name="csrfmiddlewaretoken"]').value
+                    );
+                    if (!response.ok) {
+                        throw new Error((data.errors || ['No se pudo guardar la categoría.']).join(' '));
+                    }
+                    window.location.reload();
+                } catch (error) {
+                    window.alert(error.message || 'No se pudo guardar la categoría. Inténtalo nuevamente.');
+                    submit.disabled = false;
+                }
+            });
+        });
+
+        document.querySelectorAll('[data-category-delete]').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const card = button.closest('[data-category-card]');
+                const csrfToken = card.querySelector('[name="csrfmiddlewaretoken"]').value;
+                const body = new FormData();
+                body.set('tipo', button.dataset.type);
+                button.disabled = true;
+                try {
+                    let result = await sendCategoryRequest(button.dataset.url, body, csrfToken);
+                    if (result.response.status === 409 && result.data.requires_confirmation) {
+                        if (!window.confirm(result.data.errors.join(' '))) return;
+                        body.set('confirmar', '1');
+                        result = await sendCategoryRequest(button.dataset.url, body, csrfToken);
+                    }
+                    if (!result.response.ok) {
+                        throw new Error((result.data.errors || ['No se pudo eliminar la categoría.']).join(' '));
+                    }
+                    window.location.reload();
+                } catch (error) {
+                    window.alert(error.message || 'No se pudo eliminar la categoría. Inténtalo nuevamente.');
+                } finally {
+                    button.disabled = false;
+                }
+            });
         });
     </script>
     {% include 'accessibility_widget.html' %}

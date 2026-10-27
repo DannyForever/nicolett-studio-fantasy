@@ -29,7 +29,8 @@ class ServiciosPageTests(TestCase):
         self.media_dir = tempfile.TemporaryDirectory()
         self.media_override = override_settings(MEDIA_ROOT=self.media_dir.name)
         self.media_override.enable()
-        self.categoria = Categoria.objects.create(nombre='Manicure', tipo='Uñas')
+        self.categoria = Categoria.objects.create(nombre='Manicure', tipo='servicio')
+        self.categoria_producto = Categoria.objects.create(nombre='Aceites', tipo='producto')
 
     def tearDown(self):
         self.media_override.disable()
@@ -64,13 +65,17 @@ class ServiciosPageTests(TestCase):
         )
 
     def test_servicios_page_renders_service_and_category_controls(self):
-        self.crear_servicio()
+        servicio = self.crear_servicio()
         response = self.client.get(reverse('listar_servicios'))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'catalog-category-overview')
+        self.assertFalse(response.context['mostrar_listado'])
+        self.assertContains(response, 'Manicure')
+        self.assertContains(response, f'href="{reverse("listar_servicios")}?categoria={self.categoria.pk}"')
         self.assertContains(response, 'action="/panel_admin/categorias/crear/"')
-        self.assertContains(response, 'Administrar categorías')
-        self.assertContains(response, 'id="btnAdministrarCategoriasServicios"')
+        self.assertContains(response, 'Crear nueva categoría')
+        self.assertNotContains(response, 'id="btnAdministrarCategoriasServicios"')
         self.assertContains(response, 'id="adminSidebarToggle"')
         self.assertContains(response, 'id="adminSidebarCollapseToggle"')
         self.assertContains(response, 'id="adminSidebarBackdrop"')
@@ -78,23 +83,91 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, 'class="sidebar-brand-row"')
         self.assertContains(response, 'admin-sidebar-collapsed')
         self.assertContains(response, 'admin-sidebar-open')
+        self.assertContains(response, 'class="sidebar-catalog-menu" open')
+        self.assertContains(response, f'href="{reverse("listar_servicios")}?categoria={self.categoria.pk}"')
+        self.assertNotContains(response, 'id="serviciosTabla"')
+        self.assertNotContains(response, servicio.nombre)
+        self.assertNotContains(response, '+ NUEVO SERVICIO')
+        self.assertContains(response, 'Ver todos los servicios')
+        self.assertContains(response, 'id="ordenCategoriasServicios"')
+        self.assertContains(response, '<option value="custom">Personalizado</option>')
+        self.assertContains(response, '<option value="count-desc">Mayor a menor</option>')
+        self.assertContains(response, '<option value="count-asc">Menor a mayor</option>')
         self.assertContains(
             response,
-            f'href="{reverse("listar_servicios")}" title="Servicios" aria-label="Servicios" class="nav-link active"',
+            f'class="sidebar-catalog-action active" href="{reverse("listar_servicios")}" aria-current="page">Ver todos</a>',
         )
-        self.assertContains(response, 'id="buscarCategoriaServicio"')
-        self.assertContains(response, 'No hay categorías que coincidan con la búsqueda.')
+        self.assertLess(
+            response.content.index(b'Ver todos los servicios'),
+            response.content.index(b'class="catalog-category-grid"'),
+        )
+        self.assertLess(
+            response.content.index(b'class="catalog-category-card is-uncategorized"'),
+            response.content.index(b'data-category-create-card'),
+        )
         self.assertNotContains(response, 'class="category-manager"')
         self.assertNotContains(response, 'id="btnNuevaCategoria"')
         self.assertNotContains(response, '<th>Estado</th>')
         self.assertNotContains(response, 'data-bs-dismiss="modal">Cerrar')
         self.assertNotContains(response, 'Nueva categoría</h5>')
         self.assertContains(response, 'Disponibilidad para clientes')
-        self.assertContains(response, 'data-live-filter="#serviciosTabla"')
-        self.assertContains(response, 'data-filter-row')
         self.assertNotContains(response, 'Ver galerías semanales')
         self.assertNotContains(response, 'id="admin-services-category-panel"')
-        self.assertNotContains(response, 'Ver todos los servicios')
+        self.assertNotContains(response, 'dashboard-topbar')
+
+        list_response = self.client.get(reverse('listar_servicios'), {'categoria': self.categoria.pk})
+        self.assertContains(list_response, 'data-live-filter="#serviciosTabla"')
+        self.assertContains(list_response, 'data-filter-row')
+        self.assertContains(list_response, 'Manicure clásica')
+        self.assertEqual(
+            set(list_response.context['servicios'].values_list('categoria_id', flat=True)),
+            {self.categoria.pk},
+        )
+
+    def test_service_sidebar_contains_only_the_requested_seed_categories(self):
+        response = self.client.get(reverse('listar_servicios'))
+        category_names = {
+            category.nombre
+            for category in response.context['admin_service_categories']
+        }
+
+        self.assertEqual(
+            category_names,
+            {
+                'Cortes & estilos',
+                'Tratamientos capilares',
+                'Nail care & beauty',
+                'Pedicure',
+                'Depilación',
+                'Peinados',
+                'Colorimetría',
+                'Podología',
+                'Lash & brow',
+                'Maquillaje',
+                'Manicure',
+            },
+        )
+        self.assertNotIn('Sin categoría', category_names)
+
+    def test_services_ver_todo_shows_records_from_every_category(self):
+        self.crear_servicio()
+        otra_categoria = Categoria.objects.create(nombre='Depilación', tipo='servicio')
+        Servicio.objects.create(
+            nombre='Depilación facial',
+            categoria=otra_categoria,
+            descripcion='Servicio de prueba',
+            precio='5000',
+            duracion_minutos=20,
+        )
+
+        response = self.client.get(reverse('listar_servicios'), {'todos': '1'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Manicure clásica')
+        self.assertContains(response, 'Depilación facial')
+        category_ids = set(response.context['servicios'].values_list('categoria_id', flat=True))
+        self.assertIn(self.categoria.pk, category_ids)
+        self.assertIn(otra_categoria.pk, category_ids)
 
     def test_admin_services_week_gallery_reuses_customer_photos_without_cart(self):
         servicio = self.crear_servicio()
@@ -135,7 +208,7 @@ class ServiciosPageTests(TestCase):
 
     def test_edit_service_updates_fields_and_category_in_database(self):
         servicio = self.crear_servicio()
-        otra_categoria = Categoria.objects.create(nombre='Pedicure', tipo='Pies')
+        otra_categoria = Categoria.objects.create(nombre='Pedicure', tipo='servicio')
 
         response = self.client.post(
             reverse('editar_servicio', args=[servicio.pk]),
@@ -214,7 +287,7 @@ class ServiciosPageTests(TestCase):
         servicio.imagen_url = self.imagen_png('manicure.png')
         servicio.save()
 
-        response = self.client.get(reverse('listar_servicios'))
+        response = self.client.get(reverse('listar_servicios'), {'todos': '1'})
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, servicio.imagen_url.url)
@@ -263,7 +336,7 @@ class ServiciosPageTests(TestCase):
     def producto_data(self, **overrides):
         data = {
             'nombre': 'Aceite nutritivo',
-            'categoria': self.categoria.pk,
+            'categoria': self.categoria_producto.pk,
             'descripcion': 'Cuidado en casa para mantener el tratamiento.',
             'precio': '9900',
             'stock': '12',
@@ -276,7 +349,7 @@ class ServiciosPageTests(TestCase):
         data = self.producto_data(**overrides)
         return Producto.objects.create(
             nombre=data['nombre'],
-            categoria=self.categoria,
+            categoria=self.categoria_producto,
             descripcion=data['descripcion'],
             precio=data['precio'],
             stock=data['stock'],
@@ -286,25 +359,64 @@ class ServiciosPageTests(TestCase):
     def test_product_page_lists_products_and_category_choices(self):
         self.crear_producto()
 
-        response = self.client.get(reverse('admin_productos'))
+        response = self.client.get(reverse('admin_productos'), {'todos': '1'})
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Productos Activos')
         self.assertContains(response, 'Productos Inactivos')
         self.assertContains(response, 'Aceite nutritivo')
         self.assertContains(response, 'Cuidado en casa')
-        self.assertContains(response, 'Manicure (Uñas)')
-        self.assertContains(response, 'id="buscarCategoriaProducto"')
+        self.assertContains(response, 'Aceites (producto)')
+        self.assertNotContains(response, 'data-manage-categories')
+        self.assertNotContains(response, 'data-create-category')
         self.assertNotContains(response, 'listaCategoriasInlineProducto')
         self.assertNotContains(response, 'data-add-product-category')
         self.assertContains(response, 'data-live-filter="#productosTabla"')
         self.assertContains(response, 'data-filter-row')
+
+    def test_products_category_overview_and_selected_category_filter(self):
+        producto = self.crear_producto()
+        response = self.client.get(reverse('admin_productos'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'catalog-category-overview')
+        self.assertFalse(response.context['mostrar_listado'])
+        self.assertContains(response, 'Ver todos los productos')
+        self.assertContains(response, 'id="ordenCategoriasProductos"')
+        self.assertNotContains(response, 'id="productosTabla"')
+        self.assertNotContains(response, producto.nombre)
+        self.assertNotContains(response, '+ NUEVO PRODUCTO')
+        self.assertLess(
+            response.content.index(b'Ver todos los productos'),
+            response.content.index(b'class="catalog-category-grid"'),
+        )
+        self.assertLess(
+            response.content.index(b'class="catalog-category-card is-uncategorized"'),
+            response.content.index(b'data-category-create-card'),
+        )
+        self.assertContains(
+            response,
+            f'class="sidebar-catalog-action active" href="{reverse("admin_productos")}" aria-current="page">Ver todos</a>',
+        )
+        self.assertContains(response, f'href="{reverse("admin_productos")}?categoria={self.categoria_producto.pk}"')
+
+        category_response = self.client.get(
+            reverse('admin_productos'),
+            {'categoria': self.categoria_producto.pk},
+        )
+        self.assertContains(category_response, producto.nombre)
+        self.assertEqual(
+            set(category_response.context['productos'].values_list('categoria_id', flat=True)),
+            {self.categoria_producto.pk},
+        )
 
     def test_admin_dashboard_uses_compact_sentence_case_appointment_headers(self):
         response = self.client.get(reverse('admin_dashboard'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'admin-dashboard-brand')
+        self.assertNotContains(response, 'dashboard-topbar')
+        self.assertNotContains(response, 'Espacio de gestión')
         self.assertContains(response, 'Nicolett Studio')
         self.assertContains(response, 'dashboard-appointments-table')
         self.assertContains(response, reverse('admin_citas'))
@@ -367,7 +479,7 @@ class ServiciosPageTests(TestCase):
 
         self.assertRedirects(response, reverse('admin_productos'))
         producto = Producto.objects.get(nombre='Aceite nutritivo')
-        self.assertEqual(producto.categoria, self.categoria)
+        self.assertEqual(producto.categoria, self.categoria_producto)
         self.assertEqual(str(producto.precio), '9900.00')
         self.assertEqual(producto.stock, 7)
         self.assertFalse(producto.activo)
@@ -385,7 +497,7 @@ class ServiciosPageTests(TestCase):
 
     def test_edit_product_updates_stock_price_category_and_status(self):
         producto = self.crear_producto()
-        otra_categoria = Categoria.objects.create(nombre='Cabello', tipo='Tratamientos')
+        otra_categoria = Categoria.objects.create(nombre='Cabello', tipo='producto')
 
         response = self.client.post(
             reverse('editar_producto', args=[producto.pk]),
@@ -503,65 +615,139 @@ class ServiciosPageTests(TestCase):
         self.assertFalse(Producto.objects.filter(pk=producto.pk).exists())
         self.assertFalse(storage.exists(image_name))
 
-    def test_category_can_be_created_and_selected_through_modal_endpoint(self):
+    def test_category_can_be_created_with_same_name_in_separate_catalog_scopes(self):
         response = self.client.post(
             reverse('crear_categoria'),
-            {'nombre': 'Coloración', 'tipo': 'Cabello'},
+            {'nombre': 'Coloración', 'tipo': 'servicio'},
             HTTP_X_REQUESTED_WITH='XMLHttpRequest',
         )
 
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertEqual(data['nombre'], 'Coloración')
-        self.assertTrue(Categoria.objects.filter(pk=data['id'], tipo='Cabello').exists())
+        self.assertTrue(Categoria.objects.filter(pk=data['id'], tipo='servicio').exists())
+
+        product_response = self.client.post(
+            reverse('crear_categoria'),
+            {'nombre': 'Coloración', 'tipo': 'producto'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(product_response.status_code, 200)
+        product_data = json.loads(product_response.content)
+        self.assertNotEqual(data['id'], product_data['id'])
+        self.assertTrue(Categoria.objects.filter(pk=product_data['id'], tipo='producto').exists())
+
+        duplicate_response = self.client.post(
+            reverse('crear_categoria'),
+            {'nombre': 'Coloración', 'tipo': 'servicio'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(duplicate_response.status_code, 400)
 
     def test_category_can_be_edited_from_service_modal(self):
+        servicio = self.crear_servicio()
         self.categoria.activa = False
         self.categoria.save(update_fields=['activa'])
 
         response = self.client.post(
             reverse('editar_categoria', args=[self.categoria.pk]),
-            {'nombre': 'Manicure premium', 'tipo': 'Uñas'},
+            {'nombre': 'Manicure premium', 'tipo': 'servicio'},
             HTTP_X_REQUESTED_WITH='XMLHttpRequest',
         )
 
         self.assertEqual(response.status_code, 200)
         self.categoria.refresh_from_db()
+        servicio.refresh_from_db()
         self.assertEqual(self.categoria.nombre, 'Manicure premium')
+        self.assertEqual(servicio.categoria.nombre, 'Manicure premium')
         self.assertTrue(self.categoria.activa)
 
-    def test_category_with_services_cannot_be_deleted(self):
+    def test_category_with_services_requires_confirmation_and_moves_records_to_uncategorized(self):
         servicio = self.crear_servicio()
 
         response = self.client.post(
             reverse('eliminar_categoria', args=[self.categoria.pk]),
+            {'tipo': 'servicio'},
             HTTP_X_REQUESTED_WITH='XMLHttpRequest',
         )
 
         self.assertEqual(response.status_code, 409)
+        self.assertTrue(json.loads(response.content)['requires_confirmation'])
         self.assertTrue(Categoria.objects.filter(pk=self.categoria.pk).exists())
         self.assertTrue(Servicio.objects.filter(pk=servicio.pk).exists())
 
-    def test_category_with_products_cannot_be_deleted(self):
+        response = self.client.post(
+            reverse('eliminar_categoria', args=[self.categoria.pk]),
+            {'tipo': 'servicio', 'confirmar': '1'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 200)
+        servicio.refresh_from_db()
+        self.assertEqual(servicio.categoria.tipo, 'servicio')
+        self.assertEqual(servicio.categoria.nombre, 'Sin categoría')
+
+    def test_category_with_products_requires_confirmation_and_moves_records_to_product_uncategorized(self):
         producto = self.crear_producto()
 
         response = self.client.post(
-            reverse('eliminar_categoria', args=[self.categoria.pk]),
+            reverse('eliminar_categoria', args=[self.categoria_producto.pk]),
+            {'tipo': 'producto'},
             HTTP_X_REQUESTED_WITH='XMLHttpRequest',
         )
 
         self.assertEqual(response.status_code, 409)
-        self.assertTrue(Categoria.objects.filter(pk=self.categoria.pk).exists())
+        self.assertTrue(Categoria.objects.filter(pk=self.categoria_producto.pk).exists())
         self.assertTrue(Producto.objects.filter(pk=producto.pk).exists())
+
+        response = self.client.post(
+            reverse('eliminar_categoria', args=[self.categoria_producto.pk]),
+            {'tipo': 'producto', 'confirmar': '1'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 200)
+        producto.refresh_from_db()
+        self.assertEqual(producto.categoria.tipo, 'producto')
+        self.assertEqual(producto.categoria.nombre, 'Sin categoría')
 
     def test_unused_category_can_be_deleted(self):
         response = self.client.post(
             reverse('eliminar_categoria', args=[self.categoria.pk]),
+            {'tipo': 'servicio'},
             HTTP_X_REQUESTED_WITH='XMLHttpRequest',
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Categoria.objects.filter(pk=self.categoria.pk).exists())
+
+    def test_category_edit_cannot_cross_catalog_scopes(self):
+        response = self.client.post(
+            reverse('editar_categoria', args=[self.categoria.pk]),
+            {'nombre': 'Intento fuera de ámbito', 'tipo': 'producto'},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.categoria.refresh_from_db()
+        self.assertEqual(self.categoria.nombre, 'Manicure')
+
+    def test_category_forms_reject_categories_from_the_other_catalog(self):
+        service_response = self.client.post(
+            reverse('crear_servicio'),
+            {
+                **self.servicio_data(categoria=self.categoria_producto.pk),
+            },
+        )
+        product_response = self.client.post(
+            reverse('crear_producto'),
+            {
+                **self.producto_data(categoria=self.categoria.pk),
+                'imagen_url': self.imagen_png('producto.png'),
+            },
+        )
+
+        self.assertRedirects(service_response, reverse('listar_servicios'))
+        self.assertRedirects(product_response, reverse('admin_productos'))
+        self.assertFalse(Servicio.objects.filter(nombre='Manicure clásica').exists())
+        self.assertFalse(Producto.objects.filter(nombre='Aceite nutritivo').exists())
 
 
 class PersonalTests(TestCase):
@@ -578,8 +764,8 @@ class PersonalTests(TestCase):
         )
         self.client.force_login(administrador)
         self.rol_colaborador = Rol.objects.create(id=5, nombre='Colaborador')
-        self.categoria_unas = Categoria.objects.create(nombre='Uñas', tipo='Manicure y pedicure')
-        self.categoria_cabello = Categoria.objects.create(nombre='Cabello', tipo='Peluquería')
+        self.categoria_unas = Categoria.objects.create(nombre='Uñas', tipo='servicio')
+        self.categoria_cabello = Categoria.objects.create(nombre='Cabello', tipo='servicio')
 
     def datos_personal(self, **overrides):
         data = {
@@ -644,6 +830,8 @@ class PersonalTests(TestCase):
         self.assertContains(response, 'class="field-help"')
         self.assertNotContains(response, 'cliente@example.com')
         self.assertContains(response, 'Cambiar vista')
+        self.assertContains(response, 'Calendario')
+        self.assertNotContains(response, 'Agendamientos')
         self.assertContains(response, 'data-live-filter="#personalTabla"')
         self.assertContains(response, 'data-filter-row')
         body = response.content.decode()
@@ -651,6 +839,19 @@ class PersonalTests(TestCase):
         self.assertLess(body.index('CUENTA DE ADMINISTRADOR'), body.index('Cambiar vista'))
         self.assertLess(body.index('Cambiar vista'), body.index('Cerrar sesión'))
         self.assertTrue(Usuario.objects.filter(pk=colaborador.pk, rol_id=5).exists())
+
+    def test_collaborator_sidebar_has_view_switch_and_calendar_label(self):
+        colaborador = self.crear_personal()
+        self.client.force_login(colaborador)
+
+        response = self.client.get(reverse('colaborador_mi_agenda'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Vista colaborador')
+        self.assertContains(response, 'Calendario')
+        self.assertContains(response, 'Vista cliente')
+        self.assertNotContains(response, 'Mi agenda')
+        self.assertNotContains(response, 'Agendamientos')
 
     def test_deleting_unused_specialty_category_unlinks_it_from_collaborators(self):
         from agenda.models import ProfesionalCategoria
@@ -663,6 +864,7 @@ class PersonalTests(TestCase):
 
         response = self.client.post(
             reverse('eliminar_categoria', args=[self.categoria_unas.pk]),
+            {'tipo': 'servicio'},
             HTTP_X_REQUESTED_WITH='XMLHttpRequest',
         )
 
@@ -910,7 +1112,7 @@ class PersonalTests(TestCase):
     def test_specialization_choices_list_categories_registered_in_database(self):
         from panel_admin.forms import PersonalForm
 
-        categoria_pestanas = Categoria.objects.create(nombre='Pestañas', tipo='Mirada')
+        categoria_pestanas = Categoria.objects.create(nombre='Pestañas', tipo='servicio')
         form = PersonalForm()
 
         response = self.client.get(reverse('admin_personal'))
@@ -1329,7 +1531,8 @@ class PersonalTests(TestCase):
 
 class DuplicateCatalogEntryTests(TestCase):
     def setUp(self):
-        self.categoria = Categoria.objects.create(nombre='Manicure', tipo='Uñas')
+        self.categoria = Categoria.objects.create(nombre='Manicure', tipo='servicio')
+        self.categoria_producto = Categoria.objects.create(nombre='Cuidado capilar', tipo='producto')
         administrador = Usuario.objects.create_superuser(
             email='admin.duplicados@example.com',
             password='Admin123!Test',
@@ -1408,14 +1611,14 @@ class DuplicateCatalogEntryTests(TestCase):
 
         producto = Producto.objects.create(
             nombre='Aceite nutritivo',
-            categoria=self.categoria,
+            categoria=self.categoria_producto,
             descripcion='Aceite para uñas',
             precio='5000',
             stock=4,
         )
         datos = {
             'nombre': producto.nombre,
-            'categoria': self.categoria.pk,
+            'categoria': self.categoria_producto.pk,
             'descripcion': producto.descripcion,
             'precio': '5000',
             'stock': '99',
@@ -1438,7 +1641,7 @@ class DuplicateCatalogEntryTests(TestCase):
     def test_duplicate_product_creation_request_does_not_add_a_second_record(self):
         Producto.objects.create(
             nombre='Aceite nutritivo',
-            categoria=self.categoria,
+            categoria=self.categoria_producto,
             descripcion='Aceite para uñas',
             precio='5000',
             stock=4,
@@ -1448,7 +1651,7 @@ class DuplicateCatalogEntryTests(TestCase):
             reverse('crear_producto'),
             {
                 'nombre': 'Aceite nutritivo',
-                'categoria': self.categoria.pk,
+                'categoria': self.categoria_producto.pk,
                 'descripcion': 'Aceite para uñas',
                 'precio': '5000',
                 'stock': '99',
@@ -1458,14 +1661,14 @@ class DuplicateCatalogEntryTests(TestCase):
         )
 
         self.assertRedirects(response, reverse('admin_productos'))
-        self.assertEqual(Producto.objects.filter(categoria=self.categoria).count(), 1)
+        self.assertEqual(Producto.objects.filter(categoria=self.categoria_producto).count(), 1)
 
     def test_product_with_a_different_characteristic_is_allowed(self):
         from .forms import ProductoForm
 
         Producto.objects.create(
             nombre='Aceite nutritivo',
-            categoria=self.categoria,
+            categoria=self.categoria_producto,
             descripcion='Aceite para uñas',
             precio='5000',
             stock=4,
@@ -1473,7 +1676,7 @@ class DuplicateCatalogEntryTests(TestCase):
         form = ProductoForm(
             data={
                 'nombre': 'Aceite nutritivo',
-                'categoria': self.categoria.pk,
+                'categoria': self.categoria_producto.pk,
                 'descripcion': 'Aceite para uñas sensibles',
                 'precio': '5000',
                 'stock': '4',
@@ -1488,7 +1691,7 @@ class DuplicateCatalogEntryTests(TestCase):
         response = self.client.get(reverse('admin_productos'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Administrar categorías')
+        self.assertNotContains(response, 'data-manage-categories')
         self.assertContains(response, 'categoriaProductoTipo')
         self.assertContains(response, 'id="buscarCategoriaProducto"')
         self.assertContains(response, 'No hay categorías que coincidan con la búsqueda.')
@@ -1496,7 +1699,7 @@ class DuplicateCatalogEntryTests(TestCase):
         self.assertNotContains(response, 'data-add-product-category')
         self.assertNotContains(response, '<th>Estado</th>')
         self.assertNotContains(response, 'data-bs-dismiss="modal">Cerrar')
-        self.assertEqual(response.content.count(b'data-manage-categories>'), 1)
+        self.assertEqual(response.content.count(b'data-manage-categories>'), 0)
         self.assertNotContains(response, 'Crea una categoría en Servicios')
 
 

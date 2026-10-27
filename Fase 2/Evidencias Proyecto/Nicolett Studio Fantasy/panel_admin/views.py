@@ -46,6 +46,10 @@ from notificaciones.recordatorios import construir_mensaje_recordatorio
 
 logger = logging.getLogger(__name__)
 
+SERVICE_CATEGORY_SCOPE = 'servicio'
+PRODUCT_CATEGORY_SCOPE = 'producto'
+UNCATEGORIZED_CATEGORY_NAME = 'Sin categoría'
+
 
 def _formatear_miles_clp(valor):
     return formatear_miles_clp(valor)
@@ -118,16 +122,55 @@ def servicios_semana_admin(request):
 
 def listar_servicios(request):
     servicios = Servicio.objects.select_related('categoria').all()
+    categorias_panel = Categoria.objects.filter(
+        tipo=SERVICE_CATEGORY_SCOPE,
+        activa=True,
+    ).exclude(
+        nombre__iexact=UNCATEGORIZED_CATEGORY_NAME,
+    ).order_by('nombre').annotate(
+        total_items=Count('servicio'),
+    )
+    categoria_sin_categoria = get_object_or_404(
+        Categoria,
+        tipo=SERVICE_CATEGORY_SCOPE,
+        nombre__iexact=UNCATEGORIZED_CATEGORY_NAME,
+    )
+    categoria_sin_categoria.total_items = Servicio.objects.filter(
+        categoria=categoria_sin_categoria,
+    ).count()
+    categoria_id = request.GET.get('categoria')
+    categoria_seleccionada = (
+        get_object_or_404(
+            Categoria.objects.filter(tipo=SERVICE_CATEGORY_SCOPE),
+            pk=categoria_id,
+        )
+        if categoria_id
+        else None
+    )
+    mostrar_listado = categoria_seleccionada is not None or request.GET.get('todos') == '1'
+    if categoria_seleccionada:
+        servicios = servicios.filter(categoria_id=categoria_seleccionada.pk)
+
     from agenda.services import reservas_activas_futuras
     for servicio in servicios:
         servicio.citas_pendientes = reservas_activas_futuras(servicio.pk).count()
-    categorias = Categoria.objects.all().order_by('nombre')
-    total_activos = servicios.filter(activo=True).count()
-    total_inactivos = servicios.filter(activo=False).count()
+    categorias = Categoria.objects.filter(
+        tipo=SERVICE_CATEGORY_SCOPE,
+        activa=True,
+    ).exclude(
+        nombre__iexact=UNCATEGORIZED_CATEGORY_NAME,
+    ).order_by('nombre')
+    todos_servicios = Servicio.objects.all()
+    total_activos = todos_servicios.filter(activo=True).count()
+    total_inactivos = todos_servicios.filter(activo=False).count()
     
     context = {
         'servicios': servicios,
         'categorias': categorias,
+        'categorias_panel': categorias_panel,
+        'categoria_sin_categoria': categoria_sin_categoria,
+        'categoria_seleccionada': categoria_seleccionada,
+        'mostrar_listado': mostrar_listado,
         'total_servicios': total_activos + total_inactivos,
         'total_activos': total_activos,
         'total_inactivos': total_inactivos,
@@ -154,7 +197,11 @@ def _delete_unused_product_image(image_name):
 
 @require_POST
 def crear_servicio(request):
-    form = ServicioForm(request.POST, request.FILES)
+    form = ServicioForm(
+        request.POST,
+        request.FILES,
+        category_scope=SERVICE_CATEGORY_SCOPE,
+    )
     if not form.is_valid():
         messages.error(request, _form_error_text(form))
         return redirect('listar_servicios')
@@ -168,7 +215,12 @@ def editar_servicio(request, servicio_id):
     servicio = get_object_or_404(Servicio, id=servicio_id)
     estaba_activo = servicio.activo
     imagen_anterior = servicio.imagen_url.name
-    form = ServicioForm(request.POST, request.FILES, instance=servicio)
+    form = ServicioForm(
+        request.POST,
+        request.FILES,
+        instance=servicio,
+        category_scope=SERVICE_CATEGORY_SCOPE,
+    )
     if not form.is_valid():
         messages.error(request, _form_error_text(form))
         return redirect('listar_servicios')
@@ -258,39 +310,98 @@ def crear_categoria(request):
 
 @require_POST
 def editar_categoria(request, categoria_id):
-    categoria = get_object_or_404(Categoria, id=categoria_id)
+    categoria = get_object_or_404(
+        Categoria,
+        id=categoria_id,
+        tipo=request.POST.get('tipo', ''),
+    )
+    if categoria.nombre.casefold() == UNCATEGORIZED_CATEGORY_NAME.casefold():
+        return JsonResponse({'errors': ['La categoría "Sin categoría" está reservada.']}, status=400)
     return _guardar_categoria(request, categoria)
 
 def _guardar_categoria(request, categoria=None):
+    tipo = request.POST.get('tipo', '')
+    if tipo not in (SERVICE_CATEGORY_SCOPE, PRODUCT_CATEGORY_SCOPE):
+        return JsonResponse({'errors': ['Selecciona el catálogo de la categoría.']}, status=400)
+    if categoria and categoria.tipo != tipo:
+        return JsonResponse({'errors': ['La categoría no pertenece a este catálogo.']}, status=400)
+
     form = CategoriaForm(request.POST, instance=categoria)
     if not form.is_valid():
         errors = [error for field_errors in form.errors.values() for error in field_errors]
         return JsonResponse({'errors': errors}, status=400)
 
+    nombre = form.cleaned_data['nombre']
+    duplicada = Categoria.objects.filter(
+        nombre__iexact=nombre,
+        tipo=tipo,
+    )
+    if categoria:
+        duplicada = duplicada.exclude(pk=categoria.pk)
+    if duplicada.exists():
+        return JsonResponse({'errors': ['Ya existe una categoría con ese nombre en este catálogo.']}, status=400)
+
+    if nombre.casefold() == UNCATEGORIZED_CATEGORY_NAME.casefold():
+        return JsonResponse({'errors': ['Ese nombre está reservado para la categoría automática.']}, status=400)
+
     categoria = form.save()
+    categoria.tipo = tipo
+    categoria.save(update_fields=['tipo'])
     return JsonResponse({
         'id': categoria.pk,
         'nombre': categoria.nombre,
         'tipo': categoria.tipo,
+        'url': reverse(
+            'listar_servicios' if tipo == SERVICE_CATEGORY_SCOPE else 'admin_productos',
+        ) + f'?categoria={categoria.pk}',
         'message': 'Categoría guardada correctamente.',
     })
 
 @require_POST
 def eliminar_categoria(request, categoria_id):
-    categoria = get_object_or_404(Categoria, id=categoria_id)
-    if (
-        Servicio.objects.filter(categoria=categoria).exists()
-        or Producto.objects.filter(categoria=categoria).exists()
-    ):
+    tipo = request.POST.get('tipo', '')
+    if tipo not in (SERVICE_CATEGORY_SCOPE, PRODUCT_CATEGORY_SCOPE):
+        return JsonResponse({'errors': ['Selecciona el catálogo de la categoría.']}, status=400)
+    categoria = get_object_or_404(Categoria, id=categoria_id, tipo=tipo)
+    if categoria.nombre.casefold() == UNCATEGORIZED_CATEGORY_NAME.casefold():
+        return JsonResponse({'errors': ['No se puede eliminar la categoría "Sin categoría".']}, status=400)
+
+    registros = (
+        Servicio.objects.filter(categoria=categoria)
+        if tipo == SERVICE_CATEGORY_SCOPE
+        else Producto.objects.filter(categoria=categoria)
+    )
+    total_registros = registros.count()
+    if total_registros and request.POST.get('confirmar') != '1':
         return JsonResponse(
-            {'errors': ['No se puede eliminar esta categoría porque tiene servicios o productos asociados.']},
+            {
+                'errors': [
+                    f'Esta categoría tiene {total_registros} registro(s). Si continúas, se moverán a "Sin categoría".'
+                ],
+                'requires_confirmation': True,
+                'count': total_registros,
+            },
             status=409,
         )
 
     with transaction.atomic():
         ProfesionalCategoria.objects.filter(categoria_id=categoria.pk).delete()
+        if total_registros:
+            sin_categoria = get_object_or_404(
+                Categoria,
+                tipo=tipo,
+                nombre__iexact=UNCATEGORIZED_CATEGORY_NAME,
+            )
+            registros.update(categoria=sin_categoria)
         categoria.delete()
-    return JsonResponse({'id': categoria_id, 'message': 'Categoría eliminada correctamente.'})
+    return JsonResponse({
+        'id': categoria_id,
+        'message': (
+            f'Categoría eliminada; {total_registros} registro(s) se movieron a "Sin categoría".'
+            if total_registros
+            else 'Categoría eliminada correctamente.'
+        ),
+    })
 
 @require_POST
 def cambiar_estado_servicio(request, servicio_id):
@@ -324,12 +435,54 @@ def cambiar_estado_servicio(request, servicio_id):
 # Funciones temporales para el resto de módulos (las iremos detallando una a una)
 def lista_productos(request):
     productos = Producto.objects.select_related('categoria').all()
+    categorias_panel = Categoria.objects.filter(
+        tipo=PRODUCT_CATEGORY_SCOPE,
+        activa=True,
+    ).exclude(
+        nombre__iexact=UNCATEGORIZED_CATEGORY_NAME,
+    ).order_by('nombre').annotate(
+        total_items=Count('productos'),
+    )
+    categoria_sin_categoria = get_object_or_404(
+        Categoria,
+        tipo=PRODUCT_CATEGORY_SCOPE,
+        nombre__iexact=UNCATEGORIZED_CATEGORY_NAME,
+    )
+    categoria_sin_categoria.total_items = Producto.objects.filter(
+        categoria=categoria_sin_categoria,
+    ).count()
+    categoria_id = request.GET.get('categoria')
+    categoria_seleccionada = (
+        get_object_or_404(
+            Categoria.objects.filter(tipo=PRODUCT_CATEGORY_SCOPE),
+            pk=categoria_id,
+        )
+        if categoria_id
+        else None
+    )
+    mostrar_listado = categoria_seleccionada is not None or request.GET.get('todos') == '1'
+    if categoria_seleccionada:
+        productos = productos.filter(categoria_id=categoria_seleccionada.pk)
+
+    todos_productos = Producto.objects.all()
     context = {
         'productos': productos,
-        'categorias': Categoria.objects.filter(activa=True).order_by('nombre'),
-        'categorias_admin': Categoria.objects.all().order_by('nombre'),
-        'total_activos': productos.filter(activo=True).count(),
-        'total_inactivos': productos.filter(activo=False).count(),
+        'categorias': Categoria.objects.filter(
+            tipo=PRODUCT_CATEGORY_SCOPE,
+            activa=True,
+        ).exclude(
+            nombre__iexact=UNCATEGORIZED_CATEGORY_NAME,
+        ).order_by('nombre'),
+        'categorias_panel': categorias_panel,
+        'categoria_sin_categoria': categoria_sin_categoria,
+        'categoria_seleccionada': categoria_seleccionada,
+        'mostrar_listado': mostrar_listado,
+        'categorias_admin': Categoria.objects.filter(
+            tipo=PRODUCT_CATEGORY_SCOPE,
+            activa=True,
+        ).order_by('nombre'),
+        'total_activos': todos_productos.filter(activo=True).count(),
+        'total_inactivos': todos_productos.filter(activo=False).count(),
     }
     context['total_productos'] = context['total_activos'] + context['total_inactivos']
     return render(request, 'panel_admin/productos_lista.html', context)
@@ -393,7 +546,11 @@ def configuracion_admin(request):
 
 @require_POST
 def crear_producto(request):
-    form = ProductoForm(request.POST, request.FILES)
+    form = ProductoForm(
+        request.POST,
+        request.FILES,
+        category_scope=PRODUCT_CATEGORY_SCOPE,
+    )
     if not form.is_valid():
         messages.error(request, _form_error_text(form))
         return redirect('admin_productos')
@@ -407,7 +564,12 @@ def crear_producto(request):
 def editar_producto(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
     imagen_anterior = producto.imagen_url.name
-    form = ProductoForm(request.POST, request.FILES, instance=producto)
+    form = ProductoForm(
+        request.POST,
+        request.FILES,
+        instance=producto,
+        category_scope=PRODUCT_CATEGORY_SCOPE,
+    )
     if not form.is_valid():
         messages.error(request, _form_error_text(form))
         return redirect('admin_productos')

@@ -8,15 +8,19 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1 text-dark">Productos</h1>
+            {% if categoria_seleccionada %}
+                <p class="text-muted mb-0">Categoría: {{ categoria_seleccionada.nombre }}</p>
+            {% elif mostrar_listado %}
+                <p class="text-muted mb-0">Todos los productos</p>
+            {% endif %}
         </div>
+        {% if mostrar_listado %}
         <div class="d-flex gap-2">
-            <button type="button" class="btn salon-btn-outline" data-manage-categories>
-                Administrar categorías
-            </button>
             <button type="button" class="btn salon-btn-primary" data-bs-toggle="modal" data-bs-target="#modalProducto">
                 + NUEVO PRODUCTO
             </button>
         </div>
+        {% endif %}
     </div>
 
     {% if messages %}
@@ -31,6 +35,76 @@
     {% endif %}
     <div id="mensajeCategoriasProducto" class="alert d-none" role="status" aria-live="polite"></div>
 
+    {% if not mostrar_listado %}
+    <section class="catalog-category-overview" aria-label="Categorías de productos">
+        <div class="catalog-overview-top-action">
+            <a class="catalog-action-all" href="{% url 'admin_productos' %}?todos=1">
+                <i class="fas fa-list-ul" aria-hidden="true"></i>Ver todos los productos
+            </a>
+            <label class="catalog-sort-control" for="ordenCategoriasProductos">
+                <span>Ordenar:</span>
+                <select id="ordenCategoriasProductos" class="form-select" data-catalog-sort="#categoriasProductosGrid" data-catalog-type="producto">
+                    <option value="custom">Personalizado</option>
+                    <option value="az">A-Z</option>
+                    <option value="za">Z-A</option>
+                    <option value="count-desc">Mayor a menor</option>
+                    <option value="count-asc">Menor a mayor</option>
+                </select>
+            </label>
+        </div>
+        <div class="catalog-category-grid" id="categoriasProductosGrid">
+            {% for categoria in categorias_panel %}
+                <article class="catalog-category-card" data-category-card data-sortable-category data-category-id="{{ categoria.pk }}" data-category-name="{{ categoria.nombre }}" data-category-count="{{ categoria.total_items }}">
+                    <a class="catalog-category-link" href="{% url 'admin_productos' %}?categoria={{ categoria.pk }}">
+                        <span class="catalog-category-icon" aria-hidden="true"><i class="fas fa-box-open"></i></span>
+                        <span class="catalog-category-name">{{ categoria.nombre }}</span>
+                        <span class="catalog-category-meta">{{ categoria.total_items }} producto{{ categoria.total_items|pluralize:"s" }}</span>
+                        <span class="catalog-category-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                    </a>
+                    <div class="catalog-category-tools">
+                        <button type="button" class="catalog-category-tool" data-category-edit aria-label="Cambiar nombre a {{ categoria.nombre }}" title="Cambiar nombre" data-url="{% url 'editar_categoria' categoria.pk %}">
+                            <i class="fas fa-pen" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="catalog-category-tool is-danger" data-category-delete aria-label="Eliminar categoría {{ categoria.nombre }}" title="Eliminar categoría" data-url="{% url 'eliminar_categoria' categoria.pk %}" data-name="{{ categoria.nombre }}" data-type="producto">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <form class="catalog-category-edit d-none" data-category-edit-form method="post" action="{% url 'editar_categoria' categoria.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo" value="producto">
+                        <label class="visually-hidden" for="categoriaProducto{{ categoria.pk }}">Nombre de categoría</label>
+                        <input id="categoriaProducto{{ categoria.pk }}" class="form-control" name="nombre" maxlength="100" required value="{{ categoria.nombre }}">
+                        <button type="submit" class="catalog-category-tool is-save" aria-label="Guardar nombre"><i class="fas fa-check" aria-hidden="true"></i></button>
+                        <button type="button" class="catalog-category-tool" data-category-cancel aria-label="Cancelar"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+                    </form>
+                </article>
+            {% endfor %}
+            <article class="catalog-category-card is-uncategorized" data-sortable-category data-category-id="{{ categoria_sin_categoria.pk }}" data-category-name="Sin categoría" data-category-count="{{ categoria_sin_categoria.total_items }}">
+                <a class="catalog-category-link" href="{% url 'admin_productos' %}?categoria={{ categoria_sin_categoria.pk }}">
+                    <span class="catalog-category-icon" aria-hidden="true"><i class="fas fa-folder-minus"></i></span>
+                    <span class="catalog-category-name">Sin categoría</span>
+                    <span class="catalog-category-meta">{{ categoria_sin_categoria.total_items }} producto{{ categoria_sin_categoria.total_items|pluralize:"s" }}</span>
+                    <span class="catalog-category-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                </a>
+            </article>
+            <article class="catalog-category-card is-create-category" data-category-create-card>
+                <button type="button" class="catalog-category-create-trigger" data-category-create-trigger>
+                    <span class="catalog-category-icon" aria-hidden="true"><i class="fas fa-folder-plus"></i></span>
+                    <span class="catalog-category-name">Crear nueva categoría</span>
+                    <span class="catalog-category-meta">Añade una categoría de productos</span>
+                </button>
+                <form class="catalog-category-create-form d-none" data-category-create-form method="post" action="{% url 'crear_categoria' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo" value="producto">
+                    <label class="visually-hidden" for="nuevaCategoriaProducto">Nombre de la categoría</label>
+                    <input id="nuevaCategoriaProducto" class="form-control" name="nombre" maxlength="100" placeholder="Nombre de la categoría" required>
+                    <button type="submit" class="catalog-category-tool is-save" aria-label="Guardar categoría"><i class="fas fa-check" aria-hidden="true"></i></button>
+                    <button type="button" class="catalog-category-tool" data-category-cancel aria-label="Cancelar"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+                </form>
+            </article>
+        </div>
+    </section>
+    {% else %}
     <div class="row g-3 align-items-start">
         <aside class="col-xl-3 col-md-4">
             <div class="card-stat mb-3">
@@ -66,7 +140,7 @@
                         <select id="filtrarCategoriaProducto" class="form-select" data-filter-field="category">
                             <option value="">Todas las categorías</option>
                             {% for categoria in categorias %}
-                                <option value="{{ categoria.pk }}">{{ categoria.nombre }}</option>
+                                <option value="{{ categoria.pk }}"{% if categoria_seleccionada.pk == categoria.pk %} selected{% endif %}>{{ categoria.nombre }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -157,6 +231,7 @@
         </div>
     </div>
 </div>
+    {% endif %}
 
 <div class="modal fade salon-modal" id="modalProducto" tabindex="-1" aria-labelledby="tituloModalProducto" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -173,7 +248,7 @@
                 <div class="modal-body">
                     {% if not categorias %}
                         <div class="alert alert-warning" role="alert">
-                            No hay categorías activas. Administra las categorías desde el botón de la página para poder asociar una a este producto.
+                            No hay categorías activas. Crea una desde la tarjeta de categorías para poder asociarla a este producto.
                         </div>
                     {% endif %}
                     <div class="row g-3">
@@ -251,10 +326,7 @@
                             <label for="categoriaProductoNombre" class="form-label">Nombre</label>
                             <input id="categoriaProductoNombre" name="nombre" class="form-control" maxlength="100" required>
                         </div>
-                        <div class="col-md-5">
-                            <label for="categoriaProductoTipo" class="form-label">Tipo o tratamiento</label>
-                            <input id="categoriaProductoTipo" name="tipo" class="form-control" maxlength="100" required>
-                        </div>
+                        <input id="categoriaProductoTipo" type="hidden" name="tipo" value="producto">
                         <div class="col-md-2 d-grid">
                             <button id="guardarCategoriaProducto" type="submit" class="btn salon-btn-primary">Crear</button>
                         </div>
@@ -382,8 +454,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.querySelector('[data-manage-categories]').addEventListener('click', () => categoryModal.show());
-
     function resetCategoryForm() {
         categoryForm.reset();
         categoryForm.action = categoryCreateUrl;
@@ -435,13 +505,15 @@ document.addEventListener('DOMContentLoaded', () => {
         option.textContent = `${data.nombre} (${data.tipo})`;
         categorySelect.value = data.id;
 
-        let filterOption = categoryFilter.querySelector(`option[value="${data.id}"]`);
-        if (!filterOption) {
-            filterOption = document.createElement('option');
-            filterOption.value = data.id;
-            categoryFilter.append(filterOption);
+        if (categoryFilter) {
+            let filterOption = categoryFilter.querySelector(`option[value="${data.id}"]`);
+            if (!filterOption) {
+                filterOption = document.createElement('option');
+                filterOption.value = data.id;
+                categoryFilter.append(filterOption);
+            }
+            filterOption.textContent = data.nombre;
         }
-        filterOption.textContent = data.nombre;
         document.getElementById('btnGuardarProducto').disabled = false;
     }
 
@@ -549,6 +621,8 @@ document.addEventListener('DOMContentLoaded', () => {
         categorySearch.value = '';
         filterCategories();
     });
+
+
     categoryModalElement.addEventListener('hidden.bs.modal', resetCategoryForm);
 
     fileInput.addEventListener('change', () => {
