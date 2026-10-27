@@ -304,7 +304,15 @@ class ServiciosPageTests(TestCase):
         response = self.client.get(reverse('admin_dashboard'))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'admin-dashboard-brand')
+        self.assertContains(response, 'Nicolett Studio')
         self.assertContains(response, 'dashboard-appointments-table')
+        self.assertContains(response, reverse('admin_citas'))
+        self.assertContains(response, reverse('admin_ventas'))
+        self.assertContains(response, reverse('listar_servicios'))
+        self.assertContains(response, reverse('admin_productos'))
+        self.assertContains(response, 'adminSidebarCollapseToggle')
+        self.assertContains(response, 'adminSidebarToggle')
         self.assertContains(response, reverse('admin_recordatorios'))
         self.assertNotContains(response, 'Fichas de clientas')
         for heading in ('Fecha', 'Hora', 'Cliente', 'Servicio', 'Profesional', 'Acompañante', 'Estado'):

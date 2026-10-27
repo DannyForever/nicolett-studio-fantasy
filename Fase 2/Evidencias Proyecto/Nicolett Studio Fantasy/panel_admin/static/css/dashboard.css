@@ -1320,3 +1320,521 @@ body {
         margin: 0.5rem;
     }
 }
+
+:root {
+    --sidebar-bg: #d3b16b;
+    --sidebar-border: #8d6a36;
+    --accent-gold: #916a30;
+    --main-bg: #e5e8ec;
+}
+
+body {
+    background-color: var(--main-bg);
+    background-image:
+        radial-gradient(ellipse at 16% 17%, rgba(255, 255, 255, 0.72), transparent 38%),
+        radial-gradient(ellipse at 84% 78%, rgba(155, 164, 174, 0.2), transparent 44%),
+        linear-gradient(132deg, transparent 0 35%, rgba(255, 255, 255, 0.42) 35.2%, transparent 36%, transparent 67%, rgba(150, 160, 170, 0.12) 67.2%, transparent 68%),
+        linear-gradient(28deg, #e1e4e8, #f1f3f5 48%, #d9dde2);
+    background-attachment: fixed;
+}
+
+.main-content .services-table-card,
+.main-content .agenda-month,
+.main-content .admin-filter-panel,
+.main-content .reminder-card,
+.main-content .schedule-block-row,
+.main-content .specialization-option,
+.main-content .service-image-current,
+.main-content .service-image-preview,
+.main-content .salon-modal .modal-content,
+.main-content .salon-modal .modal-header,
+.main-content .salon-modal .modal-footer,
+.main-content .salon-btn-outline {
+    background-color: #e2e5e9;
+}
+
+.main-content .services-table-card,
+.main-content .admin-filter-panel,
+.main-content .reminder-card,
+.main-content .schedule-block-row,
+.main-content .specialization-option,
+.main-content .service-image-current,
+.main-content .service-image-preview,
+.main-content .salon-modal .modal-content,
+.main-content .salon-modal .modal-header,
+.main-content .salon-modal .modal-footer,
+.main-content .salon-btn-outline {
+    border-color: #aeb5bd;
+}
+
+.main-content .specialization-option:hover,
+.main-content .salon-btn-outline:hover {
+    background-color: #d2d7dd;
+}
+
+.main-content .services-table-card .table,
+.main-content .agenda-table,
+.main-content .dashboard-appointments-table {
+    --bs-table-bg: transparent;
+}
+
+.sidebar-container {
+    width: 200px;
+    border-right: 3px double #8b6934;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.24), transparent 36%),
+        linear-gradient(180deg, #ddc17e 0%, #c6a45e 48%, #b49150 100%);
+    color: #281b14;
+    box-shadow: 4px 0 14px rgba(80, 57, 22, 0.18);
+}
+
+.sidebar-header {
+    padding: 22px 14px;
+    border-bottom: 1px solid rgba(89, 61, 25, 0.4);
+    background: linear-gradient(135deg, rgba(255, 248, 218, 0.55), rgba(181, 143, 69, 0.2));
+}
+
+.sidebar-header h3 {
+    color: #392611 !important;
+}
+
+.sidebar-header span {
+    color: #60441f;
+}
+
+.sidebar-menu .nav-link {
+    padding: 10px 9px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    color: #352511;
+    font-size: 0.82rem;
+}
+
+.sidebar-menu .nav-link:hover,
+.sidebar-menu .nav-link.active {
+    border-color: #9a763b;
+    background: linear-gradient(180deg, #f2dc9e, #c8a562);
+    box-shadow: inset 0 1px 3px rgba(255, 250, 224, 0.75), 0 2px 5px rgba(83, 58, 25, 0.18);
+    color: #291b0d;
+}
+
+.account-switch-menu {
+    border-color: rgba(89, 61, 25, 0.35);
+}
+
+.account-switch-menu > summary,
+.account-switch-options a {
+    color: #49351b;
+}
+
+.account-switch-menu > summary > i:first-child,
+.services-nav-chevron {
+    color: #69491f;
+}
+
+.account-switch-options a:hover,
+.account-switch-options a[aria-current="page"],
+.services-nav-category-summary:hover,
+.services-nav-submenu a:hover,
+.services-nav-submenu a[aria-current="page"] {
+    background-color: rgba(255, 238, 190, 0.58);
+    color: #281b14;
+}
+
+.services-nav-category-summary,
+.services-nav-submenu a {
+    color: #49351b;
+}
+
+.sidebar-footer {
+    border-top: 1px solid rgba(89, 61, 25, 0.4);
+    background: linear-gradient(0deg, rgba(123, 86, 35, 0.14), rgba(255, 239, 191, 0.18));
+}
+
+.user-label {
+    color: #60441f;
+}
+
+.user-email {
+    color: #392611;
+}
+
+.btn-logout {
+    border-color: #9a763b;
+    background: rgba(255, 247, 224, 0.45);
+    color: #633d24;
+}
+
+.btn-logout:hover {
+    background-color: #f1d89c;
+    color: #392611;
+}
+
+.main-content {
+    margin-left: 200px;
+    padding: 26px 34px;
+}
+
+.card-stat {
+    border: 2px solid #96723a;
+    border-radius: 11px;
+    background: linear-gradient(145deg, rgba(251, 235, 190, 0.97), rgba(203, 169, 103, 0.96) 55%, rgba(231, 207, 151, 0.98));
+    box-shadow: inset 0 0 0 2px rgba(255, 238, 186, 0.8), inset 0 0 12px rgba(110, 75, 29, 0.18), 0 4px 12px rgba(81, 57, 24, 0.16);
+}
+
+.card-stat .title {
+    color: #513b21;
+}
+
+.card-stat .value {
+    color: #33220f;
+}
+
+.admin-dashboard-brand {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto 1.15rem;
+    text-align: center;
+}
+
+.admin-dashboard-brand-name {
+    position: relative;
+    display: inline-block;
+    padding: 0.25rem 2.4rem;
+    border: 3px double #80602e;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #f4dfa5, #b5904d 48%, #e0c47e);
+    box-shadow: inset 0 1px 4px rgba(255, 250, 224, 0.9), 0 3px 8px rgba(83, 58, 25, 0.22);
+    color: #654b24;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.05rem, 2.2vw, 1.65rem);
+    text-shadow: 0 1px 0 rgba(255, 248, 214, 0.75);
+}
+
+.admin-dashboard-brand-name::before,
+.admin-dashboard-brand-name::after {
+    position: absolute;
+    top: 50%;
+    color: #80602e;
+    content: "❧";
+    font-size: 1.1rem;
+    transform: translateY(-50%);
+}
+
+.admin-dashboard-brand-name::before {
+    left: 0.55rem;
+}
+
+.admin-dashboard-brand-name::after {
+    right: 0.55rem;
+    transform: translateY(-50%) scaleX(-1);
+}
+
+.admin-dashboard-brand-name em {
+    font-weight: 500;
+}
+
+.main-content > .mb-4.pb-2.border-bottom {
+    border-color: rgba(123, 91, 42, 0.4) !important;
+}
+
+.main-content > .mb-4.pb-2.border-bottom .text-muted,
+.main-content .text-muted {
+    color: #66543d !important;
+}
+
+.main-content > .card-stat {
+    background: linear-gradient(145deg, rgba(246, 225, 174, 0.97), rgba(192, 154, 83, 0.97) 55%, rgba(224, 199, 139, 0.98));
+}
+
+.main-content .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: #382714;
+    --bs-table-border-color: rgba(105, 78, 38, 0.3);
+}
+
+.main-content .table thead th {
+    color: #46341e;
+}
+
+.dashboard-stat-link:hover .card-stat {
+    border-color: #6e5128;
+    box-shadow: inset 0 0 0 2px rgba(255, 238, 186, 0.9), 0 7px 18px rgba(55, 37, 27, 0.24);
+    transform: translateY(-2px);
+}
+
+.admin-sidebar-collapse-toggle {
+    left: 166px;
+}
+
+@media (min-width: 1024px) {
+    body.admin-sidebar-collapsed .sidebar-container {
+        width: 200px;
+    }
+}
+
+@media (max-width: 1023.98px) {
+    .sidebar-container {
+        width: min(290px, 86vw);
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 64px 16px 24px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .main-content {
+        padding-right: 12px;
+        padding-left: 12px;
+    }
+
+    .admin-dashboard-brand-name {
+        padding-right: 2rem;
+        padding-left: 2rem;
+        font-size: 1rem;
+    }
+}
+
+body {
+    background-image:
+        radial-gradient(ellipse at 12% 8%, rgba(255, 255, 255, 0.78), transparent 34%),
+        radial-gradient(ellipse at 88% 92%, rgba(133, 144, 156, 0.14), transparent 42%),
+        repeating-linear-gradient(128deg, transparent 0 42px, rgba(255, 255, 255, 0.12) 43px, transparent 44px 92px),
+        linear-gradient(138deg, #dce0e5, #f3f4f6 48%, #d7dce2);
+}
+
+.sidebar-container {
+    background:
+        radial-gradient(ellipse at 20% 12%, rgba(255, 249, 222, 0.48), transparent 43%),
+        repeating-linear-gradient(145deg, transparent 0 38px, rgba(255, 255, 255, 0.09) 39px, transparent 40px 78px),
+        linear-gradient(180deg, #dfc786 0%, #c9a963 50%, #b89554 100%);
+}
+
+.card-stat {
+    border: 1px solid #98763f;
+    outline: 1px solid rgba(255, 247, 220, 0.72);
+    outline-offset: -5px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.72),
+        inset 0 0 0 2px rgba(255, 238, 186, 0.42),
+        inset 0 0 22px rgba(110, 75, 29, 0.12),
+        0 5px 16px rgba(66, 54, 37, 0.12);
+}
+
+.card-stat .title {
+    letter-spacing: 0.075em;
+}
+
+.admin-dashboard-brand-name {
+    border-width: 1px;
+    outline: 1px solid rgba(255, 247, 220, 0.8);
+    outline-offset: -4px;
+    box-shadow:
+        inset 0 1px 5px rgba(255, 250, 224, 0.88),
+        0 4px 12px rgba(83, 58, 25, 0.18);
+}
+
+.main-content > .mb-4.pb-2.border-bottom h1 {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 0.18rem;
+}
+
+.main-content > .mb-4.pb-2.border-bottom h1::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    background: linear-gradient(90deg, #a98548, rgba(169, 133, 72, 0.12));
+    content: "";
+}
+
+.main-content .services-table-card,
+.main-content .agenda-month,
+.main-content .admin-filter-panel,
+.main-content .reminder-card,
+.main-content .schedule-block-row,
+.main-content .specialization-option,
+.main-content .service-image-current,
+.main-content .service-image-preview,
+.main-content .salon-modal .modal-content,
+.main-content .salon-modal .modal-header,
+.main-content .salon-modal .modal-footer,
+.main-content .salon-btn-outline {
+    background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(214, 218, 223, 0.72));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76), 0 2px 8px rgba(63, 72, 82, 0.07);
+}
+
+.main-content .form-control,
+.main-content .form-select,
+.main-content textarea,
+.main-content .input-group-text {
+    border: 1px solid #b5bbc2;
+    background-color: #edf0f3;
+    background-image: linear-gradient(180deg, #f8f9fa, #e6e9ed);
+    color: #332b22;
+    box-shadow: inset 0 1px 2px rgba(65, 73, 82, 0.07);
+}
+
+.main-content .form-control:focus,
+.main-content .form-select:focus,
+.main-content textarea:focus {
+    border-color: #a98548;
+    background-color: #f5f6f7;
+    box-shadow: 0 0 0 0.18rem rgba(169, 133, 72, 0.16);
+}
+
+.main-content .salon-btn-outline {
+    color: #594526;
+    transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.main-content .salon-btn-outline:hover {
+    border-color: #9c7a46;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 3px 8px rgba(63, 72, 82, 0.12);
+    transform: translateY(-1px);
+}
+
+.main-content .table > :not(caption) > * > * {
+    border-color: rgba(118, 127, 137, 0.24);
+}
+
+.main-content .table tbody tr:hover > * {
+    background-color: rgba(255, 255, 255, 0.24);
+}
+
+.main-content :focus-visible,
+.sidebar-container :focus-visible {
+    outline: 2px solid #98763f;
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .main-content .salon-btn-outline,
+    .dashboard-stat-link .card-stat {
+        transition: none;
+    }
+}
+
+.sidebar-container,
+.sidebar-container :not(i),
+.main-content,
+.main-content :not(i) {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-style: normal;
+}
+
+.main-content {
+    --bs-card-bg: #fffaf0;
+    --bs-table-bg: #fbf3e3;
+    --bs-table-color: #382714;
+    --bs-table-border-color: rgba(153, 120, 63, 0.3);
+}
+
+.main-content .card:not(.card-stat) {
+    border-color: #d3b778;
+    background-color: #fffaf0;
+    background-image: linear-gradient(145deg, #fffdf8, #f3e6c9);
+}
+
+.main-content .table,
+.main-content .services-table-card .table,
+.main-content .agenda-table,
+.main-content .dashboard-appointments-table {
+    --bs-table-bg: #fbf3e3;
+    --bs-table-color: #382714;
+    --bs-table-border-color: rgba(153, 120, 63, 0.3);
+}
+
+.main-content .table > tbody > tr > *,
+.main-content .services-table-card .table > tbody > tr > * {
+    background-color: #fbf3e3;
+    background-image: linear-gradient(135deg, #fffaf0, #f8efdd);
+    box-shadow: inset 0 0 0 9999px rgba(235, 215, 174, 0.1);
+}
+
+.main-content .services-table-card .table > thead > tr > * {
+    background-color: #f2dfb6;
+    background-image: linear-gradient(180deg, #f8eaca, #ead5a7);
+    color: #49351b;
+}
+
+.main-content .table tbody tr:hover > *,
+.main-content .services-table-card .table tbody tr:hover > * {
+    background-color: #f4e6c8;
+    background-image: linear-gradient(135deg, #fff7e6, #f0dfbb);
+}
+
+.main-content .form-control,
+.main-content .form-select,
+.main-content textarea,
+.main-content .input-group-text {
+    background-color: #fffdf8;
+    background-image: linear-gradient(180deg, #ffffff, #fbf5e8);
+}
+
+.main-content .services-table-card {
+    background-color: #fffaf0;
+    background-image: linear-gradient(145deg, #fffdf8, #f3e6c9);
+}
+
+body {
+    --main-bg: #f8f4eb;
+    background-color: var(--main-bg);
+    background-image:
+        radial-gradient(ellipse at 14% 12%, rgba(255, 255, 255, 0.94), transparent 38%),
+        radial-gradient(ellipse at 87% 88%, rgba(210, 183, 128, 0.2), transparent 44%),
+        repeating-linear-gradient(128deg, transparent 0 52px, rgba(255, 255, 255, 0.26) 53px, transparent 54px 108px),
+        linear-gradient(138deg, #f3eddf, #fffdf8 48%, #eee4d0);
+}
+
+.main-content .services-table-card,
+.main-content .agenda-month,
+.main-content .admin-filter-panel,
+.main-content .reminder-card,
+.main-content .schedule-block-row,
+.main-content .specialization-option,
+.main-content .service-image-current,
+.main-content .service-image-preview,
+.main-content .salon-modal .modal-content,
+.main-content .salon-modal .modal-header,
+.main-content .salon-modal .modal-footer,
+.main-content .salon-btn-outline {
+    background-color: #fffaf0;
+    background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(241, 225, 190, 0.42));
+    border-color: #d3b778;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 8px rgba(106, 79, 35, 0.08);
+}
+
+.main-content .specialization-option:hover,
+.main-content .salon-btn-outline:hover {
+    background-color: #f3e5c4;
+    background-image: linear-gradient(145deg, #fffdf7, #ecd9ad);
+}
+
+.main-content .form-control,
+.main-content .form-select,
+.main-content textarea,
+.main-content .input-group-text {
+    border-color: #d3c4a4;
+    background-color: #fffdf8;
+    background-image: linear-gradient(180deg, #ffffff, #fbf5e8);
+}
+
+.main-content .form-control:focus,
+.main-content .form-select:focus,
+.main-content textarea:focus {
+    border-color: #a98548;
+    background-color: #fffefa;
+}
+
+.main-content .table > :not(caption) > * > * {
+    border-color: rgba(153, 120, 63, 0.24);
+}
+
+.main-content .table tbody tr:hover > * {
+    background-color: rgba(255, 248, 229, 0.56);
+}
