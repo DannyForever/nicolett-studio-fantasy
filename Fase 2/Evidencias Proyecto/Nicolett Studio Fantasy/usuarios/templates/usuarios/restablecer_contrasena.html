@@ -16,6 +16,7 @@
         .error { background: #f8d7da; color: #721c24; }
         a { color: #6b5643; }
     </style>
+    {% include 'accessibility_styles.html' %}
 </head>
 <body>
     <main>
@@ -39,5 +40,6 @@
             <p><a href="{% url 'password_recovery' %}">Solicitar otro enlace</a></p>
         {% endif %}
     </main>
+    {% include 'accessibility_widget.html' %}
 </body>
 </html>

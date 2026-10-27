@@ -1,0 +1,51 @@
+{% load static %}
+<div class="accessibility-widget" id="accessibilityWidget">
+    <div class="accessibility-panel" id="accessibilityPanel" aria-label="Opciones de accesibilidad" hidden>
+        <div class="accessibility-options" role="group" aria-label="Ajustes de accesibilidad">
+            <button type="button" class="accessibility-option" data-a11y-action="dark" aria-label="Modo oscuro" title="Modo oscuro" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.5A8.5 8.5 0 0 1 8.5 3.8 8.5 8.5 0 1 0 20.2 15.5Z"/></svg>
+                <span>Modo oscuro</span>
+            </button>
+            <button type="button" class="accessibility-option" data-a11y-action="contrast" aria-label="Contraste alto" title="Contraste alto" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18Z"/></svg>
+                <span>Contraste</span>
+            </button>
+            <div class="accessibility-option accessibility-font-option">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19 10 5l6 14M6 15h8M16 11h5m-2.5-2.5v5"/></svg>
+                <span>Tamaño de letra</span>
+                <div class="accessibility-font-controls" role="group" aria-label="Regular tamaño de letra">
+                    <button type="button" data-a11y-font="decrease" aria-label="Reducir tamaño de letra" title="Reducir tamaño de letra">−</button>
+                    <span id="accessibilityFontValue" aria-live="polite">Normal</span>
+                    <button type="button" data-a11y-font="increase" aria-label="Aumentar tamaño de letra" title="Aumentar tamaño de letra">+</button>
+                </div>
+            </div>
+            <button type="button" class="accessibility-option" data-a11y-action="voice" aria-label="Opciones de voz" title="Filtro de voz" aria-expanded="false" aria-controls="accessibilityVoiceOptions">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0m-7 7v3m-4 0h8"/></svg>
+                <span>Filtro de voz</span>
+            </button>
+        </div>
+        <div class="accessibility-voice-options" id="accessibilityVoiceOptions" role="group" aria-label="Funciones de voz" hidden>
+            <button type="button" data-a11y-voice="dictation" title="Dictar texto en el campo seleccionado">Dictar texto</button>
+            <button type="button" data-a11y-voice="read" title="Leer el contenido de esta página">Leer página</button>
+            <button type="button" data-a11y-voice="commands" title="Navegar con instrucciones habladas">Navegar por voz</button>
+            <label class="accessibility-voice-rate" for="accessibilityVoiceRate">
+                Velocidad de voz
+                <select id="accessibilityVoiceRate" aria-label="Velocidad de voz">
+                    <option value="0.5">0,5× · Muy lenta</option>
+                    <option value="0.75">0,75× · Lenta</option>
+                    <option value="1" selected>1× · Normal</option>
+                    <option value="1.25">1,25×</option>
+                    <option value="1.5">1,5×</option>
+                    <option value="1.75">1,75×</option>
+                    <option value="2">2× · Rápida</option>
+                </select>
+            </label>
+            <button type="button" data-a11y-voice="stop" title="Detener lectura o escucha">Detener</button>
+        </div>
+        <p class="accessibility-status" id="accessibilityStatus" role="status" aria-live="polite"></p>
+    </div>
+    <button type="button" class="accessibility-toggle" id="accessibilityToggle" aria-label="Abrir opciones de accesibilidad" title="Accesibilidad" aria-expanded="false" aria-controls="accessibilityPanel">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.5" r="2"/><path d="M4 8h16m-8 0v5m0 0-5 8m5-8 5 8m-9-9 4 2 4-2"/></svg>
+    </button>
+</div>
+<script src="{% static 'usuarios/accessibility.js' %}" defer></script>

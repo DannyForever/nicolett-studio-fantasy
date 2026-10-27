@@ -29,7 +29,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from agenda.models import HistorialReserva, Reserva
 from agenda.views import servicios_con_horarios_disponibles
-from carrito.models import ReservaProductoCarrito
+from carrito.models import Pedido, ReservaProductoCarrito
 from panel_admin.models import Producto, Servicio
 
 from .forms import ClienteCambiarContrasenaForm, ClienteConfiguracionForm
@@ -643,6 +643,13 @@ def _vista_cliente(request, template, context=None):
         ))
         for categoria, nombre_servicio in categorias_whatsapp.items()
     }
+    contexto['whatsapp_categoria_links'] = [
+        {
+            'nombre': nombre_servicio,
+            'url': contexto['whatsapp_categoria_urls'][categoria],
+        }
+        for categoria, nombre_servicio in categorias_whatsapp.items()
+    ]
     if 'servicios' in contexto:
         servicios_por_id = {}
         for servicio in contexto['servicios']:
@@ -1118,6 +1125,22 @@ def cliente_agendamiento_view(request):
 @never_cache
 def cliente_historial_view(request):
     return redirect(f"{reverse('cliente_gestionar_citas')}?tab=historial")
+
+
+@never_cache
+def cliente_historial_pagos_view(request):
+    pedidos = Pedido.objects.filter(
+        cliente=request.user,
+        pagos_simulados__isnull=False,
+    ).distinct().prefetch_related(
+        'pagos_simulados',
+        'detalles',
+    ).order_by('-creado_en')
+    return _vista_cliente(
+        request,
+        'usuarios/cliente_historial_pagos.html',
+        {'pedidos': pedidos},
+    )
 
 
 @never_cache

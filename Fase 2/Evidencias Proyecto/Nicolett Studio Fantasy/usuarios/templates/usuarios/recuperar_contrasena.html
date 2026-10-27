@@ -16,6 +16,7 @@
         .error { background: #f8d7da; color: #721c24; }
         a { color: #6b5643; }
     </style>
+    {% include 'accessibility_styles.html' %}
 </head>
 <body>
     <main>
@@ -31,5 +32,6 @@
         </form>
         <p><a href="{% url 'login' %}">Volver al inicio de sesión</a></p>
     </main>
+    {% include 'accessibility_widget.html' %}
 </body>
 </html>

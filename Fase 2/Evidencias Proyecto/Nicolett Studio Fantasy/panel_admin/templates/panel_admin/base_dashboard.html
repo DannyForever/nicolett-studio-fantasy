@@ -13,6 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <!-- Nuestro archivo CSS externo y profesional -->
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261026-7">
+    {% include 'accessibility_styles.html' %}
     {% block extra_head %}{% endblock %}
 </head>
 
@@ -192,5 +193,6 @@
             applyFilters();
         });
     </script>
+    {% include 'accessibility_widget.html' %}
 </body>
 </html>

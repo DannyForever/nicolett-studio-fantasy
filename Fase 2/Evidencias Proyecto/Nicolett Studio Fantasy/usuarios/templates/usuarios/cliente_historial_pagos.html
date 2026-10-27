@@ -1,0 +1,78 @@
+{% extends 'usuarios/cliente_base.html' %}
+{% load moneda %}
+
+{% block title %}Historial de pagos | Nicolett Studio Fantasy{% endblock %}
+
+{% block content %}
+    <section class="mx-auto max-w-4xl border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h1 class="font-serif text-2xl">Historial de pagos</h1>
+            <a href="{% url 'cliente_carrito' %}" class="border border-[#5a3e27] px-4 py-2 text-sm font-medium text-[#5a3e27] no-underline hover:bg-[#fae9cf]">Ir al carrito</a>
+        </div>
+        <p class="mt-2 text-sm text-[#6b5643]">Consulta los pagos procesados y los reembolsos registrados en tus compras.</p>
+
+        {% if messages %}
+            <div class="mt-5 space-y-2" aria-live="polite">
+                {% for message in messages %}
+                    <p class="border p-3 text-sm {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %}" role="status">{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="mt-6 space-y-4">
+            {% for pedido in pedidos %}
+                <article class="border border-[#ead7bc] p-5">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h2 class="font-serif text-lg">Compra #{{ pedido.pk }}</h2>
+                            <p class="mt-1 text-sm text-[#6b5643]">{{ pedido.creado_en|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        <span class="border px-3 py-1 text-xs font-medium {% if pedido.estado == 'pagado' %}border-green-200 bg-green-50 text-green-800{% else %}border-amber-200 bg-amber-50 text-amber-800{% endif %}">
+                            {% if pedido.estado == 'pagado' %}Pago completo{% else %}Pago parcial{% endif %}
+                        </span>
+                    </div>
+                    <dl class="mt-4 grid gap-2 border-t border-[#ead7bc] pt-4 text-sm sm:grid-cols-2">
+                        <div><dt class="text-[#6b5643]">Total de la compra</dt><dd class="font-medium">{{ pedido.total|pesos }}</dd></div>
+                        <div><dt class="text-[#6b5643]">Monto pagado</dt><dd class="font-medium">{{ pedido.monto_pagado|pesos }}</dd></div>
+                    </dl>
+                    <div class="mt-4 border-t border-[#ead7bc] pt-4">
+                        <h3 class="mb-3 text-sm font-medium">Detalle de la compra</h3>
+                        <div class="space-y-2">
+                            {% for detalle in pedido.detalles.all %}
+                                <div class="grid gap-1 border-b border-[#fae9cf] pb-2 text-sm sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-4">
+                                    <span>{{ detalle.get_tipo_display }}: {{ detalle.nombre }}</span>
+                                    <span class="text-[#6b5643]">{{ detalle.cantidad }} × {{ detalle.precio_unitario|pesos }}</span>
+                                    <span class="font-medium sm:text-right">{{ detalle.subtotal|pesos }}</span>
+                                </div>
+                            {% empty %}
+                                <p class="text-sm text-[#6b5643]">Esta compra no tiene artículos asociados.</p>
+                            {% endfor %}
+                        </div>
+                        <p class="mt-3 text-right text-sm font-medium">Total: {{ pedido.total|pesos }}</p>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        {% for pago in pedido.pagos_simulados.all %}
+                            <div class="flex flex-wrap justify-between gap-2 border-t border-[#ead7bc] pt-3 text-sm">
+                                <span>Transacción {{ pago.transaccion_id }} · {{ pago.creado_en|date:"d/m/Y H:i" }}</span>
+                                <span class="font-medium {% if pago.estado == 'reembolsado' %}text-[#6b5643]{% else %}text-green-800{% endif %}">
+                                    {% if pago.estado == 'reembolsado' %}Reembolsado{% elif pago.estado == 'aprobado' or pago.estado == 'procesado' %}Procesado{% else %}{{ pago.get_estado_display|default:pago.estado|capfirst }}{% endif %}
+                                    · {{ pago.monto|pesos }}
+                                </span>
+                            </div>
+                        {% empty %}
+                            <p class="border-t border-[#ead7bc] pt-3 text-sm text-[#6b5643]">No hay transacciones asociadas a esta compra.</p>
+                        {% endfor %}
+                    </div>
+                </article>
+            {% empty %}
+                <div class="border border-[#ead7bc] p-8 text-center">
+                    <p class="font-serif text-lg">Todavía no tienes pagos registrados.</p>
+                    <div class="mt-5 flex flex-wrap justify-center gap-3">
+                        <a href="{% url 'cliente_servicios' %}" class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white no-underline">Ver servicios</a>
+                        <a href="{% url 'cliente_productos' %}" class="border border-[#5a3e27] px-5 py-3 text-sm font-medium text-[#5a3e27] no-underline">Ver productos</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+{% endblock %}

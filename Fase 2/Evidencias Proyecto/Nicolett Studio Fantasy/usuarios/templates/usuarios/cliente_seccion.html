@@ -317,6 +317,16 @@
                             <h1 id="services-banner-title" class="font-serif text-4xl font-bold text-[#281b14] sm:text-5xl">¡Servicios!</h1>
                             <p class="mt-3 text-sm leading-6 text-[#6b5643]">Descubre los servicios de Nicolett Studio Fantasy.</p>
                             <p class="mt-3 font-semibold uppercase tracking-wide text-[#281b14]">Atención de lunes a sábado</p>
+                            {% if not vista_admin %}
+                                <details class="mx-auto mt-4 max-w-2xl border border-[#ead7bc] bg-white/80 p-3 text-left">
+                                    <summary class="cursor-pointer text-sm font-medium text-[#5a3e27]">Consultar por WhatsApp sobre un servicio</summary>
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        {% for categoria in whatsapp_categoria_links %}
+                                            <a href="{{ categoria.url }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre {{ categoria.nombre }}" class="border border-[#ead7bc] px-3 py-2 text-xs text-[#5a3e27] no-underline hover:bg-[#fae9cf]">{{ categoria.nombre }}</a>
+                                        {% endfor %}
+                                    </div>
+                                </details>
+                            {% endif %}
                             {% if vista_admin %}
                                 <a href="{% url 'listar_servicios' %}" class="mt-5 inline-block border border-[#5a3e27] px-4 py-2 text-sm font-semibold text-[#5a3e27] no-underline transition hover:bg-[#5a3e27] hover:text-white">Administrar servicios</a>
                             {% endif %}
@@ -342,16 +352,19 @@
                                     <img src="{% static 'img/tratamientos_capilares_afiche_dorado.png' %}?v=20261026b" alt="Afiche dorado del servicio de tratamientos capilares Nicolett Studio Fantasy">
                                     {% if not vista_admin %}
                                         {% with servicio=servicios_galeria.tratamientos.0 %}
-                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left treatment-booking-link--row-1" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
-                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left-second treatment-booking-link--row-1" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
-                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left treatment-booking-link--row-2" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
-                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left-second treatment-booking-link--row-2" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
-                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--center treatment-booking-link--center-row" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
-                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--right treatment-booking-link--right-row-1" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
-                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--right treatment-booking-link--right-row-2" aria-label="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}" title="Agendar cita para {{ servicio.nombre|default:'Tratamientos capilares' }}"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left treatment-booking-link--row-1" aria-label="Agendar cita para Tratamientos capilares" title="Agendar cita para Tratamientos capilares"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left-second treatment-booking-link--row-1" aria-label="Agendar cita para Tratamientos capilares" title="Agendar cita para Tratamientos capilares"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left treatment-booking-link--row-2" aria-label="Agendar cita para Tratamientos capilares" title="Agendar cita para Tratamientos capilares"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--left-second treatment-booking-link--row-2" aria-label="Agendar cita para Tratamientos capilares" title="Agendar cita para Tratamientos capilares"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--center treatment-booking-link--center-row" aria-label="Agendar cita para Tratamientos capilares" title="Agendar cita para Tratamientos capilares"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--right treatment-booking-link--right-row-1" aria-label="Agendar cita para Tratamientos capilares" title="Agendar cita para Tratamientos capilares"></a>
+                                            <a href="{% url 'cliente_agendamiento' %}{% if servicio %}?servicio={{ servicio.pk }}{% endif %}" class="treatment-booking-link treatment-booking-link--right treatment-booking-link--right-row-2" aria-label="Agendar cita para Tratamientos capilares" title="Agendar cita para Tratamientos capilares"></a>
                                         {% endwith %}
                                     {% endif %}
                                 </div>
+                                {% if servicios_galeria.tratamientos %}
+                                    <p class="px-3 py-2 text-sm font-medium text-[#281b14]">Desde {{ servicios_galeria.tratamientos.0.precio|pesos }}</p>
+                                {% endif %}
                             </article>
                             <article data-service-gallery="all manos" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'manos' %}hidden{% endif %} class="order-3 w-full overflow-hidden bg-transparent">
                                 <div class="nail-care-flyer">
@@ -370,8 +383,13 @@
                                         {% endfor %}
                                     {% endif %}
                                 </div>
+                                {% if vista_admin %}
+                                    {% for servicio in servicios_galeria.manos %}
+                                        {% include 'usuarios/partials/servicio_galeria_item.html' with servicio=servicio %}
+                                    {% endfor %}
+                                {% endif %}
                             </article>
-                            <article data-service-gallery="all pedicure" {% if request.GET.categoria and request.GET.categoria != 'todos' %}hidden{% endif %} class="service-gallery-compact order-4 overflow-hidden border border-[#ead7bc] bg-white p-2">
+                            <article data-service-gallery="all pedicure" {% if request.GET.categoria and request.GET.categoria != 'todos' and request.GET.categoria != 'pedicure' %}hidden{% endif %} class="service-gallery-compact order-4 overflow-hidden border border-[#ead7bc] bg-white p-2">
                                 <div class="flex items-center justify-between px-2 pt-2">
                                     <h2 class="font-semibold text-[#281b14]">Pedicure</h2>
                                     {% if not vista_admin %}<a href="{{ whatsapp_categoria_urls.manos }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre Pedicure" title="Consultar por WhatsApp" class="text-lg text-[#25D366]"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}

@@ -13,6 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
     <!-- FontAwesome (iconos) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% include 'accessibility_styles.html' %}
     <script>
         tailwind.config = {
             theme: {
@@ -57,9 +58,12 @@
             position: fixed;
             top: 0;
             right: 0;
-            left: 0;
+            left: 50%;
             z-index: 100;
-            border-color: #c49a52 !important;
+            width: min(96%, 1480px);
+            transform: translateX(-50%);
+            border: 1px solid #c49a52 !important;
+            border-radius: 18px;
             background: linear-gradient(110deg, #f3dfb4, #d6b16c 50%, #f3dfb4) !important;
             color: #4b2c0b !important;
             box-shadow: 0 3px 12px rgb(84 51 14 / 20%);
@@ -114,70 +118,442 @@
             width: 100%;
             margin: 0;
         }
-        #inicio {
-            padding: 88px 0 20px;
+        #inicio.landing-poster {
+            display: grid;
+        }
+        #inicio,
+        #nosotras,
+        #servicios,
+        #galeria,
+        #resenas,
+        #contacto {
+            width: min(96%, 1480px);
+            max-width: 1480px;
+            margin: clamp(14px, 2vw, 24px) auto;
+            overflow: hidden;
+            border-radius: 22px;
+            box-shadow: 0 8px 26px rgb(75 44 11 / 10%);
         }
         .landing-poster {
-            position: relative;
-            width: 100%;
-            overflow: hidden;
-            padding: 88px 0 20px;
-            background:
-                radial-gradient(ellipse at 12% 16%, rgb(255 244 210 / 88%), transparent 38%),
-                linear-gradient(125deg, #e8cc8f, #f8ebc9 48%, #d8b66e);
+            display: grid;
+            min-height: 650px;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            align-items: center;
+            gap: clamp(16px, 4vw, 64px);
+            padding: 112px clamp(28px, 5vw, 76px) 48px;
+            background-image: url("{% static 'img/pag_principal/inicio/fondo_inicio.jpg' %}");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
         }
-        .landing-poster-artwork {
-            position: relative;
-            width: min(92%, 1400px);
-            aspect-ratio: 1024 / 415;
-            margin: 0 auto;
-            border: 1px solid #a9782d;
-            box-shadow: 0 10px 28px rgb(75 44 11 / 20%);
+        .landing-hero-copy {
+            max-width: 650px;
+            user-select: text;
+            -webkit-user-select: text;
         }
-        .landing-poster img {
+        .landing-hero-eyebrow {
+            margin: 0 0 1rem;
+            color: #95703b;
+            font-size: clamp(0.65rem, 0.9vw, 0.85rem);
+            font-weight: 600;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+        }
+        .landing-hero-title {
+            margin: 0 0 1.25rem;
+            color: #4b2c0b;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(2.6rem, 5vw, 5rem);
+            font-weight: 700;
+            line-height: 0.98;
+        }
+        .landing-hero-title em {
+            color: #b9873b;
+            font-weight: 400;
+        }
+        .landing-hero-description {
+            max-width: 600px;
+            margin: 0 0 1.5rem;
+            color: #4d3929;
+            font-size: clamp(0.95rem, 1.15vw, 1.12rem);
+            line-height: 1.7;
+        }
+        .landing-hero-contact {
+            position: relative;
+            display: flex;
+            width: min(100%, 360px);
+            min-height: 120px;
+            align-items: center;
+            justify-content: center;
+            margin: 1rem auto 0;
+            color: #fff4dc;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+            font-weight: 700;
+            text-decoration: none;
+            text-shadow: 0 1px 3px rgb(40 27 20 / 65%);
+            transition: transform 160ms ease;
+        }
+        .landing-hero-contact:hover {
+            transform: translateY(-2px);
+        }
+        .landing-hero-contact img {
+            position: absolute;
+            inset: 0;
             display: block;
             width: 100%;
             height: 100%;
+            object-fit: fill;
+            pointer-events: none;
+        }
+        .landing-hero-contact span {
+            position: relative;
+            z-index: 1;
+        }
+        .landing-hero-salon {
+            position: relative;
+            width: min(100%, 680px);
+            aspect-ratio: 1.2 / 1;
+            justify-self: end;
+            align-self: start;
+        }
+        .landing-hero-salon-photo,
+        .landing-hero-salon-frame {
+            position: absolute;
+            display: block;
+        }
+        .landing-hero-salon-photo {
+            z-index: 2;
+            top: 20%;
+            left: 17%;
+            width: 66%;
+            height: 60%;
+            object-fit: cover;
+            object-position: center;
+        }
+        .landing-hero-salon-frame {
+            z-index: 1;
+            inset: 0;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
-            filter: sepia(0.22) saturate(1.12);
+            pointer-events: none;
+        }
+        .landing-hero-schedule {
+            position: absolute;
+            z-index: 3;
+            bottom: 12%;
+            left: 7%;
+            width: min(48%, 310px);
+            aspect-ratio: 2.56 / 1;
+        }
+        .landing-hero-schedule img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+        .landing-hero-schedule-copy {
+            position: absolute;
+            inset: 30% 16% 28%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #4b2c0b;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(0.72rem, 1.05vw, 1rem);
+            font-weight: 700;
+            line-height: 1.15;
+            text-align: center;
+            text-shadow: 0 1px 1px rgb(255 250 235 / 75%);
+        }
+        .landing-hero-schedule-copy small {
+            display: block;
+            margin-top: 0.15rem;
+            font-family: Outfit, sans-serif;
+            font-size: 0.72em;
+            font-weight: 500;
+        }
+        body.landing-poster-page {
+            background: #fffaf5;
+        }
+        .landing-poster-page > footer {
+            width: min(96%, 1480px);
+            max-width: 1480px;
+            margin: 0 auto 16px;
+            border: 1px solid #60401e;
+            border-radius: 18px;
         }
         @media (max-width: 1023px) {
-            #inicio {
-                padding-top: 78px;
+            .landing-poster {
+                min-height: 0;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 20px;
+                padding: 112px clamp(24px, 6vw, 64px) 40px;
+            }
+            .landing-hero-copy {
+                width: min(100%, 760px);
+                margin: 0 auto;
+            }
+            .landing-hero-title {
+                max-width: 760px;
+                font-size: clamp(2.6rem, 8vw, 4.5rem);
+            }
+            .landing-hero-salon {
+                width: min(100%, 680px);
+                justify-self: center;
+            }
+            .landing-hero-schedule {
+                bottom: 12%;
+                left: 7%;
+                width: min(48%, 310px);
             }
         }
         @media (min-width: 640px) and (max-width: 1023px) {
-            #inicio {
-                padding-top: 88px;
+            .landing-poster {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+                align-items: center;
+                padding: 112px 34px 40px;
+            }
+            .landing-hero-title {
+                font-size: clamp(2.25rem, 5vw, 3.5rem);
+            }
+            .landing-hero-salon {
+                width: 100%;
+            }
+            .landing-hero-contact {
+                width: min(100%, 320px);
+                min-height: 108px;
             }
         }
-        .landing-poster-link {
-            position: absolute;
-            z-index: 1;
-            display: block;
-            border-radius: 999px;
+        .landing-services-section {
+            padding: clamp(30px, 4vw, 60px) clamp(18px, 4vw, 56px);
+            background-image: url("{% static 'img/pag_principal/servicios/fondo_servicios.jpg' %}");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
         }
-        .landing-poster-link:focus-visible {
-            outline: 3px solid #4b2c0b;
-            outline-offset: 2px;
+        .landing-services-title {
+            margin: 0 0 clamp(24px, 3vw, 42px);
+            color: #4b2c0b;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1.1;
+            text-align: center;
         }
-        .landing-services-poster {
+        .landing-services-eyebrow {
+            margin: 0 0 8px;
+            color: #9c7435;
+            font-size: clamp(0.7rem, 1vw, 0.85rem);
+            font-weight: 600;
+            letter-spacing: 0.24em;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .landing-services-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: clamp(22px, 3vw, 44px) clamp(18px, 2.5vw, 36px);
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .landing-service-card {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .landing-service-art {
             position: relative;
-            width: 100%;
+            width: min(100%, 400px);
+            aspect-ratio: 4 / 5;
+            margin: 0 auto;
         }
-        .landing-services-poster img {
+        .landing-service-photo,
+        .landing-service-frame {
+            position: absolute;
             display: block;
+        }
+        .landing-service-photo {
+            z-index: 2;
+            top: 23%;
+            left: 34%;
+            width: 32%;
+            height: 26%;
+            object-fit: cover;
+            object-position: center;
+        }
+        .landing-service-frame {
+            z-index: 1;
+            inset: 0;
             width: 100%;
-            height: auto;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
         }
-        .landing-poster-contact-cta {
-            top: 72%;
-            left: 16%;
-            width: 21%;
-            height: 16%;
+        .landing-service-copy {
+            position: absolute;
+            z-index: 2;
+            top: 51%;
+            left: 31%;
+            width: 38%;
+            min-height: 25%;
+            padding: 8px 6px;
+            color: #4d3929;
+            text-align: center;
         }
-        #nosotras {
-            background-image: linear-gradient(to bottom, #fae9cf 0, #fffaf5 88px, #fffaf5 100%);
+        .landing-service-copy h3 {
+            margin: 0 0 6px;
+            color: #4b2c0b;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(0.95rem, 1.35vw, 1.2rem);
+            line-height: 1.2;
+        }
+        .landing-service-copy p {
+            margin: 0;
+            color: #4d3929;
+            font-size: clamp(0.72rem, 0.85vw, 0.82rem);
+            line-height: 1.4;
+        }
+        @media (max-width: 1023px) {
+            .landing-services-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                max-width: 780px;
+            }
+        }
+        @media (max-width: 560px) {
+            .landing-services-section {
+                padding: 28px 16px;
+            }
+            .landing-services-grid {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 24px;
+            }
+            .landing-service-copy h3 {
+                font-size: clamp(0.95rem, 4vw, 1.1rem);
+            }
+            .landing-service-copy p {
+                font-size: clamp(0.7rem, 3vw, 0.78rem);
+            }
+        }
+        .landing-about-section {
+            padding: clamp(24px, 3vw, 48px) clamp(18px, 5vw, 72px);
+            background-image: url("{% static 'img/pag_principal/nosotras/fondo_nosotras.jpg' %}");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            color: #281b14;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        .landing-about-content {
+            display: grid;
+            width: min(100%, 1400px);
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+            align-items: center;
+            gap: clamp(24px, 5vw, 76px);
+            margin: 0 auto;
+        }
+        .landing-about-photo-frame {
+            position: relative;
+            width: min(100%, 760px);
+            aspect-ratio: 4 / 5;
+            margin: 0 auto;
+        }
+        .landing-about-photo,
+        .landing-about-frame {
+            position: absolute;
+            display: block;
+        }
+        .landing-about-photo {
+            top: 25.8%;
+            left: 29.8%;
+            width: 40.4%;
+            height: 55.2%;
+            object-fit: cover;
+            object-position: center;
+        }
+        .landing-about-frame {
+            z-index: 1;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            mix-blend-mode: multiply;
+            pointer-events: none;
+        }
+        .landing-about-copy {
+            max-width: 700px;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        .landing-about-eyebrow {
+            margin: 0 0 0.75rem;
+            color: #9c7435;
+            font-size: clamp(0.7rem, 1vw, 0.85rem);
+            font-weight: 600;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+        }
+        .landing-about-title {
+            margin: 0 0 1.25rem;
+            color: #4b2c0b;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(2rem, 4vw, 3.75rem);
+            line-height: 1.04;
+        }
+        .landing-about-title em {
+            font-weight: 400;
+        }
+        .landing-about-copy p:not(.landing-about-eyebrow) {
+            margin: 0 0 1rem;
+            font-size: clamp(0.92rem, 1.15vw, 1.08rem);
+            line-height: 1.75;
+        }
+        .landing-about-benefits {
+            display: grid;
+            gap: 0.65rem;
+            margin: 1.5rem 0 0;
+            padding: 0;
+            list-style: none;
+        }
+        .landing-about-benefits li {
+            position: relative;
+            padding-left: 1.6rem;
+            font-size: clamp(0.9rem, 1.1vw, 1rem);
+            line-height: 1.5;
+        }
+        .landing-about-benefits li::before {
+            position: absolute;
+            top: 0.72em;
+            left: 0;
+            width: 1rem;
+            height: 1px;
+            background: #a77a31;
+            content: "";
+        }
+        @media (max-width: 767px) {
+            .landing-about-section {
+                padding: 20px 12px 24px;
+            }
+            .landing-about-content {
+                width: min(100%, 520px);
+                grid-template-columns: minmax(0, 1fr);
+                gap: 24px;
+            }
+            .landing-about-photo-frame {
+                width: min(100%, 560px);
+            }
+            .landing-about-copy {
+                text-align: left;
+            }
+            .landing-about-title {
+                font-size: clamp(2rem, 9vw, 3rem);
+            }
         }
         .landing-gallery-section {
             scroll-margin-top: 85px;
@@ -209,7 +585,7 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
             align-items: start;
             gap: clamp(24px, 4vw, 64px);
-            max-width: 1200px;
+            max-width: 1480px;
             margin: 0 auto;
         }
         .landing-contact-info {
@@ -379,33 +755,169 @@
         .landing-gallery-post-6 { top: 52.5%; left: 28.5%; }
         .landing-gallery-post-7 { top: 52.5%; left: 51.5%; }
         .landing-gallery-post-8 { top: 52.5%; left: 74.5%; }
-        .landing-reviews-poster {
-            position: relative;
-            width: 100%;
+        .landing-reviews-section {
             overflow: hidden;
+            padding-bottom: clamp(20px, 3vw, 40px);
+            background-image: url("{% static 'img/pag_principal/resenas/fondo_resenas.jpg' %}");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
         }
-        .landing-reviews-poster img {
-            display: block;
-            width: 100%;
-            height: auto;
+        .landing-reviews-poster {
+            width: min(96%, 1500px);
+            margin: 0 auto;
         }
-        .landing-reviews-link {
+        .landing-review-list {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: clamp(8px, 1.4vw, 18px);
+        }
+        .landing-reviews-heading {
+            padding: clamp(16px, 2vw, 24px) 16px 0;
+            color: #4b2c0b;
+            text-align: center;
+        }
+        .landing-reviews-heading p {
+            margin: 0;
+            font-size: clamp(0.7rem, 1.1vw, 0.95rem);
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+        }
+        .landing-reviews-heading h2 {
+            margin: 0.45rem 0 0;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(1.75rem, 4vw, 3.25rem);
+            line-height: 1.15;
+        }
+        .landing-review-card {
+            position: relative;
+            display: flex;
+            aspect-ratio: 1 / 1;
+            flex-direction: column;
+            justify-content: space-between;
+            min-width: 0;
+            color: #332216;
+            text-decoration: none;
+            transition: background-color 160ms ease, transform 160ms ease;
+        }
+        .landing-review-card > img {
             position: absolute;
-            top: 30%;
-            width: 28%;
-            height: 64%;
-            border-radius: 2%;
+            top: 50%;
+            left: 50%;
+            width: 158%;
+            height: 158%;
+            max-width: none;
+            object-fit: fill;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
         }
-        .landing-reviews-link:focus-visible {
+        .landing-review-card:hover {
+            transform: translateY(-2px);
+        }
+        .landing-review-card:focus-visible {
+            border-radius: 0.25rem;
             outline: 3px solid #4b2c0b;
-            outline-offset: -5px;
+            outline-offset: -6px;
         }
-        .landing-reviews-link-1 { left: 6.5%; }
-        .landing-reviews-link-2 { left: 35.8%; }
-        .landing-reviews-link-3 { left: 65%; }
+        .landing-review-copy {
+            position: absolute;
+            top: 18%;
+            left: 18%;
+            z-index: 1;
+            display: flex;
+            width: 64%;
+            height: 64%;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2%;
+        }
+        .landing-review-stars {
+            color: #b87913;
+            font-size: clamp(0.68rem, 1.1vw, 1rem);
+            letter-spacing: 0.08em;
+            line-height: 1;
+        }
+        .landing-review-quote {
+            display: block;
+            font-size: clamp(0.72rem, 0.9vw, 0.9rem);
+            font-style: italic;
+            line-height: 1.45;
+        }
+        .landing-review-attribution {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.35rem;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(0.58rem, 0.9vw, 0.9rem);
+            font-weight: 700;
+        }
+        .landing-review-attribution small {
+            flex-basis: 100%;
+        }
+        .landing-review-attribution small {
+            color: #735a36;
+            font-family: Outfit, sans-serif;
+            font-size: 0.68em;
+            font-weight: 400;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .landing-review-google-g {
+            background: conic-gradient(from -45deg, #4285f4 0 25%, #34a853 25% 50%, #fbbc05 50% 75%, #ea4335 75%);
+            background-clip: text;
+            color: transparent;
+            font-family: Arial, sans-serif;
+            font-size: 1.2em;
+            font-weight: 700;
+            -webkit-background-clip: text;
+        }
+        @media (max-width: 1100px) {
+            .landing-reviews-heading {
+                padding-top: 20px;
+            }
+            .landing-reviews-poster {
+                width: min(94%, 520px);
+            }
+            .landing-review-list {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 12px;
+            }
+            .landing-review-card {
+                aspect-ratio: 1 / 1;
+            }
+            .landing-review-stars {
+                font-size: 0.9rem;
+            }
+            .landing-review-quote {
+                font-size: clamp(0.78rem, 2vw, 0.9rem);
+                line-height: 1.4;
+            }
+            .landing-review-attribution {
+                font-size: 1rem;
+            }
+        }
         @media (max-width: 560px) {
             .landing-gallery-section {
                 scroll-margin-top: 76px;
+            }
+        }
+        @media (max-width: 639px) {
+            .landing-poster {
+                padding: 120px 22px 32px;
+            }
+            .landing-hero-title {
+                font-size: clamp(2.35rem, 11vw, 3.2rem);
+            }
+            .landing-hero-contact {
+                width: min(100%, 310px);
+                min-height: 104px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .landing-hero-schedule-copy {
+                font-size: clamp(0.65rem, 3vw, 0.85rem);
             }
         }
     </style>
@@ -415,28 +927,129 @@
     {% include 'header.html' %}
 
     <section id="inicio" class="landing-poster" aria-label="Portada de Nicolett Studio Fantasy">
-        <div class="landing-poster-artwork">
-            <img src="{% static 'img/portada-hero-dorado.png' %}" alt="Portada dorada de Nicolett Studio Fantasy con el logo, una imagen del salón y botón para contactar">
-            <a href="#contacto" class="landing-poster-link landing-poster-contact-cta" aria-label="Contactar al salón"></a>
+        <div class="landing-hero-copy">
+            <p class="landing-hero-eyebrow">Salón de belleza · Buin, Santiago</p>
+            <h1 class="landing-hero-title">El arte de <em>hacerte sentir hermosa</em></h1>
+            <p class="landing-hero-description">En Nicolett Studio Fantasy encontrarás un espacio íntimo dedicado al cuidado y realce de tu belleza natural. Profesionales certificadas, productos premium y una experiencia que querrás repetir.</p>
+            <a href="#contacto" class="landing-hero-contact" aria-label="Contactar a Nicolett Studio Fantasy">
+                <img src="{% static 'img/pag_principal/inicio/boton_contacto.png' %}" alt="" aria-hidden="true">
+                <span>Contactar</span>
+            </a>
+        </div>
+        <div class="landing-hero-salon" aria-label="Salón de belleza Nicolett Studio Fantasy">
+            <img
+                class="landing-hero-salon-photo"
+                src="{% static 'img/pag_principal/inicio/salon_portada.jpg' %}"
+                alt="Interior luminoso de Nicolett Studio Fantasy con puestos de belleza y sillones"
+            >
+            <img
+                class="landing-hero-salon-frame"
+                src="{% static 'img/pag_principal/inicio/marco_inicio.png' %}"
+                alt=""
+                aria-hidden="true"
+            >
+            <div class="landing-hero-schedule">
+                <img src="{% static 'img/pag_principal/inicio/cartel_agenda.png' %}" alt="" aria-hidden="true">
+                <span class="landing-hero-schedule-copy">Agenda abierta<small>Lun - Sáb 9:00 - 20:00</small></span>
+            </div>
         </div>
     </section>
 
     <!-- NUESTRA HISTORIA -->
-    <section id="nosotras" class="w-full overflow-hidden" aria-label="Nuestra historia">
-        <img
-            src="{% static 'img/nosotras-completo-dorado.png' %}"
-            alt="Nuestra historia en Nicolett Studio Fantasy: creamos belleza con propósito, con diseño ornamental de mármol y marco dorado"
-            class="block h-auto w-full"
-        >
+    <section id="nosotras" class="landing-about-section" aria-labelledby="landing-about-title">
+        <div class="landing-about-content">
+            <div class="landing-about-photo-frame">
+                <img
+                    class="landing-about-photo"
+                    src="{% static 'img/pag_principal/nosotras/nosotras.jpg' %}"
+                    alt="Clienta recibiendo un peinado con ondas en Nicolett Studio Fantasy"
+                >
+                <img
+                    class="landing-about-frame"
+                    src="{% static 'img/pag_principal/nosotras/marco_nosotras.png' %}"
+                    alt=""
+                    aria-hidden="true"
+                >
+            </div>
+            <div class="landing-about-copy">
+                <p class="landing-about-eyebrow">Nuestra historia</p>
+                <h2 id="landing-about-title" class="landing-about-title">Creamos belleza <em>con propósito</em></h2>
+                <p>Nicolett Studio Fantasy nació del sueño de crear un espacio donde cada clienta se sienta vista y valorada. Fundado en 2016 en Buin, hemos crecido hasta convertirnos en un referente del bienestar estético en Santiago.</p>
+                <p>Nuestro equipo de 6 especialistas se capacita permanentemente en las últimas tendencias y técnicas.</p>
+                <ul class="landing-about-benefits">
+                    <li>Productos 100% libres de parabenos</li>
+                    <li>Certificadas en colorimetría avanzada</li>
+                    <li>Agenda online disponible las 24 horas</li>
+                </ul>
+            </div>
+        </div>
     </section>
 
     <!-- SERVICIOS -->
-    <section id="servicios" class="w-full overflow-hidden">
-        <div class="landing-services-poster" aria-label="Sección de servicios de Nicolett Studio Fantasy">
-            <img
-                src="{% static 'img/servicios-contenido-dorado.png' %}"
-                alt="Sección completa de servicios de Nicolett Studio Fantasy con diseño ornamental dorado"
-            >
+    <section id="servicios" class="landing-services-section" aria-labelledby="landing-services-title">
+        <p class="landing-services-eyebrow">Lo que ofrecemos</p>
+        <h2 id="landing-services-title" class="landing-services-title">Nuestros servicios</h2>
+        <div class="landing-services-grid">
+            <article class="landing-service-card">
+                <div class="landing-service-art">
+                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/colorimetria.jpg' %}" alt="Servicio de colorimetría">
+                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                    <div class="landing-service-copy">
+                        <h3>Colorimetría</h3>
+                        <p>Asesoría de color personalizada para encontrar los tonos que mejor realzan tu estilo y belleza natural.</p>
+                    </div>
+                </div>
+            </article>
+            <article class="landing-service-card">
+                <div class="landing-service-art">
+                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/corte_estilo.jpg' %}" alt="Servicio de corte y peinado">
+                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                    <div class="landing-service-copy">
+                        <h3>Corte &amp; estilo</h3>
+                        <p>Cortes y peinados adaptados a tu tipo de cabello, tus preferencias y la ocasión.</p>
+                    </div>
+                </div>
+            </article>
+            <article class="landing-service-card">
+                <div class="landing-service-art">
+                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/tratamientos.jpg' %}" alt="Tratamiento capilar">
+                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                    <div class="landing-service-copy">
+                        <h3>Tratamientos</h3>
+                        <p>Cuidados capilares para nutrir, hidratar y devolver suavidad y brillo a tu cabello.</p>
+                    </div>
+                </div>
+            </article>
+            <article class="landing-service-card">
+                <div class="landing-service-art">
+                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/manicure_pedicure.jpg' %}" alt="Servicio de manicure y pedicure">
+                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                    <div class="landing-service-copy">
+                        <h3>Manicure &amp; pedicure</h3>
+                        <p>Cuidado y embellecimiento de manos y pies con acabados prolijos y personalizados.</p>
+                    </div>
+                </div>
+            </article>
+            <article class="landing-service-card">
+                <div class="landing-service-art">
+                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/depilacion.jpg' %}" alt="Servicio de depilación">
+                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                    <div class="landing-service-copy">
+                        <h3>Depilación</h3>
+                        <p>Depilación cuidadosa y precisa para una piel suave y una sensación de bienestar.</p>
+                    </div>
+                </div>
+            </article>
+            <article class="landing-service-card">
+                <div class="landing-service-art">
+                    <img class="landing-service-photo" src="{% static 'img/pag_principal/servicios/maquillaje.jpg' %}" alt="Servicio de maquillaje">
+                    <img class="landing-service-frame" src="{% static 'img/pag_principal/servicios/marco_servicio.png' %}" alt="" aria-hidden="true">
+                    <div class="landing-service-copy">
+                        <h3>Maquillaje</h3>
+                        <p>Maquillaje social para eventos y ocasiones especiales, realzando tu belleza con un estilo único.</p>
+                    </div>
+                </div>
+            </article>
         </div>
     </section>
 
@@ -460,15 +1073,38 @@
     </section>
 
     <!-- TESTIMONIOS -->
-    <section id="resenas" class="landing-reviews-section" aria-label="Reseñas de clientas en Google Maps">
+    <section id="resenas" class="landing-reviews-section" aria-labelledby="landing-reviews-title">
+        <header class="landing-reviews-heading">
+            <p>Lo que dicen en Google Maps</p>
+            <h2 id="landing-reviews-title">Nuestras clientas</h2>
+        </header>
         <div class="landing-reviews-poster">
-            <img
-                src="{% static 'img/resenas-completas-dorado.png' %}"
-                alt="Reseñas de Google de María N., Betsabe V. y Krishna T. en una composición ornamental dorada"
-            >
-            <a href="https://maps.app.goo.gl/o64JrZsmmMyn3hDNA" target="_blank" rel="noopener noreferrer" class="landing-reviews-link landing-reviews-link-1" aria-label="Leer la reseña de María N. en Google Maps"></a>
-            <a href="https://maps.app.goo.gl/LT6kGLR7xncssqS19" target="_blank" rel="noopener noreferrer" class="landing-reviews-link landing-reviews-link-2" aria-label="Leer la reseña de Betsabe V. en Google Maps"></a>
-            <a href="https://maps.app.goo.gl/Hhd1TDNqLEfaotAp7" target="_blank" rel="noopener noreferrer" class="landing-reviews-link landing-reviews-link-3" aria-label="Leer la reseña de Krishna T. en Google Maps"></a>
+            <div class="landing-review-list">
+                <a href="https://maps.app.goo.gl/o64JrZsmmMyn3hDNA" target="_blank" rel="noopener noreferrer" class="landing-review-card landing-review-card-1" aria-label="Leer en Google Maps la reseña de María N.: Un lugar muy acogedor y hermoso, la estilista es un amor y su servicio es 10/10 y tiene precios muy convenientes que atraen a la clientela, me encanta, 100% recomendado.">
+                    <img src="{% static 'img/pag_principal/resenas/marco_resena.png' %}" alt="" aria-hidden="true">
+                <span class="landing-review-copy">
+                    <span class="landing-review-stars" aria-label="5 de 5 estrellas">★★★★★</span>
+                    <span class="landing-review-quote">“Un lugar muy acogedor y hermoso, la estilista es un amor y su servicio es 10/10 y tiene precios muy convenientes que atraen a la clientela, me encanta 100% recomendado.”</span>
+                    <span class="landing-review-attribution">María N.<span class="landing-review-google-g" aria-hidden="true">G</span><small>Clienta verificada</small></span>
+                </span>
+                </a>
+                <a href="https://maps.app.goo.gl/LT6kGLR7xncssqS19" target="_blank" rel="noopener noreferrer" class="landing-review-card landing-review-card-2" aria-label="Leer en Google Maps la reseña de Betsabe V.: Excelente servicio. Llegué donde Nicolett a prepararme para mi examen de grado y me dejó hermoso. Me realizó corte, tinte y masaje en mi pelito y manicure polygel de buenísima calidad y maravillosas. La recomiendo 100%, muy acogedora y simpática ella.">
+                    <img src="{% static 'img/pag_principal/resenas/marco_resena.png' %}" alt="" aria-hidden="true">
+                <span class="landing-review-copy">
+                    <span class="landing-review-stars" aria-label="5 de 5 estrellas">★★★★★</span>
+                    <span class="landing-review-quote">“¡Excelente servicio! ¡Llegué donde Nicolett a prepararme para mi examen de grado y me dejó hermoso! Me realizó corte, tinte y masaje en mi pelito y manicure polygel de buenísima calidad y maravillosas. La recomiendo 100% 😍, muy acogedora y simpática ella 😘.”</span>
+                    <span class="landing-review-attribution">Betsabe V.<span class="landing-review-google-g" aria-hidden="true">G</span><small>Clienta verificada</small></span>
+                </span>
+                </a>
+                <a href="https://maps.app.goo.gl/Hhd1TDNqLEfaotAp7" target="_blank" rel="noopener noreferrer" class="landing-review-card landing-review-card-3" aria-label="Leer en Google Maps la reseña de Krishna T.: Excelente servicio, me realizó la manicura y aparte de lindas son muy buena calidad, 100% recomendable. Y lo mejor que tiene gran variedad de servicios para ofrecer y salir completamente bellas.">
+                    <img src="{% static 'img/pag_principal/resenas/marco_resena.png' %}" alt="" aria-hidden="true">
+                <span class="landing-review-copy">
+                    <span class="landing-review-stars" aria-label="5 de 5 estrellas">★★★★★</span>
+                    <span class="landing-review-quote">“¡Excelente servicio, me realizó la manicura y aparte de lindas son muy buena calidad, 100% recomendable! ¡Y lo mejor que tiene gran variedad de servicios para ofrecer y salir completamente bellas!”</span>
+                    <span class="landing-review-attribution">Krishna T.<span class="landing-review-google-g" aria-hidden="true">G</span><small>Clienta verificada</small></span>
+                </span>
+                </a>
+            </div>
         </div>
     </section>
 
@@ -571,5 +1207,6 @@
     </section>
 
     {% include 'footer.html' %}
+    {% include 'accessibility_widget.html' %}
 </body>
 </html>

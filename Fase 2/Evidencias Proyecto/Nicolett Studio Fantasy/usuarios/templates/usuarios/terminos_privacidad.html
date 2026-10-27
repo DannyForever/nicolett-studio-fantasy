@@ -297,6 +297,7 @@
             *, *::before, *::after { transition-duration: .01ms !important; }
         }
     </style>
+    {% include 'accessibility_styles.html' %}
 </head>
 <body>
     <header class="topbar">
@@ -513,5 +514,6 @@
         window.addEventListener('load', scheduleActiveSectionUpdate);
         updateActiveSection();
     </script>
+    {% include 'accessibility_widget.html' %}
 </body>
 </html>
