@@ -10,6 +10,530 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        body {
+            background-image:
+                linear-gradient(132deg, transparent 0 36%, rgb(189 140 67 / 7%) 36.2%, transparent 37%),
+                linear-gradient(42deg, transparent 0 66%, rgb(189 140 67 / 6%) 66.2%, transparent 67%);
+        }
+
+        .client-topbar {
+            position: relative;
+            overflow: visible;
+            min-height: 64px;
+            border-bottom: 3px double #a8782c;
+            background-image:
+                radial-gradient(ellipse at 50% 0, transparent 36%, rgb(255 250 225 / 70%) 37%, transparent 39%),
+                radial-gradient(ellipse at 50% 100%, transparent 36%, rgb(151 102 35 / 18%) 37%, transparent 39%),
+                linear-gradient(90deg, #d5a84e, #f3dda0 48%, #d5a84e);
+            background-size: 38px 26px, 38px 26px, auto;
+            background-repeat: repeat-x, repeat-x, no-repeat;
+            color: #4b3216;
+        }
+
+        body > header.client-topbar {
+            color: #4b3216;
+        }
+
+        body > header.client-topbar > a.client-topbar-brand {
+            color: #4b3216;
+            text-shadow: 0 1px 0 rgb(255 255 255 / 45%);
+        }
+
+        body > header.client-topbar > a.client-topbar-brand span,
+        body > header.client-topbar > a.lg\:hidden span {
+            color: #4b3216;
+        }
+
+        body > header.client-topbar > div > span {
+            color: #5a3b18;
+        }
+
+        body > header.client-topbar > div > span strong {
+            color: #3d2914;
+        }
+
+        body > header.client-topbar [data-client-search] > div {
+            border-color: rgb(91 61 24 / 45%);
+            background: rgb(255 250 235 / 40%);
+            color: #4b3216;
+        }
+
+        body > header.client-topbar #client-smart-search {
+            color: #3d2914;
+        }
+
+        body > header.client-topbar #client-smart-search::placeholder {
+            color: rgb(75 50 22 / 70%);
+        }
+
+        body > header.client-topbar [data-client-search] i,
+        body > header.client-topbar #cart-summary-toggle {
+            color: #5b3d18;
+        }
+
+        body > header.client-topbar #clientMenuToggle,
+        body > header.client-topbar #clientSearchToggle {
+            border-color: rgb(91 61 24 / 40%);
+            color: #4b3216;
+        }
+
+        .client-sidebar form button[title="Cerrar sesión"] {
+            color: #000;
+        }
+
+        .client-sidebar form button[title="Cerrar sesión"]:hover {
+            color: #000;
+        }
+
+        .client-topbar > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .client-topbar-brand {
+            text-shadow: 0 1px 3px rgb(0 0 0 / 60%);
+        }
+
+        .client-sidebar {
+            border-right: 5px double #bd8c43 !important;
+            background-color: #e4c16c !important;
+            background-image:
+                linear-gradient(132deg, transparent 0 36%, rgb(153 103 34 / 10%) 36.2%, transparent 37%),
+                linear-gradient(42deg, transparent 0 66%, rgb(153 103 34 / 8%) 66.2%, transparent 67%),
+                linear-gradient(90deg, #d8ae4f, #e9ca74 35%, #d8ae4f) !important;
+            box-shadow: inset -3px 0 0 rgb(189 140 67 / 15%);
+        }
+
+        .client-sidebar-tools {
+            min-height: 72px;
+            margin: 0 10px 12px;
+            border: 3px double #bd8c43;
+            background: rgb(255 250 245 / 88%);
+            padding: 10px 12px !important;
+            box-shadow: 0 3px 8px rgb(40 27 20 / 14%);
+            border-radius: 0 0 18px 18px;
+        }
+
+        .client-sidebar-brand span:first-child {
+            color: #8b5e28 !important;
+        }
+
+        .client-sidebar-brand {
+            position: relative;
+            justify-content: center;
+            flex: 1;
+            flex-wrap: wrap;
+            column-gap: 6px;
+            row-gap: 0;
+            padding-top: 10px;
+        }
+
+        .client-sidebar-brand::before {
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            color: #bd8c43;
+            content: "♥";
+            font-family: Georgia, serif;
+            font-size: 18px;
+            line-height: 1;
+            transform: translateX(-50%);
+        }
+
+        .client-sidebar-brand::after {
+            align-self: center;
+            width: 28px;
+            height: 1px;
+            background: #bd8c43;
+            content: "";
+        }
+
+        .client-sidebar-tools button {
+            border-color: #bd8c43 !important;
+            color: #8b5e28 !important;
+        }
+
+        .client-sidebar nav {
+            gap: 8px !important;
+            padding: 0 10px;
+        }
+
+        .client-sidebar-home-row {
+            margin: 0;
+        }
+
+        .client-sidebar-home-row > a,
+        .client-sidebar nav > a {
+            min-height: 58px;
+            margin: 0;
+            border: 1px solid #c9a66b !important;
+            border-left: 1px solid #c9a66b !important;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #fffaf0, #f5e7c9) !important;
+            padding: 12px 16px;
+            box-shadow: 0 2px 5px rgb(40 27 20 / 13%);
+            color: #6b4728;
+        }
+
+        .client-sidebar-home-row > a > i,
+        .client-sidebar nav > a > i,
+        .client-sidebar .client-services-toggle > i:first-child {
+            color: #a77a36 !important;
+        }
+
+        .client-sidebar nav > div.flex.flex-col {
+            overflow: hidden;
+            border: 1px solid #c9a66b;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #fffaf0, #f5e7c9);
+            box-shadow: 0 2px 5px rgb(40 27 20 / 13%);
+        }
+
+        .client-sidebar .client-services-toggle {
+            min-height: 58px;
+            border: 0 !important;
+            border-left: 0 !important;
+            border-radius: 0;
+            background: transparent;
+            padding: 12px 16px;
+            color: #6b4728;
+        }
+
+        .client-sidebar .client-services-toggle[aria-expanded="true"] {
+            background: linear-gradient(110deg, #422414, #2f1b10) !important;
+            color: #fffaf0 !important;
+        }
+
+        .client-sidebar .client-services-toggle[aria-expanded="true"] > i {
+            color: #e4c27f !important;
+        }
+
+        .client-sidebar-submenu {
+            margin: 0 10px 0 34px;
+            border-left: 1px solid #c9a66b;
+            padding: 4px 8px 8px 18px;
+        }
+
+        .client-sidebar-submenu a {
+            min-height: 48px;
+            border-bottom: 1px solid #b99a67;
+            border-radius: 0;
+            padding: 11px 4px;
+            color: #332216;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: 0.95rem;
+        }
+
+        .client-sidebar-submenu a:last-child {
+            border-bottom: 0;
+        }
+
+        .client-sidebar-submenu a[aria-current="page"] {
+            border-radius: 6px;
+            background: #ecd2a7;
+            color: #281b14;
+        }
+
+        #clientLayoutContent {
+            background-color: #fffaf5;
+            background-image:
+                linear-gradient(132deg, transparent 0 36%, rgb(189 140 67 / 5%) 36.2%, transparent 37%),
+                linear-gradient(42deg, transparent 0 66%, rgb(189 140 67 / 5%) 66.2%, transparent 67%);
+        }
+
+        .client-bookings-main {
+            background-color: #fff4d8;
+            background-image:
+                radial-gradient(ellipse at 15% 10%, rgb(255 255 255 / 96%), transparent 42%),
+                radial-gradient(ellipse at 82% 85%, rgb(255 255 255 / 86%), transparent 38%),
+                linear-gradient(132deg, transparent 0 34%, rgb(189 140 67 / 9%) 34.2%, transparent 35%),
+                linear-gradient(42deg, transparent 0 67%, rgb(189 140 67 / 8%) 67.2%, transparent 68%),
+                linear-gradient(145deg, #fff9e9, #f4e4bd 52%, #fffaf0);
+        }
+
+        .client-settings-main {
+            background-color: #f8edcf;
+            background-image:
+                radial-gradient(circle 3px at 50% 50%, rgb(189 140 67 / 42%) 0 95%, transparent 100%),
+                radial-gradient(ellipse 6px 11px at 50% 28%, rgb(255 255 255 / 76%) 0 92%, transparent 100%),
+                radial-gradient(ellipse 6px 11px at 72% 50%, rgb(255 255 255 / 76%) 0 92%, transparent 100%),
+                radial-gradient(ellipse 6px 11px at 50% 72%, rgb(255 255 255 / 76%) 0 92%, transparent 100%),
+                radial-gradient(ellipse 6px 11px at 28% 50%, rgb(255 255 255 / 76%) 0 92%, transparent 100%),
+                radial-gradient(ellipse at 20% 20%, rgb(255 255 255 / 78%), transparent 46%),
+                linear-gradient(145deg, #fff7e2, #f2dfb1);
+            background-size: 96px 96px, 96px 96px, 96px 96px, 96px 96px, 96px 96px, auto, auto;
+        }
+
+        .client-settings-main #datos-contacto,
+        .client-settings-main #direcciones-envio,
+        .client-settings-main #direcciones-facturacion,
+        .client-settings-main #eliminar-cuenta {
+            border-color: #bd8c43;
+            background: linear-gradient(145deg, #f5dfa0, #e8c66e) !important;
+            box-shadow: 0 2px 8px rgb(40 27 20 / 10%), inset 0 0 0 1px rgb(189 140 67 / 12%);
+        }
+
+        .client-settings-main #direcciones-envio > div,
+        .client-settings-main #direcciones-facturacion > div {
+            border-color: #c9a04c;
+            background: linear-gradient(145deg, #f9e9b9, #efda9e) !important;
+        }
+
+        .client-settings-main input,
+        .client-settings-main select,
+        .client-settings-main textarea {
+            border-color: #c9a04c;
+            background-color: #fff1c7 !important;
+        }
+
+        .client-bookings-frame {
+            position: relative;
+            border: 7px double #bd8c43;
+            background:
+                radial-gradient(ellipse at 18% 15%, rgb(255 255 255 / 95%), transparent 46%),
+                radial-gradient(ellipse at 86% 78%, rgb(255 255 255 / 84%), transparent 44%),
+                linear-gradient(145deg, #fffaf0, #f4e6c9 50%, #fffaf5);
+            box-shadow: 0 10px 22px rgb(40 27 20 / 22%), inset 0 0 0 2px rgb(255 255 255 / 75%);
+        }
+
+        .client-bookings-corner {
+            position: absolute;
+            z-index: 1;
+            color: #a87932;
+            font-family: Georgia, serif;
+            font-size: 2rem;
+            line-height: 1;
+            text-shadow: 0 1px 2px rgb(40 27 20 / 24%);
+        }
+
+        .client-bookings-corner-top-left { top: -0.65rem; left: -0.45rem; }
+        .client-bookings-corner-top-right { top: -0.65rem; right: -0.45rem; transform: scaleX(-1); }
+        .client-bookings-corner-bottom-left { bottom: -0.65rem; left: -0.45rem; transform: scaleY(-1); }
+        .client-bookings-corner-bottom-right { right: -0.45rem; bottom: -0.65rem; transform: scale(-1); }
+
+        .client-bookings-tabs {
+            border-color: rgb(189 140 67 / 55%);
+        }
+
+        .client-bookings-tabs .js-bookings-tab {
+            border: 2px solid #bd8c43;
+            border-bottom: 0;
+            border-radius: 9px 9px 0 0;
+            background: linear-gradient(145deg, #f4d98c, #c9973f);
+            color: #4b3216;
+        }
+
+        .client-bookings-tabs .js-bookings-tab[aria-selected="true"] {
+            background: linear-gradient(145deg, #ffedb3, #d4a84f);
+            color: #3d2914;
+        }
+
+        .client-bookings-empty,
+        .client-bookings-card {
+            border-color: rgb(189 140 67 / 65%);
+            background: rgb(255 252 244 / 66%);
+            box-shadow: inset 0 0 18px rgb(255 255 255 / 55%);
+        }
+
+        .client-bookings-download,
+        .client-bookings-cta {
+            border: 3px double #fff0b7;
+            border-radius: 999px;
+            background: linear-gradient(145deg, #f6d982, #bd8732 68%, #e8c36d);
+            color: #3d2914;
+            box-shadow: 0 3px 8px rgb(40 27 20 / 22%), inset 0 1px 2px rgb(255 255 255 / 65%);
+            font-weight: 600;
+            transition: filter 150ms ease, transform 150ms ease;
+        }
+
+        .client-bookings-download:hover,
+        .client-bookings-cta:hover {
+            filter: brightness(1.15);
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 639px) {
+            .client-bookings-frame {
+                border-width: 5px;
+            }
+
+            .client-bookings-corner {
+                font-size: 1.5rem;
+            }
+        }
+
+        .client-sidebar-home-row > a[aria-current="page"],
+        .client-sidebar nav > a[aria-current="page"],
+        .client-sidebar .client-services-toggle[aria-current="page"] {
+            box-shadow: inset 0 0 0 1px rgb(189 140 67 / 30%), 0 2px 5px rgb(40 27 20 / 8%);
+        }
+
+        @media (max-width: 1023.98px) {
+            body > header {
+                height: 4rem;
+                padding-inline: 0.75rem;
+                border-color: #f0e9df;
+                border-radius: 0;
+                background: #fff;
+                color: #281b14;
+                box-shadow: none;
+            }
+
+            body > header.client-topbar {
+                border-bottom: 3px double #a8782c;
+                background-image:
+                    radial-gradient(ellipse at 50% 0, transparent 36%, rgb(255 250 225 / 70%) 37%, transparent 39%),
+                    radial-gradient(ellipse at 50% 100%, transparent 36%, rgb(151 102 35 / 18%) 37%, transparent 39%),
+                    linear-gradient(90deg, #d5a84e, #f3dda0 48%, #d5a84e);
+                color: #4b3216;
+            }
+
+            body > header > a {
+                order: 1;
+                margin-right: auto;
+                align-items: baseline;
+                gap: 0.3rem;
+                color: #281b14;
+            }
+
+            body > header.client-topbar > a.client-topbar-brand,
+            body > header.client-topbar > a.lg\:hidden {
+                color: #4b3216;
+            }
+
+            body > header > a span:first-child {
+                font-size: 1.25rem;
+                letter-spacing: 0;
+            }
+
+            body > header > a span {
+                color: #6b5643;
+            }
+
+            body > header > a span:last-child {
+                font-size: 0.5rem;
+                letter-spacing: 0.16em;
+            }
+
+            body > header > button#clientMenuToggle {
+                order: 2;
+                width: 2.25rem;
+                height: 2.25rem;
+                border-color: #ead7bc;
+                border-radius: 0.375rem;
+                background: #fff;
+                color: #6b5643;
+                font-size: 0.9rem;
+                box-shadow: none;
+            }
+
+            body > header > div {
+                display: none;
+            }
+
+            .client-sidebar-tools {
+                display: flex;
+            }
+
+            #clientSidebar {
+                top: 4rem !important;
+                bottom: 0 !important;
+                width: min(100vw, 280px);
+                border-color: #bd8c43;
+                background-color: #fffaf5;
+                padding: 0.5rem 0 0.75rem;
+                box-shadow: 0 2px 8px rgb(40 27 20 / 10%);
+            }
+
+            #clientMenuBackdrop {
+                top: 4rem !important;
+            }
+
+            .client-sidebar nav {
+                gap: 8px !important;
+            }
+
+            .client-sidebar-home-row > a,
+            .client-sidebar nav > a {
+                min-height: 3.25rem;
+                margin: 0;
+                border: 1px solid #c9a66b !important;
+                border-left: 1px solid #c9a66b !important;
+                border-radius: 12px;
+                background: linear-gradient(145deg, #fffaf0, #f5e7c9) !important;
+                padding: 0.75rem 1rem;
+                box-shadow: 0 2px 5px rgb(40 27 20 / 13%);
+                color: #6b4728;
+                font-family: Outfit, sans-serif;
+                font-size: 0.875rem;
+            }
+
+            .client-sidebar-home-row > a[aria-current="page"],
+            .client-sidebar nav > a[aria-current="page"] {
+                background: linear-gradient(145deg, #fffaf0, #f5e7c9) !important;
+                color: #4b2b16;
+            }
+
+            .client-sidebar-home-row > a > i,
+            .client-sidebar nav > a > i {
+                color: #bd8c43;
+            }
+
+            .client-sidebar nav > div.flex.flex-col {
+                overflow: visible;
+                overflow: hidden;
+                border: 1px solid #c9a66b;
+                border-radius: 12px;
+                background: linear-gradient(145deg, #fffaf0, #f5e7c9);
+                box-shadow: 0 2px 5px rgb(40 27 20 / 13%);
+            }
+
+            .client-sidebar .client-services-toggle {
+                min-height: 3.25rem;
+                border: 0 !important;
+                border-radius: 0;
+                background: transparent;
+                padding: 0.75rem 1rem;
+                color: #6b4728;
+                font-family: Outfit, sans-serif;
+                font-size: 0.875rem;
+            }
+
+            .client-sidebar .client-services-toggle[aria-expanded="true"] {
+                background: linear-gradient(110deg, #422414, #2f1b10) !important;
+                color: #fffaf0;
+            }
+
+            .client-sidebar .client-services-toggle > i:first-child {
+                color: #a77a36;
+            }
+
+            .client-sidebar-submenu {
+                margin: 0 10px 0 34px;
+                border: 0;
+                border-left: 1px solid #c9a66b;
+                padding: 4px 8px 8px 18px;
+            }
+
+            .client-sidebar-submenu a {
+                min-height: 3rem;
+                border: 0;
+                border-bottom: 1px solid #b99a67;
+                border-radius: 0;
+                padding: 0.7rem 0.25rem;
+                color: #332216;
+                font-family: "Playfair Display", Georgia, serif;
+                font-size: 0.9rem;
+            }
+
+            .client-sidebar-submenu a[aria-current="page"] {
+                border-radius: 6px;
+                background: #ecd2a7;
+                color: #281b14;
+                font-weight: 500;
+            }
+        }
+
         @media (max-width: 1023.98px) {
             .client-sidebar[data-open="true"] {
                 display: flex;
@@ -44,8 +568,7 @@
                 padding-left: 0;
             }
 
-            .client-sidebar[data-collapsed="true"] .client-services-toggle,
-            .client-sidebar[data-collapsed="true"] .client-products-toggle {
+            .client-sidebar[data-collapsed="true"] .client-services-toggle {
                 justify-content: center;
                 padding-right: 0;
                 padding-left: 0;
@@ -88,6 +611,294 @@
                 padding-left: 8px;
             }
         }
+
+        body.client-bookings-page {
+            background-color: #fff4d8;
+            background-image:
+                radial-gradient(ellipse at 24% 18%, rgb(255 255 255 / 94%), transparent 43%),
+                radial-gradient(ellipse at 77% 76%, rgb(255 255 255 / 82%), transparent 40%),
+                linear-gradient(132deg, transparent 0 32%, rgb(189 140 67 / 10%) 32.2%, transparent 33%),
+                linear-gradient(42deg, transparent 0 69%, rgb(189 140 67 / 8%) 69.2%, transparent 70%),
+                linear-gradient(145deg, #fff9e9, #f2e0b7 54%, #fffaf0);
+        }
+
+        body.client-bookings-page > header.client-topbar {
+            height: 50px;
+            min-height: 50px;
+            margin-left: 180px;
+            width: calc(100% - 180px);
+            border-bottom: 3px double #a8782c;
+            padding-inline: 18px;
+            background-color: #e5c170;
+            background-image:
+                radial-gradient(ellipse at 50% 0, transparent 36%, rgb(255 250 225 / 70%) 37%, transparent 39%),
+                radial-gradient(ellipse at 50% 100%, transparent 36%, rgb(151 102 35 / 18%) 37%, transparent 39%),
+                linear-gradient(90deg, #d5a84e, #f3dda0 48%, #d5a84e);
+            background-size: 38px 26px, 38px 26px, auto;
+            color: #4b3216;
+            box-shadow: 0 2px 8px rgb(40 27 20 / 16%);
+        }
+
+        body.client-bookings-page > header.client-topbar > a.client-topbar-brand {
+            color: #4b3216;
+            text-shadow: 0 1px 0 rgb(255 255 255 / 45%);
+        }
+
+        body.client-bookings-page .client-bookings-topnav {
+            display: flex;
+            flex: 0 1 auto;
+            align-items: center;
+            gap: 12px;
+            white-space: nowrap;
+        }
+
+        body.client-bookings-page .client-bookings-topnav a {
+            color: #4b3216;
+            font-size: 0.68rem;
+            text-decoration: none;
+        }
+
+        body.client-bookings-page .client-bookings-topnav a:hover {
+            color: #855b20;
+            text-decoration: underline;
+        }
+
+        body.client-bookings-page .client-topbar > div {
+            color: #4b3216;
+        }
+
+        body.client-bookings-page .client-topbar > div > span {
+            color: #5a3b18;
+        }
+
+        body.client-bookings-page .client-topbar > div > span strong {
+            color: #3d2914;
+        }
+
+        body.client-bookings-page .client-topbar [data-client-search] > div {
+            border-color: rgb(91 61 24 / 45%);
+            background: rgb(255 250 235 / 40%);
+            color: #4b3216;
+        }
+
+        body.client-bookings-page #client-smart-search {
+            color: #3d2914;
+        }
+
+        body.client-bookings-page #client-smart-search::placeholder {
+            color: rgb(75 50 22 / 70%);
+        }
+
+        body.client-bookings-page .client-topbar [data-client-search] i,
+        body.client-bookings-page #cart-summary-toggle {
+            color: #5b3d18;
+        }
+
+        body.client-bookings-page #clientLayoutContent {
+            margin-left: 180px;
+            background: transparent;
+        }
+
+        body.client-bookings-page #clientSidebar {
+            top: 0;
+            width: 180px;
+            border-right: 5px double #bd8c43 !important;
+            background-color: #e4c16c !important;
+            background-image:
+                linear-gradient(132deg, transparent 0 36%, rgb(153 103 34 / 10%) 36.2%, transparent 37%),
+                linear-gradient(42deg, transparent 0 66%, rgb(153 103 34 / 8%) 66.2%, transparent 67%),
+                linear-gradient(90deg, #d8ae4f, #e9ca74 35%, #d8ae4f) !important;
+            padding-top: 8px;
+            box-shadow: inset -3px 0 0 rgb(189 140 67 / 15%);
+        }
+
+        body.client-bookings-page .client-sidebar-tools {
+            min-height: 115px;
+            margin: 0 7px 8px;
+            border: 3px double #bd8c43;
+            border-radius: 0 0 18px 18px;
+            background: rgb(245 220 151 / 88%);
+            padding: 13px 8px !important;
+            box-shadow: 0 3px 8px rgb(40 27 20 / 14%);
+        }
+
+        body.client-bookings-page .client-sidebar-brand {
+            display: flex;
+            min-height: 96px;
+            width: 96px;
+            flex: 0 0 96px;
+            align-content: center;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            border: 3px double #bd8c43;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fffdf7 45%, #f0dfbd);
+            box-shadow: inset 0 0 0 3px rgb(189 140 67 / 15%), 0 2px 5px rgb(40 27 20 / 15%);
+            padding: 17px 5px 8px;
+        }
+
+        body.client-bookings-page .client-sidebar-brand span:first-child {
+            color: #8b5e28 !important;
+            font-size: 1rem;
+        }
+
+        body.client-bookings-page .client-sidebar-brand span:nth-child(2) {
+            color: #765528 !important;
+            font-size: 0.42rem;
+        }
+
+        body.client-bookings-page .client-sidebar nav {
+            gap: 5px !important;
+            padding: 0 7px;
+        }
+
+        body.client-bookings-page .client-sidebar-home-row > a,
+        body.client-bookings-page .client-sidebar nav > a,
+        body.client-bookings-page .client-sidebar nav > div.flex.flex-col {
+            min-height: 43px;
+            border: 1px solid #b99251 !important;
+            border-radius: 6px;
+            background: linear-gradient(145deg, #fffaf0, #f0dfbc) !important;
+            box-shadow: 0 2px 4px rgb(40 27 20 / 12%);
+            color: #5b3d21;
+            padding: 9px 10px;
+            font-size: 0.74rem;
+        }
+
+        body.client-bookings-page .client-sidebar nav > div.flex.flex-col {
+            overflow: hidden;
+            padding: 0;
+        }
+
+        body.client-bookings-page .client-sidebar .client-services-toggle {
+            min-height: 41px;
+            padding: 9px 10px;
+            font-size: 0.74rem;
+        }
+
+        body.client-bookings-page .client-sidebar .client-services-toggle .client-sidebar-chevron {
+            color: #000;
+        }
+
+        body.client-bookings-page .client-sidebar form button[title="Cerrar sesión"] {
+            border-color: rgb(0 0 0 / 28%);
+            color: #000;
+        }
+
+        body.client-bookings-page .client-sidebar form button[title="Cerrar sesión"]:hover {
+            background: rgb(0 0 0 / 8%);
+            color: #000;
+        }
+
+        body.client-bookings-page .client-sidebar-collapse-toggle {
+            color: #000;
+        }
+
+        body.client-bookings-page > header.client-topbar + button#clientMenuBackdrop {
+            display: none;
+        }
+
+        body.client-bookings-page main.client-bookings-main {
+            min-height: calc(100vh - 50px);
+            padding: 22px 30px;
+        }
+
+        .client-sidebar-collapse-toggle {
+            position: fixed;
+            z-index: 50;
+            top: 12px;
+            left: 198px;
+            transition: left 200ms ease;
+        }
+
+        body[data-client-sidebar-collapsed="true"] .client-sidebar-collapse-toggle {
+            left: 8px;
+        }
+
+        @media (min-width: 1024px) {
+            #clientSidebar {
+                transition: transform 200ms ease;
+            }
+
+            body[data-client-sidebar-collapsed="true"] #clientSidebar {
+                width: 240px;
+                transform: translateX(-100%);
+            }
+
+            body[data-client-sidebar-collapsed="true"] #clientLayoutContent {
+                margin-left: 0;
+            }
+
+            body[data-client-sidebar-collapsed="true"] > header.client-topbar {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            body.client-bookings-page .client-sidebar-collapse-toggle {
+                left: 138px;
+            }
+
+            body.client-bookings-page[data-client-sidebar-collapsed="true"] .client-sidebar-collapse-toggle {
+                left: 8px;
+            }
+
+            body.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar {
+                width: 180px;
+            }
+        }
+
+        body.client-bookings-page .client-bookings-frame {
+            max-width: none;
+            border: 8px double #bd8c43;
+            background:
+                radial-gradient(ellipse at 20% 18%, rgb(255 255 255 / 96%), transparent 46%),
+                radial-gradient(ellipse at 85% 80%, rgb(255 255 255 / 85%), transparent 44%),
+                linear-gradient(145deg, #fffaf0, #f4e6c9 50%, #fffaf5);
+            box-shadow: 0 10px 22px rgb(40 27 20 / 26%), inset 0 0 0 2px rgb(255 255 255 / 75%);
+            padding: 20px 24px;
+        }
+
+        body.client-bookings-page .client-bookings-corner {
+            color: #a87932;
+            font-size: 2.5rem;
+            text-shadow: 0 1px 2px rgb(40 27 20 / 30%);
+        }
+
+        body.client-bookings-page .client-bookings-empty {
+            min-height: 145px;
+            padding: 23px 20px;
+        }
+
+        @media (max-width: 1023.98px) {
+            body.client-bookings-page .client-bookings-topnav {
+                display: none;
+            }
+
+            body.client-bookings-page > header.client-topbar {
+                margin-left: 0;
+                width: 100%;
+                padding-inline: 12px;
+            }
+
+            body.client-bookings-page #clientLayoutContent {
+                margin-left: 0;
+            }
+
+            body.client-bookings-page #clientSidebar {
+                top: 50px !important;
+                width: min(82vw, 280px);
+            }
+
+            body.client-bookings-page main.client-bookings-main {
+                min-height: calc(100vh - 50px);
+                padding: 18px 14px;
+            }
+
+            body.client-bookings-page .client-bookings-frame {
+                padding: 18px 14px;
+            }
+        }
     </style>
     <script>
         tailwind.config = {
@@ -110,8 +921,8 @@
         };
     </script>
 </head>
-<body class="flex min-h-screen flex-col bg-[#fffaf5] font-sans text-[#281b14] antialiased">
-    <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#60452f] bg-[#332216] px-3 text-[#ffffff] shadow-sm sm:px-8 lg:ml-[240px] lg:w-[calc(100%-240px)] lg:px-6">
+<body class="flex min-h-screen flex-col bg-[#fffaf5] font-sans text-[#281b14] antialiased {% if request.resolver_match.url_name == 'cliente_gestionar_citas' or request.resolver_match.url_name == 'cliente_sobre_nosotros' or request.resolver_match.url_name == 'cliente_home' %}client-bookings-page{% endif %}">
+    <header class="client-topbar sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#60452f] bg-[#332216] px-3 text-[#ffffff] shadow-sm sm:px-8 lg:ml-[240px] lg:w-[calc(100%-240px)] lg:px-6">
         <button type="button" id="clientMenuToggle" class="flex h-10 w-10 shrink-0 items-center justify-center border border-[#ead7bc]/50 bg-transparent text-lg text-white lg:hidden" aria-label="Abrir menú" aria-expanded="false" aria-controls="clientSidebar">
             <i class="fa-solid fa-bars" aria-hidden="true"></i>
         </button>
@@ -119,6 +930,19 @@
             <span class="font-serif text-xl font-bold text-[#e0bd7c]">Nicolett</span>
             <span class="text-[10px] uppercase tracking-[0.2em] text-[#e0bd7c]">Studio</span>
         </a>
+        <a href="{% url 'cliente_home' %}" aria-label="Ir a Nosotras" class="client-topbar-brand hidden min-w-0 items-center gap-2 text-[#e0bd7c] no-underline lg:flex">
+            <i class="fa-solid fa-heart text-lg" aria-hidden="true"></i>
+            <span class="font-serif text-lg font-bold">Nicolett</span>
+            <span class="text-[9px] uppercase tracking-[0.2em]">Studio</span>
+        </a>
+        {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}
+            <nav class="client-bookings-topnav hidden lg:flex" aria-label="Navegación principal">
+                <a href="{% url 'cliente_home' %}">Nosotras</a>
+                <a href="{% url 'cliente_servicios' %}">Servicios y citas</a>
+                <a href="{% url 'cliente_productos' %}">Productos</a>
+                <a href="{% url 'cliente_configuracion' %}">Configuración</a>
+            </nav>
+        {% endif %}
         <div class="relative ml-auto flex min-w-0 items-center gap-3 text-sm sm:gap-5">
             <button type="button" id="clientSearchToggle" aria-label="Buscar" aria-expanded="false" aria-controls="client-smart-search" class="flex h-9 w-9 shrink-0 items-center justify-center border border-[#ead7bc]/50 bg-transparent text-white md:hidden">
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
@@ -248,11 +1072,8 @@
                     <span class="font-serif text-xl font-bold text-[#6b5643]">Nicolett</span>
                     <span class="text-[9px] uppercase tracking-[0.18em] text-[#bd8c43]">Studio</span>
                 </a>
-                <button type="button" id="clientSidebarCollapseToggle" class="hidden h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#ead7bc] bg-white text-[#5a3e27] shadow-sm transition hover:bg-[#fae9cf] lg:flex" aria-label="Contraer menú" aria-expanded="true" aria-controls="clientSidebar" title="Contraer menú">
-                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
-                </button>
             </div>
-            <nav class="flex flex-col gap-1" aria-label="Menú de cliente">
+            <nav class="flex flex-col gap-0" aria-label="Menú de cliente">
                 <div class="client-sidebar-home-row flex items-center gap-1">
                     <a href="{% url 'cliente_home' %}" title="Nosotras" class="flex min-w-0 flex-1 items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}aria-current="page"{% endif %}>
                         <i class="fa-solid fa-heart w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Nosotras</span>
@@ -264,24 +1085,22 @@
                         <span class="client-sidebar-label flex-1">Servicios y citas</span>
                         <i class="client-sidebar-chevron fa-solid fa-chevron-down text-xs transition-transform {% if request.resolver_match.url_name == 'cliente_servicios' %}rotate-180{% endif %}" aria-hidden="true"></i>
                     </button>
-                    <div id="clientServicesSubmenu" class="client-sidebar-submenu ml-9 mr-3 space-y-1 border-l border-[#ead7bc] pl-2" aria-label="Servicios disponibles"{% if request.resolver_match.url_name != 'cliente_servicios' %} hidden{% endif %}>
-                        {% for categoria in categorias_servicio_menu %}
-                            <a href="{% url 'cliente_servicios' %}?categoria={{ categoria.nombre|urlencode }}#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if categoria_seleccionada == categoria.nombre %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if categoria_seleccionada == categoria.nombre %}aria-current="page"{% endif %}>{{ categoria.nombre }}</a>
-                        {% endfor %}
+                    <div id="clientServicesSubmenu" class="client-sidebar-submenu ml-6 mr-3 space-y-0 border-l border-[#ead7bc] pl-2" aria-label="Servicios disponibles"{% if request.resolver_match.url_name != 'cliente_servicios' %} hidden{% endif %}>
+                        <a href="{% url 'cliente_servicios' %}?categoria=corte#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'corte' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'corte' %}aria-current="page"{% endif %}>Cortes &amp; estilos</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=tratamientos#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'tratamientos' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'tratamientos' %}aria-current="page"{% endif %}>Tratamientos capilares</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=manos#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'manos' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'manos' %}aria-current="page"{% endif %}>Nail Care &amp; Beauty</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=pedicure#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'pedicure' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'pedicure' %}aria-current="page"{% endif %}>Pedicure</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=depilaciones#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'depilaciones' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'depilaciones' %}aria-current="page"{% endif %}>Depilación</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=peinados#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'peinados' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'peinados' %}aria-current="page"{% endif %}>Peinados</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=coloracion#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'coloracion' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'coloracion' %}aria-current="page"{% endif %}>Colorimetría</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=podologia#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'podologia' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'podologia' %}aria-current="page"{% endif %}>Podología</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=lash_brow#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'lash_brow' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'lash_brow' %}aria-current="page"{% endif %}>Lash &amp; Brow</a>
+                        <a href="{% url 'cliente_servicios' %}?categoria=maquillaje#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'maquillaje' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'maquillaje' %}aria-current="page"{% endif %}>Maquillaje</a>
                     </div>
                 </div>
-                <div class="flex flex-col">
-                    <button type="button" id="clientProductsToggle" aria-expanded="{% if request.resolver_match.url_name == 'cliente_productos' %}true{% else %}false{% endif %}" aria-controls="clientProductsSubmenu" title="Productos" class="client-products-toggle flex w-full items-center gap-3.5 border-l-4 px-5 py-3 text-left text-sm transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent bg-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
-                        <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i>
-                        <span class="client-sidebar-label flex-1">Productos</span>
-                        <i class="client-sidebar-chevron fa-solid fa-chevron-down text-xs transition-transform {% if request.resolver_match.url_name == 'cliente_productos' %}rotate-180{% endif %}" aria-hidden="true"></i>
-                    </button>
-                    <div id="clientProductsSubmenu" class="client-sidebar-submenu ml-9 mr-3 space-y-1 border-l border-[#ead7bc] pl-2" aria-label="Categorías de productos"{% if request.resolver_match.url_name != 'cliente_productos' %} hidden{% endif %}>
-                        {% for categoria in filtros_categoria %}
-                            <a href="{% url 'cliente_productos' %}?categoria={{ categoria|urlencode }}" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if categoria_seleccionada == categoria %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if categoria_seleccionada == categoria %}aria-current="page"{% endif %}>{{ categoria }}</a>
-                        {% endfor %}
-                    </div>
-                </div>
+                <a href="{% url 'cliente_productos' %}" title="Productos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
+                    <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Productos</span>
+                </a>
                 {% if vista_previa_admin %}
                     <span title="No disponible en la vista previa" aria-disabled="true" class="flex cursor-not-allowed items-center gap-3.5 border-l-4 border-transparent px-5 py-3 text-sm text-[#6b5643]/50">
                         <i class="fa-regular fa-calendar-check w-5 text-center text-base text-[#bd8c43]/50" aria-hidden="true"></i><span class="client-sidebar-label">Mis citas</span>
@@ -293,9 +1112,15 @@
                 {% endif %}
                 {% if vista_previa_admin %}
                     <span title="No disponible en la vista previa" aria-disabled="true" class="flex cursor-not-allowed items-center gap-3.5 border-l-4 border-transparent px-5 py-3 text-sm text-[#6b5643]/50">
+                        <i class="fa-solid fa-receipt w-5 text-center text-base text-[#bd8c43]/50" aria-hidden="true"></i><span class="client-sidebar-label">Historial de pagos</span>
+                    </span>
+                    <span title="No disponible en la vista previa" aria-disabled="true" class="flex cursor-not-allowed items-center gap-3.5 border-l-4 border-transparent px-5 py-3 text-sm text-[#6b5643]/50">
                         <i class="fa-solid fa-gear w-5 text-center text-base text-[#bd8c43]/50" aria-hidden="true"></i><span class="client-sidebar-label">Configuración</span>
                     </span>
                 {% else %}
+                    <a href="{% url 'cliente_historial_pagos' %}" title="Historial de pagos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}aria-current="page"{% endif %}>
+                        <i class="fa-solid fa-receipt w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Historial de pagos</span>
+                    </a>
                     <a href="{% url 'cliente_configuracion' %}" title="Configuración" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_configuracion' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_configuracion' %}aria-current="page"{% endif %}>
                         <i class="fa-solid fa-gear w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Configuración</span>
                     </a>
@@ -314,8 +1139,11 @@
                 </form>
             {% endif %}
         </aside>
+        <button type="button" id="clientSidebarCollapseToggle" class="client-sidebar-collapse-toggle hidden h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#ead7bc] bg-white text-[#5a3e27] shadow-sm transition hover:bg-[#fae9cf] lg:flex" aria-label="Contraer menú" aria-expanded="true" aria-controls="clientSidebar" title="Contraer menú">
+            <i class="fa-solid fa-bars" aria-hidden="true"></i>
+        </button>
 
-        <main class="w-full min-w-0 px-5 py-8 lg:flex-1 lg:px-10">
+        <main {% if request.resolver_match.url_name == 'cliente_servicios' %}data-service-catalog-main data-full-bleed="{% if request.GET.categoria == 'tratamientos' or request.GET.categoria == 'manos' or request.GET.categoria == 'depilaciones' or request.GET.categoria == 'coloracion' or request.GET.categoria == 'podologia' or request.GET.categoria == 'lash_brow' %}true{% else %}false{% endif %}"{% endif %} class="w-full min-w-0 {% if request.GET.categoria == 'tratamientos' or request.GET.categoria == 'manos' or request.GET.categoria == 'depilaciones' or request.GET.categoria == 'coloracion' or request.GET.categoria == 'podologia' or request.GET.categoria == 'lash_brow' %}p-0{% elif request.resolver_match.url_name == 'cliente_gestionar_citas' %}client-bookings-main min-h-[calc(100vh-64px)] px-5 py-8 lg:px-10{% elif request.resolver_match.url_name == 'cliente_configuracion' %}client-settings-main min-h-[calc(100vh-64px)] px-5 py-8 lg:px-10{% else %}px-5 py-8 lg:px-10{% endif %} lg:flex-1">
             {% block content %}{% endblock %}
         </main>
     </div>
@@ -327,20 +1155,13 @@
             const backdrop = document.getElementById('clientMenuBackdrop');
             const servicesToggle = document.getElementById('clientServicesToggle');
             const servicesSubmenu = document.getElementById('clientServicesSubmenu');
-            const productsToggle = document.getElementById('clientProductsToggle');
-            const productsSubmenu = document.getElementById('clientProductsSubmenu');
-            if (!sidebar || !toggle || !collapseToggle || !backdrop || !servicesToggle || !servicesSubmenu || !productsToggle || !productsSubmenu) return;
+            if (!sidebar || !toggle || !collapseToggle || !backdrop || !servicesToggle || !servicesSubmenu) return;
             const desktop = window.matchMedia('(min-width: 1024px)');
 
             const setServicesMenuOpen = (open) => {
                 servicesSubmenu.hidden = !open;
                 servicesToggle.setAttribute('aria-expanded', String(open));
                 servicesToggle.querySelector('.client-sidebar-chevron').classList.toggle('rotate-180', open);
-            };
-            const setProductsMenuOpen = (open) => {
-                productsSubmenu.hidden = !open;
-                productsToggle.setAttribute('aria-expanded', String(open));
-                productsToggle.querySelector('.client-sidebar-chevron').classList.toggle('rotate-180', open);
             };
 
             const setMobileOpen = (open) => {
@@ -354,10 +1175,7 @@
             };
 
             const setCollapsed = (collapsed) => {
-                if (collapsed) {
-                    setServicesMenuOpen(false);
-                    setProductsMenuOpen(false);
-                }
+                if (collapsed) setServicesMenuOpen(false);
                 sidebar.dataset.collapsed = String(collapsed);
                 document.body.dataset.clientSidebarCollapsed = String(collapsed);
                 collapseToggle.setAttribute('aria-expanded', String(!collapsed));
@@ -368,17 +1186,12 @@
 
             setCollapsed(false);
             const browsingServices = !servicesSubmenu.hidden;
-            const browsingProducts = !productsSubmenu.hidden;
             setServicesMenuOpen(browsingServices);
-            setProductsMenuOpen(browsingProducts);
-            setMobileOpen(!desktop.matches && (browsingServices || browsingProducts));
+            setMobileOpen(!desktop.matches && browsingServices);
             toggle.addEventListener('click', () => setMobileOpen(sidebar.dataset.open !== 'true'));
             collapseToggle.addEventListener('click', () => setCollapsed(sidebar.dataset.collapsed !== 'true'));
             servicesToggle.addEventListener('click', () => {
                 setServicesMenuOpen(servicesSubmenu.hidden);
-            });
-            productsToggle.addEventListener('click', () => {
-                setProductsMenuOpen(productsSubmenu.hidden);
             });
             backdrop.addEventListener('click', () => setMobileOpen(false));
             sidebar.querySelectorAll('a').forEach((link) => {
@@ -387,7 +1200,6 @@
             document.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape') {
                     setServicesMenuOpen(false);
-                    setProductsMenuOpen(false);
                     setMobileOpen(false);
                 }
             });

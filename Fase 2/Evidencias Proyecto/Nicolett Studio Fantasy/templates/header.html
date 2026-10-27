@@ -1,3 +1,4 @@
+    {% url 'home' as home_url %}
     <header class="sticky top-0 z-50 grid grid-cols-[1fr_auto] items-center border-b border-customBorder bg-white px-4 py-4 font-sans text-xs leading-normal text-customDark antialiased sm:px-8 sm:py-5 lg:grid-cols-[1fr_auto_1fr] lg:px-16">
         {% if request.user.is_authenticated and request.user.rol.nombre == 'Cliente' %}
         <a href="{% url 'cliente_servicios' %}" aria-label="Ir a Servicios" class="block justify-self-start text-customDark no-underline">
@@ -10,12 +11,12 @@
             </div>
         </a>
         <nav class="hidden items-center justify-self-center gap-8 text-xs font-medium tracking-widest lg:flex">
-            <a href="{% url 'home' %}#servicios" class="text-customDark transition hover:text-customAccent">SERVICIOS</a>
-            <a href="{% url 'home' %}#nosotras" class="text-customDark transition hover:text-customAccent">NOSOTRAS</a>
-            <a href="{% url 'home' %}#galeria" class="text-customDark transition hover:text-customAccent">GALERÍA</a>
-            <a href="{% url 'home' %}#resenas" class="text-customDark transition hover:text-customAccent">RESEÑAS</a>
+            <a href="{% if request.resolver_match.url_name == 'home' %}#servicios{% else %}{{ home_url }}#servicios{% endif %}" class="text-customDark transition hover:text-customAccent">SERVICIOS</a>
+            <a href="{% if request.resolver_match.url_name == 'home' %}#nosotras{% else %}{{ home_url }}#nosotras{% endif %}" class="text-customDark transition hover:text-customAccent">NOSOTRAS</a>
+            <a href="{% if request.resolver_match.url_name == 'home' %}#galeria{% else %}{{ home_url }}#galeria{% endif %}" class="text-customDark transition hover:text-customAccent">GALERÍA</a>
+            <a href="{% if request.resolver_match.url_name == 'home' %}#resenas{% else %}{{ home_url }}#resenas{% endif %}" class="text-customDark transition hover:text-customAccent">RESEÑAS</a>
             <div class="flex items-center gap-4">
-                <a href="{% url 'home' %}#contacto" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
+                <a href="{% if request.resolver_match.url_name == 'home' %}#contacto{% else %}{{ home_url }}#contacto{% endif %}" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
                     CONTÁCTANOS
                 </a>
             </div>
@@ -41,11 +42,11 @@
             {% endif %}
         </div>
         <nav id="publicMobileNav" class="col-span-2 hidden grid-cols-2 gap-x-4 gap-y-3 border-t border-customBorder pt-3 text-xs font-medium tracking-wider lg:col-span-3 lg:hidden" aria-label="Navegación móvil">
-            <a href="{% url 'home' %}#servicios" class="text-customDark transition hover:text-customAccent">Servicios</a>
-            <a href="{% url 'home' %}#nosotras" class="text-customDark transition hover:text-customAccent">Nosotras</a>
-            <a href="{% url 'home' %}#galeria" class="text-customDark transition hover:text-customAccent">Galería</a>
-            <a href="{% url 'home' %}#resenas" class="text-customDark transition hover:text-customAccent">Reseñas</a>
-            <a href="{% url 'home' %}#contacto" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
+            <a href="{% if request.resolver_match.url_name == 'home' %}#servicios{% else %}{{ home_url }}#servicios{% endif %}" class="text-customDark transition hover:text-customAccent">Servicios</a>
+            <a href="{% if request.resolver_match.url_name == 'home' %}#nosotras{% else %}{{ home_url }}#nosotras{% endif %}" class="text-customDark transition hover:text-customAccent">Nosotras</a>
+            <a href="{% if request.resolver_match.url_name == 'home' %}#galeria{% else %}{{ home_url }}#galeria{% endif %}" class="text-customDark transition hover:text-customAccent">Galería</a>
+            <a href="{% if request.resolver_match.url_name == 'home' %}#resenas{% else %}{{ home_url }}#resenas{% endif %}" class="text-customDark transition hover:text-customAccent">Reseñas</a>
+            <a href="{% if request.resolver_match.url_name == 'home' %}#contacto{% else %}{{ home_url }}#contacto{% endif %}" class="flex items-center gap-2 text-customDark transition hover:text-customAccent">
                 Contáctanos
             </a>
         </nav>
