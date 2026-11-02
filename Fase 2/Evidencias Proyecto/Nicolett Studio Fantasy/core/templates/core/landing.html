@@ -152,6 +152,22 @@
             border-radius: 22px;
             box-shadow: 0 8px 26px rgb(75 44 11 / 10%);
         }
+        .landing-poster-page.landing-reveal-enabled [data-scroll-reveal] {
+            opacity: 0;
+            transform: translateY(22px);
+            transition: opacity 700ms ease, transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+        }
+        .landing-poster-page.landing-reveal-enabled [data-scroll-reveal].is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .landing-poster-page.landing-reveal-enabled [data-scroll-reveal] {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+        }
         .landing-poster {
             display: grid;
             min-height: 650px;
@@ -213,7 +229,7 @@
             transition: transform 160ms ease;
         }
         .landing-hero-contact:hover {
-            transform: translateY(-2px);
+            transform: translateY(-2px) scale(1.025);
         }
         .landing-hero-contact img {
             position: absolute;
@@ -379,11 +395,16 @@
             border-radius: clamp(22px, 3vw, 36px);
             background: #fffdf9;
             box-shadow: 0 24px 70px rgba(65, 43, 22, 0.2);
+            transition: transform 220ms ease, box-shadow 220ms ease;
+        }
+        .landing-services-carousel:hover {
+            transform: scale(1.008);
+            box-shadow: 0 28px 76px rgba(65, 43, 22, 0.22);
         }
         .landing-service-card {
             display: grid;
             grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-            height: clamp(460px, 40vw, 520px);
+            min-height: clamp(460px, 40vw, 520px);
             min-width: 0;
             animation: landing-service-appear 420ms ease both;
         }
@@ -419,7 +440,7 @@
             justify-content: center;
             align-items: flex-start;
             min-height: 0;
-            overflow: hidden;
+            overflow: visible;
             padding: clamp(28px, 5vw, 72px);
             color: #4d3929;
             text-align: left;
@@ -436,18 +457,14 @@
             margin: 0 0 18px;
             color: #4b2c0b;
             font-family: "Playfair Display", Georgia, serif;
-            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-size: clamp(1.8rem, 3vw, 2.7rem);
             line-height: 1.08;
         }
         .landing-service-copy > p:not(.landing-service-number) {
-            display: -webkit-box;
-            overflow: hidden;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 6;
             margin: 0;
             color: #4d3929;
-            font-size: clamp(1rem, 1.35vw, 1.2rem);
-            line-height: 1.75;
+            font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+            line-height: 1.65;
         }
         .landing-service-details {
             display: grid;
@@ -507,7 +524,7 @@
             transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
         }
         .landing-services-control:hover {
-            transform: translateY(-2px);
+            transform: translateY(-2px) scale(1.04);
             background: #4b2c0b;
             color: #fffdf9;
         }
@@ -536,13 +553,6 @@
             width: 28px;
             background: #9c7435;
         }
-        .landing-services-play-toggle {
-            min-width: 108px;
-            padding: 0 16px;
-            border-radius: 999px;
-            font-size: 0.82rem;
-            font-weight: 600;
-        }
         @media (prefers-reduced-motion: reduce) {
             .landing-service-card,
             .landing-services-control,
@@ -554,8 +564,8 @@
         @media (max-width: 700px) {
             .landing-service-card {
                 grid-template-columns: minmax(0, 1fr);
-                height: 610px;
-                grid-template-rows: clamp(220px, 58vw, 300px) minmax(0, 1fr);
+                min-height: 0;
+                grid-template-rows: clamp(220px, 58vw, 300px) auto;
             }
             .landing-service-media {
                 min-height: 0;
@@ -573,11 +583,10 @@
             }
             .landing-service-copy h3 {
                 margin-bottom: 12px;
-                font-size: clamp(1.8rem, 8vw, 2.6rem);
+                font-size: clamp(1.7rem, 7vw, 2.25rem);
             }
             .landing-service-copy > p:not(.landing-service-number) {
-                -webkit-line-clamp: 4;
-                font-size: 1rem;
+                font-size: 0.95rem;
                 line-height: 1.6;
             }
             .landing-service-details {
@@ -607,11 +616,6 @@
             .landing-services-control {
                 min-width: 42px;
                 min-height: 42px;
-            }
-            .landing-services-play-toggle {
-                min-width: 88px;
-                padding: 0 10px;
-                font-size: 0.74rem;
             }
             .landing-services-indicators {
                 gap: 7px;
@@ -850,11 +854,14 @@
             border-radius: 0;
             background: transparent;
             color: #3b250e;
+            transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease, transform 180ms ease;
         }
         .landing-contact-form input:focus,
         .landing-contact-form textarea:focus {
             border-bottom-color: #79511c;
-            box-shadow: 0 1px 0 #79511c;
+            background-color: rgb(255 250 241 / 75%);
+            box-shadow: 0 2px 0 #79511c, 0 5px 16px rgb(121 81 28 / 8%);
+            transform: translateY(-1px);
         }
         .landing-contact-form button {
             min-height: 48px;
@@ -864,9 +871,12 @@
             background: linear-gradient(110deg, #79511c, #c49a52);
             color: #fffaf0;
             box-shadow: 0 8px 18px rgb(121 81 28 / 22%);
+            transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
         }
         .landing-contact-form button:hover {
+            transform: scale(1.025);
             background: linear-gradient(110deg, #6e471e, #a9782d);
+            box-shadow: 0 11px 22px rgb(121 81 28 / 26%);
         }
         .landing-contact-form-column {
             display: flex;
@@ -911,22 +921,19 @@
         }
         .landing-gallery-section {
             scroll-margin-top: 85px;
-            padding: clamp(14px, 2vw, 24px);
-            background: #f7f3ed;
+            padding: 0;
+            background:
+                linear-gradient(90deg, rgb(255 253 249 / 28%), transparent 58%),
+                url("{% static 'img/pag_principal/galeria/fondo_galeria.jpg' %}") center / cover no-repeat;
         }
         .landing-gallery-poster {
             position: relative;
             display: block;
             width: 100%;
-            min-height: clamp(600px, 58vw, 800px);
+            min-height: clamp(640px, 60vw, 820px);
             padding: clamp(34px, 5vw, 70px);
             overflow: hidden;
-            border: 1px solid #e8ddcc;
-            border-radius: 24px;
-            background:
-                linear-gradient(90deg, rgb(255 253 249 / 28%), transparent 58%),
-                url("{% static 'img/pag_principal/galeria/fondo_galeria.jpg' %}") center / cover no-repeat;
-            box-shadow: 0 16px 40px rgb(75 44 11 / 10%);
+            background: transparent;
         }
         .landing-gallery-heading {
             display: flex;
@@ -956,12 +963,11 @@
         .landing-gallery-grid {
             --gallery-gap: clamp(12px, 2vw, 24px);
             position: absolute;
-            right: 6%;
-            bottom: 14%;
-            left: 6%;
-            width: 88%;
-            max-width: 1160px;
-            height: clamp(270px, 34vw, 410px);
+            top: 2.5%;
+            right: auto;
+            left: 25%;
+            width: min(62%, 720px);
+            height: clamp(280px, 28vw, 360px);
             margin: auto;
             overflow: hidden;
         }
@@ -976,14 +982,14 @@
         .landing-gallery-link {
             display: block;
             flex: 0 0 var(--gallery-slide-width, 32%);
-            height: 82%;
+            height: 92%;
             overflow: hidden;
             border: 0;
             border-radius: 0;
             background: transparent;
             box-shadow: none;
             opacity: 0.9;
-            transform: scale(0.78);
+            transform: scale(0.9);
             transition: opacity 650ms ease, transform 650ms ease;
         }
         .landing-gallery-link:focus-visible {
@@ -993,7 +999,7 @@
         .landing-gallery-link.is-active {
             z-index: 1;
             opacity: 1;
-            transform: scale(1.12);
+            transform: scale(1.04);
             box-shadow: none;
         }
         .landing-gallery-link img {
@@ -1023,7 +1029,7 @@
             transition: transform 180ms ease, box-shadow 180ms ease;
         }
         .landing-gallery-instagram:hover {
-            transform: translateY(-2px);
+            transform: translateY(-2px) scale(1.035);
             box-shadow: 0 12px 22px rgb(121 81 28 / 24%);
         }
         .landing-gallery-instagram:focus-visible {
@@ -1033,8 +1039,19 @@
         @media (prefers-reduced-motion: reduce) {
             .landing-gallery-track,
             .landing-gallery-link,
-            .landing-gallery-instagram {
+            .landing-gallery-instagram,
+            .landing-services-carousel,
+            .landing-contact-form input,
+            .landing-contact-form textarea,
+            .landing-contact-form button,
+            .landing-hero-contact {
                 transition: none;
+            }
+            .landing-services-carousel:hover,
+            .landing-gallery-instagram:hover,
+            .landing-contact-form button:hover,
+            .landing-hero-contact:hover {
+                transform: none;
             }
         }
         .landing-reviews-section {
@@ -1115,10 +1132,18 @@
             padding: 2%;
         }
         .landing-review-stars {
+            display: inline-flex;
+            width: max-content;
+            padding: 5px 10px 6px;
+            border: 1px solid rgb(184 121 19 / 28%);
+            border-radius: 999px;
+            background: linear-gradient(135deg, #fff8e6, #f3dfa9);
             color: #b87913;
-            font-size: clamp(1.05rem, 1.6vw, 1.4rem);
-            letter-spacing: 0.08em;
+            font-size: clamp(1.35rem, 1.9vw, 1.7rem);
+            letter-spacing: 0.1em;
             line-height: 1;
+            text-shadow: 0 1px 0 #fffdf6, 0 2px 5px rgb(121 81 28 / 24%);
+            box-shadow: 0 3px 8px rgb(121 81 28 / 12%);
         }
         .landing-review-quote {
             display: block;
@@ -1170,7 +1195,7 @@
                 aspect-ratio: 1 / 1;
             }
             .landing-review-stars {
-                font-size: 1.15rem;
+                font-size: 1.4rem;
             }
             .landing-review-quote {
                 font-size: clamp(0.78rem, 2vw, 0.9rem);
@@ -1182,27 +1207,27 @@
         }
         @media (max-width: 900px) {
             .landing-gallery-poster {
-                min-height: 640px;
+                min-height: 700px;
                 padding: 34px;
             }
             .landing-gallery-heading {
                 width: min(48%, 390px);
             }
             .landing-gallery-grid {
+                top: 40%;
+                left: auto;
                 right: 4%;
-                bottom: 13%;
-                left: 4%;
-                width: 92%;
-                height: clamp(280px, 43vw, 370px);
+                width: 88%;
+                height: clamp(280px, 40vw, 380px);
             }
         }
         @media (max-width: 560px) {
             .landing-gallery-section {
                 scroll-margin-top: 76px;
-                padding: 12px;
+                padding: 0;
             }
             .landing-gallery-poster {
-                min-height: 620px;
+                min-height: 640px;
                 padding: 26px 22px;
                 background-position: 58% center;
             }
@@ -1222,14 +1247,14 @@
             }
             .landing-gallery-grid {
                 --gallery-gap: 8px;
-                right: 2%;
-                bottom: 14%;
-                left: 2%;
-                width: 96%;
-                height: 260px;
+                top: 27%;
+                right: auto;
+                left: 10%;
+                width: 80%;
+                height: 155px;
             }
             .landing-gallery-link {
-                height: 72%;
+                height: 92%;
             }
         }
         @media (max-width: 639px) {
@@ -1255,7 +1280,7 @@
 
     {% include 'header.html' %}
 
-    <section id="inicio" class="landing-poster" aria-label="Portada de Nicolett Studio Fantasy">
+    <section id="inicio" class="landing-poster" data-scroll-reveal aria-label="Portada de Nicolett Studio Fantasy">
         <div class="landing-hero-copy">
             <p class="landing-hero-eyebrow">Salón de belleza · Buin, Santiago</p>
             <h1 class="landing-hero-title">El arte de <em>hacerte sentir hermosa</em></h1>
@@ -1285,7 +1310,7 @@
     </section>
 
     <!-- NUESTRA HISTORIA -->
-    <section id="nosotras" class="landing-about-section" aria-labelledby="landing-about-title">
+    <section id="nosotras" class="landing-about-section" data-scroll-reveal aria-labelledby="landing-about-title">
         <div class="landing-about-content">
             <div class="landing-about-photo-frame">
                 <img
@@ -1315,7 +1340,7 @@
     </section>
 
     <!-- SERVICIOS -->
-    <section id="servicios" class="landing-services-section" aria-labelledby="landing-services-title">
+    <section id="servicios" class="landing-services-section" data-scroll-reveal aria-labelledby="landing-services-title">
         <p class="landing-services-eyebrow">Lo que ofrecemos</p>
         <h2 id="landing-services-title" class="landing-services-title">Nuestros servicios</h2>
         <div class="landing-services-carousel" data-service-carousel role="region" aria-roledescription="carrusel" aria-label="Servicios">
@@ -1415,7 +1440,6 @@
                     <button type="button" class="landing-services-indicator" data-service-indicator="{{ forloop.counter0 }}" aria-label="Mostrar servicio {{ forloop.counter }}" aria-current="{% if forloop.first %}true{% else %}false{% endif %}"></button>
                 {% endfor %}
             </div>
-            <button type="button" class="landing-services-control landing-services-play-toggle" data-service-toggle aria-label="Pausar avance automático">Pausar</button>
             <button type="button" class="landing-services-control" data-service-next aria-label="Servicio siguiente">
                 <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
             </button>
@@ -1424,7 +1448,7 @@
     </section>
 
     <!-- GALERÍA -->
-    <section id="galeria" class="landing-gallery-section" aria-label="Galería de trabajos de Nicolett Studio Fantasy">
+    <section id="galeria" class="landing-gallery-section" data-scroll-reveal aria-label="Galería de trabajos de Nicolett Studio Fantasy">
         <div class="landing-gallery-poster">
             <div class="landing-gallery-heading">
                 <p class="landing-gallery-kicker">Nuestro trabajo</p>
@@ -1460,7 +1484,7 @@
     </section>
 
     <!-- TESTIMONIOS -->
-    <section id="resenas" class="landing-reviews-section" aria-labelledby="landing-reviews-title">
+    <section id="resenas" class="landing-reviews-section" data-scroll-reveal aria-labelledby="landing-reviews-title">
         <header class="landing-reviews-heading">
             <p>Lo que dicen en Google Maps</p>
             <h2 id="landing-reviews-title">Nuestras clientas</h2>
@@ -1496,7 +1520,7 @@
     </section>
 
     <!-- CONTACTO -->
-    <section id="contacto" class="landing-contact-section" aria-label="Contacto de Nicolett Studio Fantasy">
+    <section id="contacto" class="landing-contact-section" data-scroll-reveal aria-label="Contacto de Nicolett Studio Fantasy">
         <div class="landing-contact-content">
             <div class="landing-contact-info">
                 <div class="landing-contact-heading">
@@ -1582,30 +1606,38 @@
 
     <script>
         (() => {
+            const sections = document.querySelectorAll('[data-scroll-reveal]');
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+            if (!sections.length || reducedMotion.matches || !('IntersectionObserver' in window)) return;
+
+            const observer = new IntersectionObserver((entries, currentObserver) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        currentObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+
+            document.body.classList.add('landing-reveal-enabled');
+            sections.forEach((section) => observer.observe(section));
+        })();
+
+        (() => {
             const carousel = document.querySelector('[data-service-carousel]');
             if (!carousel) return;
 
             const section = carousel.closest('.landing-services-section');
             const slides = Array.from(carousel.querySelectorAll('[data-service-slide]'));
             const indicators = Array.from(section.querySelectorAll('[data-service-indicator]'));
-            const viewport = carousel.querySelector('[data-service-viewport]');
             const previousButton = section.querySelector('[data-service-previous]');
             const nextButton = section.querySelector('[data-service-next]');
-            const toggleButton = section.querySelector('[data-service-toggle]');
             const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
             let activeIndex = 0;
-            let rotationEnabled = !reducedMotion.matches;
             let pointerIsOver = false;
+            let focusIsWithin = false;
+            let rotationDue = false;
             let rotationTimer;
-
-            const updateRotationControl = () => {
-                toggleButton.textContent = rotationEnabled ? 'Pausar' : 'Reanudar';
-                toggleButton.setAttribute(
-                    'aria-label',
-                    rotationEnabled ? 'Pausar avance automático' : 'Reanudar avance automático',
-                );
-                viewport.setAttribute('aria-live', rotationEnabled ? 'off' : 'polite');
-            };
 
             const showSlide = (index) => {
                 activeIndex = (index + slides.length) % slides.length;
@@ -1619,68 +1651,91 @@
             };
 
             const clearRotationTimer = () => {
-                window.clearInterval(rotationTimer);
+                window.clearTimeout(rotationTimer);
                 rotationTimer = undefined;
             };
 
             const scheduleRotation = () => {
                 clearRotationTimer();
-                if (rotationEnabled && !pointerIsOver && !document.hidden) {
-                    rotationTimer = window.setInterval(() => {
+                if (!pointerIsOver && !focusIsWithin && !document.hidden && !reducedMotion.matches) {
+                    rotationTimer = window.setTimeout(() => {
+                        rotationTimer = undefined;
+                        if (pointerIsOver) {
+                            rotationDue = true;
+                            return;
+                        }
                         showSlide(activeIndex + 1);
+                        scheduleRotation();
                     }, 10000);
                 }
             };
 
-            const stopRotation = () => {
-                rotationEnabled = false;
-                clearRotationTimer();
-                updateRotationControl();
+            const advanceIfDue = () => {
+                if (!rotationDue || pointerIsOver || focusIsWithin) return;
+                rotationDue = false;
+                showSlide(activeIndex + 1);
+                scheduleRotation();
+            };
+
+            const resetRotation = () => {
+                rotationDue = false;
+                scheduleRotation();
             };
 
             previousButton.addEventListener('click', () => {
-                stopRotation();
                 showSlide(activeIndex - 1);
+                resetRotation();
             });
             nextButton.addEventListener('click', () => {
-                stopRotation();
                 showSlide(activeIndex + 1);
+                resetRotation();
             });
             indicators.forEach((indicator, index) => {
                 indicator.addEventListener('click', () => {
-                    stopRotation();
                     showSlide(index);
+                    resetRotation();
                 });
-            });
-            toggleButton.addEventListener('click', () => {
-                rotationEnabled = !rotationEnabled;
-                updateRotationControl();
-                scheduleRotation();
             });
             carousel.addEventListener('pointerenter', () => {
                 pointerIsOver = true;
-                clearRotationTimer();
             });
             carousel.addEventListener('pointerleave', () => {
                 pointerIsOver = false;
-                scheduleRotation();
+                if (rotationDue) advanceIfDue();
+                else if (!rotationTimer) scheduleRotation();
             });
-            section.addEventListener('focusin', stopRotation);
+            section.addEventListener('focusin', () => {
+                focusIsWithin = true;
+                clearRotationTimer();
+            });
+            section.addEventListener('focusout', (event) => {
+                if (!section.contains(event.relatedTarget)) {
+                    focusIsWithin = false;
+                    if (rotationDue) advanceIfDue();
+                    else scheduleRotation();
+                }
+            });
             section.addEventListener('keydown', (event) => {
                 if (event.key === 'ArrowLeft') {
                     event.preventDefault();
-                    stopRotation();
                     showSlide(activeIndex - 1);
+                    resetRotation();
                 } else if (event.key === 'ArrowRight') {
                     event.preventDefault();
-                    stopRotation();
                     showSlide(activeIndex + 1);
+                    resetRotation();
                 }
             });
-            document.addEventListener('visibilitychange', scheduleRotation);
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) clearRotationTimer();
+                else scheduleRotation();
+            });
+            reducedMotion.addEventListener('change', () => {
+                if (reducedMotion.matches) clearRotationTimer();
+                else scheduleRotation();
+            });
 
             showSlide(activeIndex);
-            updateRotationControl();
             scheduleRotation();
         })();
 
@@ -1738,7 +1793,7 @@
             const scheduleRotation = () => {
                 window.clearInterval(rotationTimer);
                 if (!pointerIsOver && !focusIsWithin && !document.hidden && !reducedMotion.matches) {
-                    rotationTimer = window.setInterval(() => moveTo(currentIndex + 1), 4000);
+                    rotationTimer = window.setInterval(() => moveTo(currentIndex + 1), 8000);
                 }
             };
             const wrapAround = () => {

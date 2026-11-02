@@ -3,7 +3,7 @@
         {% if request.user.is_authenticated and request.user.rol.nombre == 'Cliente' %}
         <a href="{% url 'cliente_servicios' %}" aria-label="Ir a Servicios" class="block justify-self-start text-customDark no-underline">
         {% else %}
-        <a href="{% url 'home' %}" aria-label="Ir al inicio" class="block justify-self-start text-customDark no-underline">
+        <a href="{% if request.resolver_match.url_name == 'home' %}#inicio{% else %}{{ home_url }}{% endif %}" aria-label="Ir al inicio" class="block justify-self-start text-customDark no-underline">
         {% endif %}
             <div>
             <span class="text-xl font-serif tracking-widest font-bold">Nicolett</span>
