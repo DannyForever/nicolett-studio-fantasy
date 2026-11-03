@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Mi espacio | Nicolett Studio Fantasy{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
@@ -77,14 +77,6 @@
             color: #4b3216;
         }
 
-        .client-sidebar form button[title="Cerrar sesión"] {
-            color: #000;
-        }
-
-        .client-sidebar form button[title="Cerrar sesión"]:hover {
-            color: #000;
-        }
-
         .client-topbar > * {
             position: relative;
             z-index: 1;
@@ -102,6 +94,15 @@
                 linear-gradient(42deg, transparent 0 66%, rgb(153 103 34 / 8%) 66.2%, transparent 67%),
                 linear-gradient(90deg, #d8ae4f, #e9ca74 35%, #d8ae4f) !important;
             box-shadow: inset -3px 0 0 rgb(189 140 67 / 15%);
+        }
+
+        .client-sidebar {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .client-sidebar::-webkit-scrollbar {
+            display: none;
         }
 
         .client-sidebar-tools {
@@ -177,19 +178,13 @@
 
         .client-sidebar-home-row > a > i,
         .client-sidebar nav > a > i,
-        .client-sidebar .client-services-toggle > i:first-child {
+        .client-sidebar .client-services-toggle > i:first-child,
+        .client-sidebar .client-products-toggle > i:first-child {
             color: #a77a36 !important;
         }
 
-        .client-sidebar nav > div.flex.flex-col {
-            overflow: hidden;
-            border: 1px solid #c9a66b;
-            border-radius: 12px;
-            background: linear-gradient(145deg, #fffaf0, #f5e7c9);
-            box-shadow: 0 2px 5px rgb(40 27 20 / 13%);
-        }
-
-        .client-sidebar .client-services-toggle {
+        .client-sidebar .client-services-toggle,
+        .client-sidebar .client-products-toggle {
             min-height: 58px;
             border: 0 !important;
             border-left: 0 !important;
@@ -199,13 +194,20 @@
             color: #6b4728;
         }
 
-        .client-sidebar .client-services-toggle[aria-expanded="true"] {
-            background: linear-gradient(110deg, #422414, #2f1b10) !important;
-            color: #fffaf0 !important;
+        .client-sidebar .client-services-toggle:hover,
+        .client-sidebar .client-products-toggle:hover,
+        .client-sidebar .client-services-toggle[aria-current="page"],
+        .client-sidebar .client-products-toggle[aria-current="page"] {
+            border-radius: 12px;
+            background: linear-gradient(145deg, #f5dfa0, #e8c66e) !important;
+            color: #4b3216 !important;
         }
 
-        .client-sidebar .client-services-toggle[aria-expanded="true"] > i {
-            color: #e4c27f !important;
+        .client-sidebar .client-services-toggle:hover > i,
+        .client-sidebar .client-products-toggle:hover > i,
+        .client-sidebar .client-services-toggle[aria-current="page"] > i,
+        .client-sidebar .client-products-toggle[aria-current="page"] > i {
+            color: #8b5e28 !important;
         }
 
         .client-sidebar-submenu {
@@ -229,9 +231,16 @@
         }
 
         .client-sidebar-submenu a[aria-current="page"] {
-            border-radius: 6px;
-            background: #ecd2a7;
-            color: #281b14;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #f5dfa0, #e8c66e) !important;
+            color: #4b3216 !important;
+            font-weight: 600;
+        }
+
+        .client-sidebar-submenu a:hover {
+            border-radius: 8px;
+            background: linear-gradient(145deg, #f5dfa0, #e8c66e) !important;
+            color: #4b3216 !important;
         }
 
         #clientLayoutContent {
@@ -364,7 +373,8 @@
 
         .client-sidebar-home-row > a[aria-current="page"],
         .client-sidebar nav > a[aria-current="page"],
-        .client-sidebar .client-services-toggle[aria-current="page"] {
+        .client-sidebar .client-services-toggle[aria-current="page"],
+        .client-sidebar .client-products-toggle[aria-current="page"] {
             box-shadow: inset 0 0 0 1px rgb(189 140 67 / 30%), 0 2px 5px rgb(40 27 20 / 8%);
         }
 
@@ -479,16 +489,8 @@
                 color: #bd8c43;
             }
 
-            .client-sidebar nav > div.flex.flex-col {
-                overflow: visible;
-                overflow: hidden;
-                border: 1px solid #c9a66b;
-                border-radius: 12px;
-                background: linear-gradient(145deg, #fffaf0, #f5e7c9);
-                box-shadow: 0 2px 5px rgb(40 27 20 / 13%);
-            }
-
-            .client-sidebar .client-services-toggle {
+            .client-sidebar .client-services-toggle,
+            .client-sidebar .client-products-toggle {
                 min-height: 3.25rem;
                 border: 0 !important;
                 border-radius: 0;
@@ -499,12 +501,23 @@
                 font-size: 0.875rem;
             }
 
-            .client-sidebar .client-services-toggle[aria-expanded="true"] {
-                background: linear-gradient(110deg, #422414, #2f1b10) !important;
-                color: #fffaf0;
+            .client-sidebar .client-services-toggle[aria-expanded="true"],
+            .client-sidebar .client-products-toggle[aria-expanded="true"] {
+                background: transparent !important;
+                color: #6b4728;
             }
 
-            .client-sidebar .client-services-toggle > i:first-child {
+            .client-sidebar .client-services-toggle:hover,
+            .client-sidebar .client-products-toggle:hover,
+            .client-sidebar .client-services-toggle[aria-current="page"],
+            .client-sidebar .client-products-toggle[aria-current="page"] {
+                border-radius: 12px;
+                background: linear-gradient(145deg, #f5dfa0, #e8c66e) !important;
+                color: #4b3216 !important;
+            }
+
+            .client-sidebar .client-services-toggle > i:first-child,
+            .client-sidebar .client-products-toggle > i:first-child {
                 color: #a77a36;
             }
 
@@ -527,10 +540,16 @@
             }
 
             .client-sidebar-submenu a[aria-current="page"] {
-                border-radius: 6px;
-                background: #ecd2a7;
-                color: #281b14;
+                border-radius: 8px;
+                background: linear-gradient(145deg, #f5dfa0, #e8c66e) !important;
+                color: #4b3216 !important;
                 font-weight: 500;
+            }
+
+            .client-sidebar-submenu a:hover {
+                border-radius: 8px;
+                background: linear-gradient(145deg, #f5dfa0, #e8c66e) !important;
+                color: #4b3216 !important;
             }
         }
 
@@ -540,18 +559,174 @@
             }
         }
 
+        .client-sidebar {
+            border-right: 1px solid rgb(218 183 117 / 35%) !important;
+            background:
+                radial-gradient(ellipse at 12% 0, rgb(255 239 201 / 10%), transparent 45%),
+                linear-gradient(180deg, #3e2a1e 0%, #332218 58%, #291b14 100%) !important;
+            box-shadow: 6px 0 24px rgb(48 31 20 / 12%);
+            color: #fbf4e5;
+        }
+
+        .client-sidebar-tools {
+            min-height: 88px;
+            margin: 0;
+            border: 0;
+            border-bottom: 1px solid rgb(231 203 151 / 20%);
+            border-radius: 0;
+            background: rgb(255 248 230 / 3.5%);
+            padding: 18px 14px !important;
+            box-shadow: none;
+        }
+
+        .client-sidebar-brand {
+            justify-content: flex-start;
+            padding-top: 0;
+            text-shadow: none;
+        }
+
+        .client-sidebar-brand::before,
+        .client-sidebar-brand::after {
+            content: none;
+        }
+
+        .client-sidebar-brand span:first-child,
+        .client-sidebar-brand span:nth-child(2) {
+            color: #f8efdc !important;
+        }
+
+        .client-sidebar nav {
+            gap: 0 !important;
+            padding: 14px 12px;
+        }
+
+        .client-sidebar-home-row {
+            margin-bottom: 6px;
+        }
+
+        .client-sidebar-home-row > a,
+        .client-sidebar nav > a {
+            min-height: 42px;
+            margin: 3px 8px;
+            border: 1px solid transparent !important;
+            border-left: 1px solid transparent !important;
+            border-radius: 10px;
+            background: transparent !important;
+            padding: 11px 12px;
+            box-shadow: none;
+            color: #f8efdc !important;
+            font-family: "Plus Jakarta Sans", sans-serif;
+            font-size: 0.88rem;
+            transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+        }
+
+        .client-sidebar-home-row > a:hover,
+        .client-sidebar nav > a:hover,
+        .client-sidebar-home-row > a[aria-current="page"],
+        .client-sidebar nav > a[aria-current="page"] {
+            border-color: transparent !important;
+            border-radius: 10px;
+            background: linear-gradient(105deg, #d6b36d, #f0d99f) !important;
+            box-shadow: 0 5px 14px rgb(20 13 9 / 18%);
+            color: #38251b !important;
+            transform: translateX(2px);
+        }
+
+        .client-sidebar-home-row > a > i,
+        .client-sidebar nav > a > i,
+        .client-sidebar .client-services-toggle > i:first-child,
+        .client-sidebar .client-products-toggle > i:first-child {
+            color: inherit !important;
+        }
+
+        .client-sidebar .client-services-toggle,
+        .client-sidebar .client-products-toggle {
+            min-height: 42px;
+            margin: 3px 8px;
+            border: 1px solid transparent !important;
+            border-left: 1px solid transparent !important;
+            border-radius: 10px;
+            background: transparent !important;
+            padding: 11px 12px;
+            color: #f8efdc !important;
+            font-family: "Plus Jakarta Sans", sans-serif;
+            font-size: 0.88rem;
+            transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+        }
+
+        .client-sidebar .client-services-toggle:hover,
+        .client-sidebar .client-products-toggle:hover,
+        .client-sidebar .client-services-toggle[aria-current="page"],
+        .client-sidebar .client-products-toggle[aria-current="page"] {
+            border-color: transparent !important;
+            border-radius: 10px;
+            background: linear-gradient(105deg, #d6b36d, #f0d99f) !important;
+            box-shadow: 0 5px 14px rgb(20 13 9 / 18%);
+            color: #38251b !important;
+            transform: translateX(2px);
+        }
+
+        .client-sidebar .client-services-toggle .client-sidebar-chevron,
+        .client-sidebar .client-products-toggle .client-sidebar-chevron {
+            color: #dfc17d !important;
+        }
+
+        .client-sidebar .client-services-toggle:hover > i,
+        .client-sidebar .client-products-toggle:hover > i,
+        .client-sidebar .client-services-toggle[aria-current="page"] > i,
+        .client-sidebar .client-products-toggle[aria-current="page"] > i {
+            color: inherit !important;
+        }
+
+        .client-sidebar-submenu {
+            display: grid;
+            gap: 2px;
+            margin: 3px 8px 8px 16px;
+            border-left: 1px solid rgb(230 204 157 / 28%);
+            padding: 6px 0 2px 12px;
+        }
+
+        .client-sidebar-submenu a {
+            display: flex;
+            min-height: 34px;
+            align-items: center;
+            border: 0;
+            border-radius: 8px;
+            padding: 7px 10px;
+            color: #f8efdc;
+            font-family: "Plus Jakarta Sans", sans-serif;
+            font-size: 0.79rem;
+            line-height: 1.3;
+            text-decoration: none;
+            transition: background-color 150ms ease, color 150ms ease;
+        }
+
+        .client-sidebar-submenu a:hover,
+        .client-sidebar-submenu a[aria-current="page"] {
+            border-radius: 8px;
+            background: rgb(240 217 159 / 16%) !important;
+            color: #fff3d4 !important;
+        }
+
+        .client-sidebar-home-row > a[aria-current="page"],
+        .client-sidebar nav > a[aria-current="page"],
+        .client-sidebar .client-services-toggle[aria-current="page"],
+        .client-sidebar .client-products-toggle[aria-current="page"] {
+            box-shadow: 0 5px 14px rgb(20 13 9 / 18%);
+        }
+
         @media (min-width: 1024px) {
             body[data-client-sidebar-collapsed="true"] > header {
-                width: calc(100% - 76px);
-                margin-left: 76px;
+                width: calc(100% - 84px);
+                margin-left: 84px;
             }
 
             body[data-client-sidebar-collapsed="true"] #clientLayoutContent {
-                margin-left: 76px;
+                margin-left: 84px;
             }
 
             .client-sidebar[data-collapsed="true"] {
-                width: 76px;
+                width: 84px;
             }
 
             .client-sidebar[data-collapsed="true"] .client-sidebar-label {
@@ -568,7 +743,8 @@
                 padding-left: 0;
             }
 
-            .client-sidebar[data-collapsed="true"] .client-services-toggle {
+            .client-sidebar[data-collapsed="true"] .client-services-toggle,
+            .client-sidebar[data-collapsed="true"] .client-products-toggle {
                 justify-content: center;
                 padding-right: 0;
                 padding-left: 0;
@@ -771,13 +947,15 @@
             padding: 0;
         }
 
-        body.client-bookings-page .client-sidebar .client-services-toggle {
+        body.client-bookings-page .client-sidebar .client-services-toggle,
+        body.client-bookings-page .client-sidebar .client-products-toggle {
             min-height: 41px;
             padding: 9px 10px;
             font-size: 0.74rem;
         }
 
-        body.client-bookings-page .client-sidebar .client-services-toggle .client-sidebar-chevron {
+        body.client-bookings-page .client-sidebar .client-services-toggle .client-sidebar-chevron,
+        body.client-bookings-page .client-sidebar .client-products-toggle .client-sidebar-chevron {
             color: #000;
         }
 
@@ -900,6 +1078,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/client-dashboard.css' %}?v=20261102-10">
     <script>
         tailwind.config = {
             theme: {
@@ -921,40 +1100,29 @@
         };
     </script>
 </head>
-<body class="flex min-h-screen flex-col bg-[#fffaf5] font-sans text-[#281b14] antialiased {% if request.resolver_match.url_name == 'cliente_gestionar_citas' or request.resolver_match.url_name == 'cliente_sobre_nosotros' or request.resolver_match.url_name == 'cliente_home' %}client-bookings-page{% endif %}">
+<body class="client-platform flex min-h-screen flex-col bg-[#fffaf5] font-sans text-[#281b14] antialiased {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}client-about-page{% endif %} {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}client-bookings-page{% endif %}">
+    <script>
+        if (window.matchMedia('(min-width: 1024px)').matches
+            && window.localStorage.getItem('nicolett-client-sidebar-collapsed') === 'true') {
+            document.body.dataset.clientSidebarCollapsed = 'true';
+        }
+    </script>
     <header class="client-topbar sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#60452f] bg-[#332216] px-3 text-[#ffffff] shadow-sm sm:px-8 lg:ml-[240px] lg:w-[calc(100%-240px)] lg:px-6">
         <button type="button" id="clientMenuToggle" class="flex h-10 w-10 shrink-0 items-center justify-center border border-[#ead7bc]/50 bg-transparent text-lg text-white lg:hidden" aria-label="Abrir menú" aria-expanded="false" aria-controls="clientSidebar">
             <i class="fa-solid fa-bars" aria-hidden="true"></i>
         </button>
-        <a href="{% url 'cliente_home' %}" aria-label="Ir a Nosotras" class="flex min-w-0 items-baseline gap-2 text-[#ffffff] no-underline lg:hidden">
-            <span class="font-serif text-xl font-bold text-[#e0bd7c]">Nicolett</span>
-            <span class="text-[10px] uppercase tracking-[0.2em] text-[#e0bd7c]">Studio</span>
-        </a>
-        <a href="{% url 'cliente_home' %}" aria-label="Ir a Nosotras" class="client-topbar-brand hidden min-w-0 items-center gap-2 text-[#e0bd7c] no-underline lg:flex">
-            <i class="fa-solid fa-heart text-lg" aria-hidden="true"></i>
-            <span class="font-serif text-lg font-bold">Nicolett</span>
-            <span class="text-[9px] uppercase tracking-[0.2em]">Studio</span>
-        </a>
-        {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}
-            <nav class="client-bookings-topnav hidden lg:flex" aria-label="Navegación principal">
-                <a href="{% url 'cliente_home' %}">Nosotras</a>
-                <a href="{% url 'cliente_servicios' %}">Servicios y citas</a>
-                <a href="{% url 'cliente_productos' %}">Productos</a>
-                <a href="{% url 'cliente_configuracion' %}">Configuración</a>
-            </nav>
-        {% endif %}
-        <div class="relative ml-auto flex min-w-0 items-center gap-3 text-sm sm:gap-5">
-            <button type="button" id="clientSearchToggle" aria-label="Buscar" aria-expanded="false" aria-controls="client-smart-search" class="flex h-9 w-9 shrink-0 items-center justify-center border border-[#ead7bc]/50 bg-transparent text-white md:hidden">
-                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            </button>
-            <div class="absolute right-3 top-full z-40 hidden w-[min(92vw,380px)] md:relative md:right-auto md:top-auto md:z-auto md:block md:w-[min(32vw,320px)]" data-client-search data-search-url="{% url 'cliente_busqueda' %}">
-                <label class="sr-only" for="client-smart-search">Buscar en Nicolett Studio</label>
-                <div class="flex items-center border border-[#ead7bc]/60 bg-white/10 px-3 text-white transition focus-within:border-[#e0bd7c]">
-                    <i class="fa-solid fa-magnifying-glass text-xs text-[#e0bd7c]" aria-hidden="true"></i>
-                    <input id="client-smart-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="client-search-results" placeholder="Buscar servicios, productos..." autocomplete="off" class="w-full border-0 bg-transparent px-2 py-2 text-xs text-white outline-none placeholder:text-white/60">
-                </div>
-                <div id="client-search-results" role="listbox" class="absolute right-0 top-full z-50 mt-2 max-h-[min(65vh,420px)] w-[min(88vw,380px)] overflow-y-auto border border-[#ead7bc] bg-white py-1 text-[#281b14] shadow-xl" hidden></div>
+        <button type="button" id="clientSearchToggle" aria-label="Buscar" aria-expanded="false" aria-controls="client-smart-search" class="flex h-9 w-9 shrink-0 items-center justify-center border border-[#ead7bc]/50 bg-transparent text-white md:hidden">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        </button>
+        <div class="absolute right-3 top-full z-40 hidden w-[min(92vw,380px)] md:relative md:right-auto md:top-auto md:z-auto md:block md:w-[min(32vw,320px)]" data-client-search data-search-url="{% url 'cliente_busqueda' %}">
+            <label class="sr-only" for="client-smart-search">Buscar servicios y productos</label>
+            <div class="flex items-center border border-[#ead7bc]/60 bg-white/10 px-3 text-white transition focus-within:border-[#e0bd7c]">
+                <i class="fa-solid fa-magnifying-glass text-xs text-[#e0bd7c]" aria-hidden="true"></i>
+                <input id="client-smart-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="client-search-results" placeholder="Buscar servicios, productos..." autocomplete="off" class="w-full border-0 bg-transparent px-2 py-2 text-xs text-white outline-none placeholder:text-white/60">
             </div>
+            <div id="client-search-results" role="listbox" class="absolute right-0 top-full z-50 mt-2 max-h-[min(65vh,420px)] w-[min(88vw,380px)] overflow-y-auto border border-[#ead7bc] bg-white py-1 text-[#281b14] shadow-xl" hidden></div>
+        </div>
+        <div class="client-topbar-actions relative ml-auto flex min-w-0 items-center gap-3 text-sm sm:gap-5">
             {% if vista_previa_admin %}
                 <span class="hidden text-xs font-medium text-[#e0bd7c] sm:inline">{% if vista_previa_colaborador %}Vista previa de colaborador{% else %}Vista previa{% endif %}</span>
             {% else %}
@@ -1066,12 +1234,16 @@
 
     <button type="button" id="clientMenuBackdrop" class="fixed inset-0 z-30 hidden border-0 bg-black/40" style="top: 3.5rem;" aria-label="Cerrar menú" hidden></button>
     <div id="clientLayoutContent" class="flex flex-1 lg:ml-[240px]">
-        <aside id="clientSidebar" data-collapsed="false" class="client-sidebar fixed inset-y-14 left-0 z-40 hidden w-[min(82vw,280px)] shrink-0 flex-col overflow-y-auto border-r border-[#ead7bc] bg-white py-3 shadow-xl transition-[width] duration-200 lg:fixed lg:inset-y-0 lg:left-0 lg:z-auto lg:flex lg:h-screen lg:w-[240px] lg:self-start lg:shadow-none">
+        <aside id="clientSidebar" data-collapsed="false" tabindex="0" aria-label="Menú lateral; usa las flechas arriba y abajo para desplazarte" class="client-sidebar fixed inset-y-14 left-0 z-40 hidden w-[min(82vw,280px)] shrink-0 flex-col overflow-y-auto border-r border-[#ead7bc] bg-white py-3 shadow-xl transition-[width] duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#bd8c43] lg:fixed lg:inset-y-0 lg:left-0 lg:z-auto lg:flex lg:h-screen lg:w-[240px] lg:self-start lg:shadow-none">
             <div class="client-sidebar-tools flex items-center justify-between gap-2 px-4 pb-3">
                 <a href="{% url 'cliente_home' %}" aria-label="Nicolett Studio, ir a Nosotras" class="client-sidebar-brand flex min-w-0 items-baseline gap-1.5 text-[#281b14] no-underline">
-                    <span class="font-serif text-xl font-bold text-[#6b5643]">Nicolett</span>
+                    <span class="client-sidebar-brand-name font-serif text-xl font-bold text-[#6b5643]">Nicolett</span>
                     <span class="text-[9px] uppercase tracking-[0.18em] text-[#bd8c43]">Studio</span>
+                    <span class="client-sidebar-brand-initial" aria-hidden="true">N</span>
                 </a>
+                <button type="button" id="clientSidebarCollapseToggle" class="client-sidebar-collapse-toggle hidden h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#ead7bc] bg-white text-[#5a3e27] shadow-sm transition hover:bg-[#fae9cf] lg:flex" aria-label="Contraer menú" aria-expanded="true" aria-controls="clientSidebar" title="Contraer menú">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
             </div>
             <nav class="flex flex-col gap-0" aria-label="Menú de cliente">
                 <div class="client-sidebar-home-row flex items-center gap-1">
@@ -1086,21 +1258,23 @@
                         <i class="client-sidebar-chevron fa-solid fa-chevron-down text-xs transition-transform {% if request.resolver_match.url_name == 'cliente_servicios' %}rotate-180{% endif %}" aria-hidden="true"></i>
                     </button>
                     <div id="clientServicesSubmenu" class="client-sidebar-submenu ml-6 mr-3 space-y-0 border-l border-[#ead7bc] pl-2" aria-label="Servicios disponibles"{% if request.resolver_match.url_name != 'cliente_servicios' %} hidden{% endif %}>
-                        <a href="{% url 'cliente_servicios' %}?categoria=corte#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'corte' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'corte' %}aria-current="page"{% endif %}>Cortes &amp; estilos</a>
-                        <a href="{% url 'cliente_servicios' %}?categoria=tratamientos#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'tratamientos' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'tratamientos' %}aria-current="page"{% endif %}>Tratamientos capilares</a>
-                        <a href="{% url 'cliente_servicios' %}?categoria=manos#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'manos' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'manos' %}aria-current="page"{% endif %}>Nail Care &amp; Beauty</a>
-                        <a href="{% url 'cliente_servicios' %}?categoria=pedicure#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'pedicure' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'pedicure' %}aria-current="page"{% endif %}>Pedicure</a>
-                        <a href="{% url 'cliente_servicios' %}?categoria=depilaciones#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'depilaciones' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'depilaciones' %}aria-current="page"{% endif %}>Depilación</a>
-                        <a href="{% url 'cliente_servicios' %}?categoria=peinados#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'peinados' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'peinados' %}aria-current="page"{% endif %}>Peinados</a>
-                        <a href="{% url 'cliente_servicios' %}?categoria=coloracion#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'coloracion' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'coloracion' %}aria-current="page"{% endif %}>Colorimetría</a>
-                        <a href="{% url 'cliente_servicios' %}?categoria=podologia#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'podologia' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'podologia' %}aria-current="page"{% endif %}>Podología</a>
-                        <a href="{% url 'cliente_servicios' %}?categoria=lash_brow#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'lash_brow' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'lash_brow' %}aria-current="page"{% endif %}>Lash &amp; Brow</a>
-                        <a href="{% url 'cliente_servicios' %}?categoria=maquillaje#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if request.GET.categoria == 'maquillaje' %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.GET.categoria == 'maquillaje' %}aria-current="page"{% endif %}>Maquillaje</a>
+                        {% for categoria in categorias_cliente_servicios %}
+                            <a href="{% url 'cliente_servicios' %}?categoria={{ categoria.pk }}#servicios-semana" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if categoria.pk == categoria_seleccionada_id %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if categoria.pk == categoria_seleccionada_id %}aria-current="page"{% endif %}>{{ categoria.nombre }}</a>
+                        {% endfor %}
                     </div>
                 </div>
-                <a href="{% url 'cliente_productos' %}" title="Productos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
-                    <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Productos</span>
-                </a>
+                <div class="flex flex-col">
+                    <button type="button" id="clientProductsToggle" aria-expanded="{% if request.resolver_match.url_name == 'cliente_productos' %}true{% else %}false{% endif %}" aria-controls="clientProductsSubmenu" title="Productos" class="client-products-toggle flex w-full items-center gap-3.5 border-l-4 px-5 py-3 text-left text-sm transition-colors {% if request.resolver_match.url_name == 'cliente_productos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent bg-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_productos' %}aria-current="page"{% endif %}>
+                        <i class="fa-solid fa-box-open w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i>
+                        <span class="client-sidebar-label flex-1">Productos</span>
+                        <i class="client-sidebar-chevron fa-solid fa-chevron-down text-xs transition-transform {% if request.resolver_match.url_name == 'cliente_productos' %}rotate-180{% endif %}" aria-hidden="true"></i>
+                    </button>
+                    <div id="clientProductsSubmenu" class="client-sidebar-submenu ml-6 mr-3 space-y-0 border-l border-[#ead7bc] pl-2" aria-label="Categorías de productos"{% if request.resolver_match.url_name != 'cliente_productos' %} hidden{% endif %}>
+                        {% for categoria in categorias_cliente_productos %}
+                            <a href="{% url 'cliente_productos' %}?categoria={{ categoria.pk }}" class="block rounded px-3 py-2 text-xs no-underline transition-colors {% if categoria.pk == categoria_seleccionada_id %}bg-[#fae9cf] font-medium text-[#281b14]{% else %}text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if categoria.pk == categoria_seleccionada_id %}aria-current="page"{% endif %}>{{ categoria.nombre }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
                 {% if vista_previa_admin %}
                     <span title="No disponible en la vista previa" aria-disabled="true" class="flex cursor-not-allowed items-center gap-3.5 border-l-4 border-transparent px-5 py-3 text-sm text-[#6b5643]/50">
                         <i class="fa-regular fa-calendar-check w-5 text-center text-base text-[#bd8c43]/50" aria-hidden="true"></i><span class="client-sidebar-label">Mis citas</span>
@@ -1112,15 +1286,9 @@
                 {% endif %}
                 {% if vista_previa_admin %}
                     <span title="No disponible en la vista previa" aria-disabled="true" class="flex cursor-not-allowed items-center gap-3.5 border-l-4 border-transparent px-5 py-3 text-sm text-[#6b5643]/50">
-                        <i class="fa-solid fa-receipt w-5 text-center text-base text-[#bd8c43]/50" aria-hidden="true"></i><span class="client-sidebar-label">Historial de pagos</span>
-                    </span>
-                    <span title="No disponible en la vista previa" aria-disabled="true" class="flex cursor-not-allowed items-center gap-3.5 border-l-4 border-transparent px-5 py-3 text-sm text-[#6b5643]/50">
                         <i class="fa-solid fa-gear w-5 text-center text-base text-[#bd8c43]/50" aria-hidden="true"></i><span class="client-sidebar-label">Configuración</span>
                     </span>
                 {% else %}
-                    <a href="{% url 'cliente_historial_pagos' %}" title="Historial de pagos" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_historial_pagos' %}aria-current="page"{% endif %}>
-                        <i class="fa-solid fa-receipt w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Historial de pagos</span>
-                    </a>
                     <a href="{% url 'cliente_configuracion' %}" title="Configuración" class="flex items-center gap-3.5 border-l-4 px-5 py-3 text-sm no-underline transition-colors {% if request.resolver_match.url_name == 'cliente_configuracion' %}border-[#bd8c43] bg-[#fae9cf] font-medium text-[#281b14]{% else %}border-transparent text-[#6b5643] hover:bg-[#fffaf5] hover:text-[#281b14]{% endif %}" {% if request.resolver_match.url_name == 'cliente_configuracion' %}aria-current="page"{% endif %}>
                         <i class="fa-solid fa-gear w-5 text-center text-base text-[#bd8c43]" aria-hidden="true"></i><span class="client-sidebar-label">Configuración</span>
                     </a>
@@ -1139,11 +1307,7 @@
                 </form>
             {% endif %}
         </aside>
-        <button type="button" id="clientSidebarCollapseToggle" class="client-sidebar-collapse-toggle hidden h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#ead7bc] bg-white text-[#5a3e27] shadow-sm transition hover:bg-[#fae9cf] lg:flex" aria-label="Contraer menú" aria-expanded="true" aria-controls="clientSidebar" title="Contraer menú">
-            <i class="fa-solid fa-bars" aria-hidden="true"></i>
-        </button>
-
-        <main {% if request.resolver_match.url_name == 'cliente_servicios' %}data-service-catalog-main data-full-bleed="{% if request.GET.categoria == 'tratamientos' or request.GET.categoria == 'manos' or request.GET.categoria == 'depilaciones' or request.GET.categoria == 'coloracion' or request.GET.categoria == 'podologia' or request.GET.categoria == 'lash_brow' %}true{% else %}false{% endif %}"{% endif %} class="w-full min-w-0 {% if request.GET.categoria == 'tratamientos' or request.GET.categoria == 'manos' or request.GET.categoria == 'depilaciones' or request.GET.categoria == 'coloracion' or request.GET.categoria == 'podologia' or request.GET.categoria == 'lash_brow' %}p-0{% elif request.resolver_match.url_name == 'cliente_gestionar_citas' %}client-bookings-main min-h-[calc(100vh-64px)] px-5 py-8 lg:px-10{% elif request.resolver_match.url_name == 'cliente_configuracion' %}client-settings-main min-h-[calc(100vh-64px)] px-5 py-8 lg:px-10{% else %}px-5 py-8 lg:px-10{% endif %} lg:flex-1">
+        <main class="w-full min-w-0 {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}client-bookings-main min-h-[calc(100vh-64px)] px-5 py-8 lg:px-10{% elif request.resolver_match.url_name == 'cliente_configuracion' %}client-settings-main min-h-[calc(100vh-64px)] px-5 py-8 lg:px-10{% elif request.resolver_match.url_name == 'cliente_servicios' or request.resolver_match.url_name == 'cliente_productos' %}px-4 pt-1 pb-4 lg:px-6 lg:pt-1 lg:pb-4{% else %}px-5 py-8 lg:px-10{% endif %} lg:flex-1">
             {% block content %}{% endblock %}
         </main>
     </div>
@@ -1155,13 +1319,23 @@
             const backdrop = document.getElementById('clientMenuBackdrop');
             const servicesToggle = document.getElementById('clientServicesToggle');
             const servicesSubmenu = document.getElementById('clientServicesSubmenu');
-            if (!sidebar || !toggle || !collapseToggle || !backdrop || !servicesToggle || !servicesSubmenu) return;
+            const productsToggle = document.getElementById('clientProductsToggle');
+            const productsSubmenu = document.getElementById('clientProductsSubmenu');
+            if (!sidebar || !toggle || !collapseToggle || !backdrop) return;
             const desktop = window.matchMedia('(min-width: 1024px)');
+            const collapsedStorageKey = 'nicolett-client-sidebar-collapsed';
+            const categoryMenus = [
+                {toggle: servicesToggle, submenu: servicesSubmenu},
+                {toggle: productsToggle, submenu: productsSubmenu},
+            ].filter(menu => menu.toggle && menu.submenu);
 
-            const setServicesMenuOpen = (open) => {
-                servicesSubmenu.hidden = !open;
-                servicesToggle.setAttribute('aria-expanded', String(open));
-                servicesToggle.querySelector('.client-sidebar-chevron').classList.toggle('rotate-180', open);
+            const setMenuOpen = (menu, open) => {
+                menu.submenu.hidden = !open;
+                menu.toggle.setAttribute('aria-expanded', String(open));
+                menu.toggle.querySelector('.client-sidebar-chevron').classList.toggle('rotate-180', open);
+                if (open && desktop.matches && sidebar.dataset.collapsed === 'true') {
+                    window.requestAnimationFrame(() => positionCategoryPopover(menu));
+                }
             };
 
             const setMobileOpen = (open) => {
@@ -1175,7 +1349,7 @@
             };
 
             const setCollapsed = (collapsed) => {
-                if (collapsed) setServicesMenuOpen(false);
+                if (collapsed) categoryMenus.forEach(menu => setMenuOpen(menu, false));
                 sidebar.dataset.collapsed = String(collapsed);
                 document.body.dataset.clientSidebarCollapsed = String(collapsed);
                 collapseToggle.setAttribute('aria-expanded', String(!collapsed));
@@ -1184,27 +1358,63 @@
                 collapseToggle.innerHTML = '<i class="fa-solid fa-bars" aria-hidden="true"></i>';
             };
 
-            setCollapsed(false);
-            const browsingServices = !servicesSubmenu.hidden;
-            setServicesMenuOpen(browsingServices);
-            setMobileOpen(!desktop.matches && browsingServices);
+            const positionCategoryPopover = (menu) => {
+                if (!desktop.matches || sidebar.dataset.collapsed !== 'true' || menu.submenu.hidden) return;
+                const bounds = menu.toggle.getBoundingClientRect();
+                menu.submenu.style.top = `${Math.max(8, Math.min(bounds.top, window.innerHeight - menu.submenu.offsetHeight - 8))}px`;
+                menu.submenu.style.left = `${sidebar.getBoundingClientRect().right + 10}px`;
+            };
+
+            setCollapsed(desktop.matches && window.localStorage.getItem(collapsedStorageKey) === 'true');
+            categoryMenus.forEach(menu => setMenuOpen(menu, !menu.submenu.hidden));
+            setMobileOpen(false);
             toggle.addEventListener('click', () => setMobileOpen(sidebar.dataset.open !== 'true'));
-            collapseToggle.addEventListener('click', () => setCollapsed(sidebar.dataset.collapsed !== 'true'));
-            servicesToggle.addEventListener('click', () => {
-                setServicesMenuOpen(servicesSubmenu.hidden);
+            collapseToggle.addEventListener('click', () => {
+                const collapsed = sidebar.dataset.collapsed !== 'true';
+                setCollapsed(collapsed);
+                window.localStorage.setItem(collapsedStorageKey, String(collapsed));
+            });
+            categoryMenus.forEach(menu => {
+                menu.toggle.addEventListener('click', () => {
+                    setMenuOpen(menu, menu.submenu.hidden);
+                });
             });
             backdrop.addEventListener('click', () => setMobileOpen(false));
+            sidebar.addEventListener('keydown', (event) => {
+                if (event.altKey || event.ctrlKey || event.metaKey) return;
+                const scrollSteps = {
+                    ArrowDown: 48,
+                    ArrowUp: -48,
+                    PageDown: sidebar.clientHeight * 0.8,
+                    PageUp: -sidebar.clientHeight * 0.8,
+                };
+                const step = scrollSteps[event.key];
+                if (step === undefined) return;
+                event.preventDefault();
+                sidebar.scrollBy({top: step, behavior: 'smooth'});
+            });
             sidebar.querySelectorAll('a').forEach((link) => {
                 link.addEventListener('click', () => setMobileOpen(false));
             });
             document.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape') {
-                    setServicesMenuOpen(false);
+                    categoryMenus.forEach(menu => setMenuOpen(menu, false));
                     setMobileOpen(false);
                 }
             });
+            document.addEventListener('click', (event) => {
+                if (sidebar.dataset.collapsed !== 'true') return;
+                categoryMenus.forEach(menu => {
+                    if (!menu.submenu.hidden && !menu.toggle.contains(event.target) && !menu.submenu.contains(event.target)) {
+                        setMenuOpen(menu, false);
+                    }
+                });
+            });
+            window.addEventListener('resize', () => categoryMenus.forEach(positionCategoryPopover));
+            sidebar.addEventListener('scroll', () => categoryMenus.forEach(positionCategoryPopover));
             desktop.addEventListener('change', () => {
                 setMobileOpen(false);
+                setCollapsed(desktop.matches && window.localStorage.getItem(collapsedStorageKey) === 'true');
             });
         })();
 
@@ -1263,7 +1473,7 @@
                         if (!response.ok) throw new Error(data.error || 'No se pudo realizar la búsqueda.');
                         results.replaceChildren();
                         if (!data.results.length) {
-                            showMessage(`No hay coincidencias para “${query}”.`);
+                            showMessage(`No hay coincidencias existentes para “${query}”.`);
                             return;
                         }
                         data.results.forEach((result) => {

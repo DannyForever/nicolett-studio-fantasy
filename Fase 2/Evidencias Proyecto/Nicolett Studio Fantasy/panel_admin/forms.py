@@ -68,14 +68,12 @@ class ServicioForm(forms.ModelForm):
         nombre = cleaned.get('nombre')
         categoria = cleaned.get('categoria')
         precio = cleaned.get('precio')
-        duracion = cleaned.get('duracion_minutos')
-        if not all((nombre, categoria, precio is not None, duracion is not None)):
+        if not all((nombre, categoria, precio is not None)):
             return cleaned
 
         similares = Servicio.objects.filter(
             categoria=categoria,
             precio=precio,
-            duracion_minutos=duracion,
         )
         if self.instance.pk:
             similares = similares.exclude(pk=self.instance.pk)
@@ -88,7 +86,7 @@ class ServicioForm(forms.ModelForm):
         ):
             self.add_error(
                 None,
-                'Ya existe un servicio con estas características. Modifica al menos un dato para guardarlo.',
+                'Ya existe un servicio con estas características. Modifica el nombre, la descripción o el precio.',
             )
         return cleaned
 
@@ -150,7 +148,7 @@ class ProductoForm(forms.ModelForm):
                 nombre__iexact='Sin categoría',
             )
         self.fields['categoria'].queryset = categorias.order_by('nombre')
-        self.fields['imagen_url'].required = not bool(self.instance.pk)
+        self.fields['imagen_url'].required = False
 
     def clean(self):
         cleaned = super().clean()
@@ -175,7 +173,7 @@ class ProductoForm(forms.ModelForm):
         ):
             self.add_error(
                 None,
-                'Ya existe un producto con estas características. Modifica al menos un dato para guardarlo.',
+                'Ya existe un producto con estas características. Modifica el nombre, la descripción o el precio.',
             )
         return cleaned
 

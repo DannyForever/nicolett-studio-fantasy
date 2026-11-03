@@ -50,6 +50,14 @@ class RoleAccessTests(TestCase):
             rol=self.client_role,
         )
 
+    def assert_service_category_view_is_empty(self, response):
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="servicios-semana"')
+        self.assertNotContains(response, 'data-service-gallery')
+        self.assertContains(response, 'id="serviceBookingCalendar"')
+        self.assertContains(response, 'id="serviceBookingForm"')
+        self.assertContains(response, 'data-select-service')
+
     @override_settings(
         DEBUG=True,
         EMAIL_HOST_USER='',
@@ -518,6 +526,7 @@ class RoleAccessTests(TestCase):
                 self.assertContains(response, 'Hola,')
                 self.assertContains(response, '<strong class="text-white">Cliente</strong>')
                 self.assertContains(response, 'Cerrar sesión')
+                self.assertNotContains(response, 'Historial de pagos')
                 self.assertContains(response, 'https://www.instagram.com/nicolettstudiofantasy/')
                 self.assertContains(response, 'https://wa.me/56982108409')
                 self.assertContains(response, 'method="post" class="mt-auto px-5 pb-2 pt-6"')
@@ -531,8 +540,7 @@ class RoleAccessTests(TestCase):
                 self.assertContains(response, 'id="clientServicesSubmenu"')
                 if name == 'cliente_gestionar_citas':
                     self.assertContains(response, 'client-bookings-page')
-                    self.assertContains(response, 'client-bookings-topnav')
-                    self.assertContains(response, '>Servicios y citas</a>')
+                    self.assertNotContains(response, '<nav class="client-bookings-topnav')
                     self.assertContains(response, 'client-bookings-main min-h-[calc(100vh-64px)]')
                     self.assertContains(response, 'class="client-bookings-frame mx-auto w-full max-w-5xl p-4 sm:p-6"')
                     self.assertContains(response, 'client-bookings-corner-bottom-right')
@@ -541,275 +549,113 @@ class RoleAccessTests(TestCase):
                     self.assertContains(response, 'client-bookings-cta')
                     self.assertContains(response, 'client-bookings-download')
                 if name in ('cliente_home', 'cliente_sobre_nosotros'):
-                    self.assertContains(response, 'client-bookings-page')
-                self.assertContains(response, 'aria-label="Servicios disponibles"')
-                self.assertNotContains(response, '>Todos los servicios</a>')
-                self.assertNotContains(response, '?categoria=todos#servicios-semana')
-                self.assertContains(response, '>Cortes &amp; estilos</a>')
-                self.assertContains(response, '>Pedicure</a>')
-                self.assertContains(
-                    response,
-                    f'href="{reverse("cliente_servicios")}?categoria=maquillaje#servicios-semana"',
+                    self.assertContains(response, 'client-about-page')
+                nosotras_link = re.search(
+                    rf'<a href="{re.escape(reverse("cliente_home"))}" title="Nosotras"(?P<attributes>[^>]*)>',
+                    response.content.decode(),
                 )
+                self.assertIsNotNone(nosotras_link)
+                self.assertEqual(
+                    'aria-current="page"' in nosotras_link.group('attributes'),
+                    name in ('cliente_home', 'cliente_sobre_nosotros'),
+                )
+                self.assertContains(response, 'aria-label="Servicios disponibles"')
+                self.assertContains(response, 'id="clientProductsToggle"')
+                self.assertContains(response, 'id="clientProductsSubmenu"')
+                for categoria in response.context['categorias_cliente_servicios']:
+                    self.assertContains(
+                        response,
+                        f'?categoria={categoria.pk}#servicios-semana',
+                    )
+                for categoria in response.context['categorias_cliente_productos']:
+                    self.assertContains(
+                        response,
+                        f'?categoria={categoria.pk}"',
+                    )
                 self.assertContains(response, 'Servicios y citas')
                 self.assertContains(response, 'aria-current="page"')
                 self.assertIn('no-store', response['Cache-Control'])
                 self.assertContains(response, 'lg:fixed lg:inset-y-0 lg:left-0')
                 self.assertNotContains(response, 'Todos los derechos reservados')
-                self.assertContains(
-                    response,
-                    f'<a href="{reverse("cliente_home")}" aria-label="Ir a Nosotras"',
-                )
+                self.assertNotContains(response, 'class="client-topbar-brand')
+                self.assertContains(response, 'aria-label="Nicolett Studio, ir a Nosotras"')
                 self.assertNotContains(response, '> Inicio</a>')
         self.assertNotContains(self.client.get(reverse('cliente_gestionar_citas')), 'fa-clock-rotate-left')
         legacy_history = self.client.get(reverse('cliente_historial'))
         self.assertRedirects(legacy_history, f"{reverse('cliente_gestionar_citas')}?tab=historial")
         self.assertEqual(self.client.get(reverse('cliente_cancelar_cita')).status_code, 200)
 
-    def test_depilation_menu_has_individual_appointments(self):
+    def test_depilation_category_view_is_empty(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
-        categoria = Categoria.objects.get(nombre='Depilación', tipo='servicio')
-        precios = {
-            'Pierna completa': 15000,
-            'Media pierna': 7000,
-            'Brazo completo': 13000,
-            'Medio brazo': 6000,
-            'Axila': 5000,
-            'Rebaje completo': 15000,
-            'Medio rebaje': 10000,
-            'Rostro completo': 10000,
-            'Bozo': 5000,
-            'Cejas': 5000,
-            'Nariz': 5000,
-            'Oídos': 5000,
-            'Mentón': 3000,
-        }
-        servicios = list(
-            Servicio.objects.filter(categoria=categoria, activo=True),
-        )
-        self.assertEqual(
-            {servicio.nombre: servicio.precio for servicio in servicios},
-            precios,
-        )
-        self.assertEqual(
-            {servicio.duracion_minutos for servicio in servicios},
-            {30},
-        )
+        categoria = Servicio.objects.get(nombre='Rostro completo').categoria
+        servicios = Servicio.objects.filter(categoria=categoria, activo=True)
 
         with patch(
             'usuarios.views.servicios_con_horarios_disponibles',
-            return_value={servicio.pk for servicio in servicios},
+            return_value=set(servicios.values_list('pk', flat=True)),
         ):
-            respuesta = self.client.get(
+            response = self.client.get(
                 reverse('cliente_servicios'),
-                {'categoria': 'depilaciones'},
-            )
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(
-            respuesta,
-            'src="/static/img/depilacion_catalogo_afiche.png?v=20261025c" alt="Catálogo completo de depilación Nicolett Studio Fantasy con precios y botones para agendar citas" class="depilation-gallery-image"',
-        )
-        self.assertContains(respuesta, 'width: 100%;')
-        self.assertContains(respuesta, 'height: auto;')
-        self.assertContains(respuesta, 'object-fit: contain;')
-        self.assertContains(
-            respuesta,
-            'data-service-gallery="all depilaciones"',
-        )
-        self.assertNotContains(
-            respuesta,
-            'grid grid-cols-[2.5rem_minmax(0,1fr)_auto_auto]',
-        )
-        servicios_con_boton_en_afiche = (
-            'Pierna completa',
-            'Media pierna',
-            'Brazo completo',
-            'Medio brazo',
-            'Axila',
-            'Rebaje completo',
-            'Medio rebaje',
-            'Rostro completo',
-            'Bozo',
-            'Oídos',
-            'Mentón',
-        )
-        for nombre_servicio in servicios_con_boton_en_afiche:
-            servicio = next(
-                servicio
-                for servicio in servicios
-                if servicio.nombre == nombre_servicio
-            )
-            self.assertContains(
-                respuesta,
-                f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}" aria-label="Agendar cita para {servicio.nombre}"',
+                {'categoria': categoria.pk},
             )
 
-    def test_lash_brow_flyer_replaces_repeated_service_list(self):
+        self.assert_service_category_view_is_empty(response)
+        self.assertEqual(response.context['categoria_seleccionada_id'], categoria.pk)
+        self.assertEqual(response.context['servicios'].count(), servicios.count())
+
+    def test_lash_brow_category_view_is_empty(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
         categoria = Categoria.objects.get(nombre='Lash & brow', tipo='servicio')
-        precios = {
-            'Laminado de cejas': 20000,
-            'Lifting coreano': 25000,
-            'Extensiones de pestañas rímel o clásica': 25000,
-            'Extensiones de pestañas tecnológicas': 30000,
-            'Volumen tecnológico': 35000,
-        }
-        servicios = list(
-            Servicio.objects.filter(categoria=categoria, activo=True),
-        )
-        self.assertEqual(
-            {servicio.nombre: servicio.precio for servicio in servicios},
-            precios,
-        )
-        self.assertEqual(
-            {servicio.duracion_minutos for servicio in servicios},
-            {120},
-        )
+        servicios = list(Servicio.objects.filter(categoria=categoria, activo=True))
 
         with patch(
             'usuarios.views.servicios_con_horarios_disponibles',
             return_value={servicio.pk for servicio in servicios},
         ):
-            respuesta = self.client.get(
+            response = self.client.get(
                 reverse('cliente_servicios'),
-                {'categoria': 'lash_brow'},
-            )
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(
-            respuesta,
-            'src="/static/img/lash_brow_afiche_dorado.png"',
-        )
-        self.assertContains(
-            respuesta,
-            'data-service-catalog-main data-full-bleed="true"',
-        )
-        self.assertContains(
-            respuesta,
-            'data-service-catalog-shell data-full-bleed="true"',
-        )
-        self.assertContains(
-            respuesta,
-            'id="servicios-semana" data-full-bleed="true"',
-        )
-        self.assertContains(
-            respuesta,
-            'class="w-full overflow-hidden bg-transparent"',
-        )
-        self.assertContains(respuesta, 'class="lash-brow-flyer"')
-        self.assertContains(respuesta, 'class="lash-brow-gallery-image"')
-        self.assertContains(respuesta, '.lash-brow-gallery-image')
-        self.assertContains(respuesta, 'width: 100%;')
-        self.assertContains(respuesta, 'height: auto;')
-        self.assertContains(respuesta, 'object-fit: contain;')
-        self.assertNotContains(respuesta, 'Desde $35.000')
-        self.assertNotContains(respuesta, '2 horas')
-        self.assertNotContains(respuesta, 'grid-cols-[minmax(0,1fr)_auto_auto]')
-        for servicio in servicios:
-            self.assertContains(
-                respuesta,
-                f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}"',
-            )
-            self.assertContains(
-                respuesta,
-                f'aria-label="Agendar cita para {servicio.nombre}"',
+                {'categoria': categoria.pk},
             )
 
-    def test_nail_care_flyer_has_exact_prices_and_individual_appointments(self):
-        cliente = self.crear_cliente()
-        self.client.force_login(cliente)
-        servicio_permanente = Servicio.objects.get(nombre='Permanente')
-        categoria = servicio_permanente.categoria
-        precios = {
-            'Permanente': 15000,
-            'Ruber': 20000,
-            'Kapping Poly Gel': 20000,
-            'Soft Gel': 25000,
-            'Extensión Poly Gel': 28000,
-        }
-        descripciones = {
-            'Permanente': 'Un solo tono + 2 diseños simples.',
-            'Ruber': 'Un solo tono + 2 diseños simples.',
-            'Kapping Poly Gel': 'Uña corta | Un solo tono + 2 diseños simples.',
-            'Soft Gel': 'Un solo tono + 2 diseños simples.',
-            'Extensión Poly Gel': 'Un solo tono + 2 diseños simples.',
-        }
-        servicios = list(
-            Servicio.objects.filter(categoria=categoria, activo=True),
-        )
+        self.assert_service_category_view_is_empty(response)
+        self.assertEqual(response.context['categoria_seleccionada_id'], categoria.pk)
         self.assertEqual(
-            {servicio.nombre: servicio.precio for servicio in servicios},
-            precios,
+            {servicio.nombre for servicio in response.context['servicios']},
+            {servicio.nombre for servicio in servicios},
         )
-        self.assertEqual(
-            {servicio.nombre: servicio.descripcion for servicio in servicios},
-            descripciones,
-        )
-        self.assertEqual(
-            {servicio.duracion_minutos for servicio in servicios},
-            {60},
-        )
-        reglas_disponibles_permanente = Disponibilidad.objects.filter(
-            servicio_id=servicio_permanente.pk,
-        ).count()
-        for servicio in servicios:
-            self.assertEqual(
-                Disponibilidad.objects.filter(
-                    servicio_id=servicio.pk,
-                ).count(),
-                reglas_disponibles_permanente,
-            )
 
-        with patch(
-            'usuarios.views.servicios_con_horarios_disponibles',
-            return_value={servicio.pk for servicio in servicios},
-        ):
-            respuesta = self.client.get(
-                reverse('cliente_servicios'),
-                {'categoria': 'manos'},
-            )
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(
-            respuesta,
-            'src="/static/img/manicura_lista_precios.png"',
-        )
-        self.assertContains(respuesta, 'class="nail-care-flyer"')
-        self.assertContains(respuesta, 'Lista completa de precios de manicura')
-        for nombre, clase in (
-            ('Permanente', 'nail-care-booking-link--permanente'),
-            ('Ruber', 'nail-care-booking-link--ruber'),
-            ('Extensión Poly Gel', 'nail-care-booking-link--extension'),
-        ):
-            servicio = next(item for item in servicios if item.nombre == nombre)
-            self.assertContains(respuesta, clase)
-            self.assertContains(
-                respuesta,
-                (
-                    f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}" '
-                    f'class="nail-care-booking-link {clase}" '
-                    f'aria-label="Agendar cita para {nombre}"'
-                ),
-            )
-        self.assertNotContains(respuesta, 'src="/static/img/nail_care/permanente.png"')
-        self.assertNotContains(respuesta, 'Uña corta | Un solo tono + 2 diseños simples.')
-        self.assertNotContains(respuesta, 'Francesa o degradé + 2 diseños simples (adicional)')
-        self.assertNotContains(respuesta, 'Diseños aparte (adicional)')
-        for nombre in ('Kapping Poly Gel', 'Soft Gel'):
-            servicio = next(item for item in servicios if item.nombre == nombre)
-            self.assertNotContains(
-                respuesta,
-                f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}"',
-            )
-
-    def test_pedicure_menu_item_filters_and_highlights_pedicure_service(self):
+    def test_nail_care_category_view_is_empty(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
         categoria = Servicio.objects.get(nombre='Permanente').categoria
-        pedicure = Servicio.objects.create(
-            nombre='Pedicure de prueba',
+        servicios = list(Servicio.objects.filter(categoria=categoria, activo=True))
+
+        with patch(
+            'usuarios.views.servicios_con_horarios_disponibles',
+            return_value={servicio.pk for servicio in servicios},
+        ):
+            response = self.client.get(
+                reverse('cliente_servicios'),
+                {'categoria': categoria.pk},
+            )
+
+        self.assert_service_category_view_is_empty(response)
+        self.assertEqual(response.context['categoria_seleccionada_id'], categoria.pk)
+        self.assertEqual(
+            {servicio.nombre for servicio in response.context['servicios']},
+            {servicio.nombre for servicio in servicios},
+        )
+
+    def test_service_category_link_filters_by_category_id(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        categoria = Servicio.objects.get(nombre='Permanente').categoria
+        servicio = Servicio.objects.create(
+            nombre='Service category test',
             categoria=categoria,
-            descripcion='Cuidado y belleza para los pies.',
+            descripcion='Test description',
             precio=18000,
             duracion_minutos=60,
             activo=True,
@@ -817,109 +663,46 @@ class RoleAccessTests(TestCase):
 
         with patch(
             'usuarios.views.servicios_con_horarios_disponibles',
-            return_value={pedicure.pk},
+            return_value={servicio.pk},
         ):
-            respuesta = self.client.get(
+            response = self.client.get(
                 reverse('cliente_servicios'),
-                {'categoria': 'pedicure'},
+                {'categoria': categoria.pk},
             )
 
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(
-            respuesta,
-            (
-                f'href="{reverse("cliente_servicios")}?categoria=pedicure'
-                '#servicios-semana"'
-            ),
-        )
-        self.assertContains(
-            respuesta,
-            'bg-[#fae9cf] font-medium text-[#281b14]',
-        )
-        self.assertContains(
-            respuesta,
-            'aria-current="page">Pedicure</a>',
-        )
-        for category in (
-            'corte',
-            'tratamientos',
-            'manos',
-            'depilaciones',
-            'peinados',
-            'coloracion',
-            'podologia',
-            'lash_brow',
-            'maquillaje',
-        ):
-            self.assertContains(
-                respuesta,
-                f'data-service-gallery="all {category}" hidden',
-            )
-        self.assertNotContains(respuesta, 'data-service-gallery="all pedicure" hidden')
-        self.assertContains(respuesta, 'data-service-gallery-grid class="grid grid-cols-1 gap-3" aria-live="polite" hidden')
-        self.assertContains(
-            respuesta,
-            '[data-service-gallery][hidden] {\n            display: none !important;',
-        )
-        self.assertContains(respuesta, "galleryGrid.hidden = category === 'pedicure'")
-        self.assertContains(respuesta, "catalogShell.dataset.fullBleed = String(fullBleed)")
-        self.assertContains(respuesta, "catalogMain.dataset.fullBleed = String(fullBleed)")
-        self.assertContains(respuesta, "servicesSection.dataset.fullBleed = String(fullBleed)")
-        self.assertContains(respuesta, 'Pedicure de prueba')
-        self.assertContains(
-            respuesta,
-            f'href="{reverse("cliente_agendamiento")}?servicio={pedicure.pk}"',
-        )
+        self.assert_service_category_view_is_empty(response)
+        self.assertEqual(response.context['categoria_seleccionada_id'], categoria.pk)
+        self.assertIn(servicio.pk, {
+            item.pk for item in response.context['servicios']
+        })
+        self.assertTrue(all(
+            item.categoria_id == categoria.pk
+            for item in response.context['servicios']
+        ))
 
-    def test_cortes_y_estilos_gallery_uses_provided_image_and_title(self):
+    def test_service_category_view_has_no_gallery_or_booking_controls(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
+        categoria = Categoria.objects.get(nombre='Cortes & estilos', tipo='servicio')
 
-        respuesta = self.client.get(
-            reverse('cliente_servicios'),
-            {'categoria': 'corte'},
-        )
-
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(
-            respuesta,
-            'src="/static/img/cortes_y_estilos_panel.png"',
-        )
-        self.assertContains(
-            respuesta,
-            'alt="Galería de cortes y estilos de cabello de Nicolett Studio Fantasy"',
-        )
-        self.assertContains(
-            respuesta,
-            '<h2 class="font-semibold text-[#281b14]">Cortes &amp; estilos</h2>',
-        )
-        self.assertContains(
-            respuesta,
-            'class="service-gallery-compact order-1 overflow-hidden border border-[#ead7bc] bg-white"',
-        )
-        for category in (
-            'tratamientos',
-            'manos',
-            'pedicure',
-            'depilaciones',
-            'peinados',
+        with patch(
+            'usuarios.views.servicios_con_horarios_disponibles',
+            return_value=Servicio.objects.filter(activo=True).values_list('pk', flat=True),
         ):
-            self.assertContains(
-                respuesta,
-                f'data-service-gallery="all {category}" hidden',
+            response = self.client.get(
+                reverse('cliente_servicios'),
+                {'categoria': categoria.pk},
             )
-        self.assertContains(respuesta, 'width: 100%;')
-        self.assertNotContains(
-            respuesta,
-            'class="service-gallery-compact order-1 overflow-hidden border border-[#ead7bc] bg-white p-2"',
-        )
 
-    def test_treatments_gallery_shows_flyer_and_service_remains_bookable(self):
+        self.assert_service_category_view_is_empty(response)
+        self.assertEqual(response.context['categoria_seleccionada_id'], categoria.pk)
+
+    def test_treatment_category_is_empty_and_service_remains_bookable(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
         categoria = Categoria.objects.create(
             nombre='Tratamientos prueba',
-            tipo='Tratamientos',
+            tipo='servicio',
         )
         servicio = Servicio.objects.create(
             nombre='Tratamiento reservable de prueba',
@@ -943,62 +726,42 @@ class RoleAccessTests(TestCase):
             profesional=colaborador,
             categoria_id=categoria.pk,
         )
-        fecha = timezone.localdate() + timedelta(days=7)
-        Disponibilidad.objects.create(
-            dia_semana=str(fecha.weekday()),
-            hora_inicio=time(10, 0),
-            hora_fin=time(11, 0),
-            activo=True,
-            profesional=colaborador,
-            servicio_id=servicio.pk,
-            fecha_especifica=fecha,
-            intervalo_minutos=60,
-        )
 
-        galeria = self.client.get(
-            reverse('cliente_servicios'),
-            {'categoria': 'tratamientos'},
-        )
-        agendamiento = self.client.get(
-            reverse('cliente_agendamiento'),
-            {'servicio': servicio.pk},
-        )
+        with patch(
+            'usuarios.views.servicios_con_horarios_disponibles',
+            return_value={servicio.pk},
+        ):
+            category_response = self.client.get(
+                reverse('cliente_servicios'),
+                {'categoria': categoria.pk},
+            )
+            booking_response = self.client.get(
+                reverse('cliente_agendamiento'),
+                {'servicio': servicio.pk},
+            )
 
-        self.assertContains(galeria, 'data-service-gallery="all tratamientos"')
-        self.assertNotContains(galeria, 'data-service-gallery="all tratamientos" hidden')
-        self.assertContains(galeria, 'class="w-full overflow-hidden bg-transparent"')
-        self.assertContains(galeria, 'data-service-catalog-main data-full-bleed="true"')
-        self.assertContains(galeria, 'data-service-catalog-shell data-full-bleed="true"')
-        self.assertContains(galeria, 'id="servicios-semana" data-full-bleed="true"')
-        self.assertContains(galeria, "catalogMain.dataset.fullBleed = String(fullBleed)")
-        self.assertContains(galeria, "catalogShell.dataset.fullBleed = String(fullBleed)")
-        self.assertContains(galeria, "servicesSection.dataset.fullBleed = String(fullBleed)")
-        self.assertContains(
-            galeria,
-            'src="/static/img/tratamientos_capilares_afiche_dorado.png?v=20261026b"',
+        self.assert_service_category_view_is_empty(category_response)
+        self.assertEqual(
+            [item.pk for item in category_response.context['servicios']],
+            [servicio.pk],
         )
-        self.assertContains(galeria, '.treatment-flyer > img')
-        self.assertContains(galeria, 'width: 100%;')
-        self.assertContains(galeria, 'height: auto;')
-        booking_url = f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}"'
-        self.assertEqual(galeria.content.count(booking_url.encode()), 7)
-        self.assertNotContains(galeria, f'id="servicio-{servicio.pk}"')
-        self.assertContains(
-            agendamiento,
-            f'<option value="{servicio.pk}" selected>',
-        )
+        self.assertContains(booking_response, f'<option value="{servicio.pk}" selected>')
 
-    def test_treatments_flyer_booking_buttons_open_agenda_without_service(self):
+    def test_treatment_category_has_no_flyer_booking_buttons(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
-
-        galeria = self.client.get(
-            reverse('cliente_servicios'),
-            {'categoria': 'tratamientos'},
+        categoria = Categoria.objects.get(
+            nombre='Tratamientos capilares',
+            tipo='servicio',
         )
 
-        booking_url = f'href="{reverse("cliente_agendamiento")}"'
-        self.assertEqual(galeria.content.count(booking_url.encode()), 7)
+        response = self.client.get(
+            reverse('cliente_servicios'),
+            {'categoria': categoria.pk},
+        )
+
+        self.assert_service_category_view_is_empty(response)
+        self.assertEqual(response.context['categoria_seleccionada_id'], categoria.pk)
 
     def test_service_category_navigation_keeps_services_submenu_open(self):
         cliente = self.crear_cliente()
@@ -1025,741 +788,286 @@ class RoleAccessTests(TestCase):
                     'aria-label="Servicios disponibles" hidden',
                 )
 
-    def test_podology_flyer_shows_full_image_and_keeps_booking_link(self):
+    def test_client_category_menus_follow_active_catalog_categories(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
-        categoria, _ = Categoria.objects.get_or_create(
-            nombre='Podología',
-            defaults={'tipo': 'Podología'},
+        categoria_servicio = Categoria.objects.create(
+            nombre='Categoría de servicio nueva',
+            tipo='servicio',
+            activa=True,
         )
-        podologia = Servicio.objects.create(
-            nombre='Podología',
-            categoria=categoria,
-            descripcion='Cuidado experto para consentir tus pies y mantenerlos saludables.',
-            precio=20000,
-            duracion_minutos=60,
+        categoria_producto = Categoria.objects.create(
+            nombre='Categoría de producto nueva',
+            tipo='producto',
+            activa=True,
+        )
+        categoria_eliminable = Categoria.objects.create(
+            nombre='Categoría de producto eliminable',
+            tipo='producto',
+            activa=True,
+        )
+        categoria_inactiva = Categoria.objects.create(
+            nombre='Categoría inactiva',
+            tipo='servicio',
+            activa=False,
+        )
+        servicio = Servicio.objects.create(
+            nombre='Servicio de categoría nueva',
+            descripcion='Descripción de prueba',
+            duracion_minutos=30,
+            precio=10000,
             activo=True,
-        )
-        colaborador_role, _ = Rol.objects.get_or_create(nombre='Colaborador')
-        colaborador = Usuario.objects.create_user(
-            email='colaborador.podologia@example.com',
-            password='Colaborador123!',
-            nombre='Profesional',
-            apellido_paterno='Podología',
-            apellido_materno='Prueba',
-            telefono='+56911112222',
-            rol=colaborador_role,
-        )
-        ProfesionalCategoria.objects.create(
-            profesional=colaborador,
-            categoria_id=categoria.pk,
-        )
-        fecha_disponible = timezone.localdate() + timedelta(days=7)
-        Disponibilidad.objects.create(
-            dia_semana=str(fecha_disponible.weekday()),
-            hora_inicio=time(10, 0),
-            hora_fin=time(11, 0),
-            activo=True,
-            profesional=colaborador,
-            servicio_id=podologia.pk,
-            fecha_especifica=fecha_disponible,
-            intervalo_minutos=60,
+            categoria=categoria_servicio,
         )
 
-        response = self.client.get(reverse('cliente_servicios'))
-
-        self.assertContains(response, 'src="/static/img/podologia_galeria_dorada.png?v=20261026a"')
+        servicios = self.client.get(reverse('cliente_servicios'))
         self.assertContains(
-            response,
-            'alt="Afiche dorado de podología con tratamientos y niveles de complejidad de uñas encarnadas"',
+            servicios,
+            f'?categoria={categoria_servicio.pk}#servicios-semana',
         )
-        self.assertContains(response, 'class="podology-flyer"')
-        self.assertNotContains(response, f'id="servicio-{podologia.pk}"')
-        self.assertNotContains(response, '$20.000')
-        self.assertContains(response, 'font-size: 0;')
-        self.assertContains(response, 'background: rgb(197 138 58 / 18%);')
-        booking_url = f'href="{reverse("cliente_agendamiento")}?servicio={podologia.pk}"'
-        self.assertEqual(response.content.count(booking_url.encode()), 7)
-        self.assertEqual(
-            response.content.count(b'class="podology-booking-link podology-booking-link--'),
-            7,
-        )
-        agendamiento = self.client.get(
-            reverse('cliente_agendamiento'),
-            {'servicio': podologia.pk},
-        )
-        self.assertContains(agendamiento, f'<option value="{podologia.pk}" selected>')
+        self.assertNotContains(servicios, 'Categoría inactiva')
+        self.assertNotContains(servicios, 'Todos los servicios')
+        self.assertContains(servicios, 'client-sidebar-submenu a:hover')
+        self.assertContains(servicios, 'linear-gradient(180deg, #3e2a1e 0%, #332218 58%, #291b14 100%)')
+        self.assertContains(servicios, 'linear-gradient(105deg, #d6b36d, #f0d99f)')
+        self.assertContains(servicios, 'rgb(240 217 159 / 16%)')
+        self.assertContains(servicios, 'scrollbar-width: none')
+        self.assertContains(servicios, "ArrowDown: 48")
+        self.assertNotContains(servicios, 'Todos los productos')
 
-    def test_colorimetry_flyer_shows_booking_buttons_for_available_service(self):
+        with patch(
+            'usuarios.views.servicios_con_horarios_disponibles',
+            return_value={servicio.pk},
+        ):
+            servicios_categoria = self.client.get(
+                reverse('cliente_servicios'),
+                {'categoria': categoria_servicio.pk},
+            )
+        self.assertEqual(
+            [item.pk for item in servicios_categoria.context['servicios']],
+            [servicio.pk],
+        )
+        self.assertContains(servicios_categoria, 'Categoría de servicio nueva')
+        self.assertNotContains(servicios_categoria, 'data-service-gallery')
+        self.assertNotContains(servicios_categoria, 'AGENDAR CITA')
+        self.assertNotContains(servicios_categoria, 'img/')
+
+        productos = self.client.get(reverse('cliente_productos'))
+        self.assertNotContains(productos, 'Todos los productos')
+        self.assertNotContains(productos, 'Todos los servicios')
+        self.assertContains(
+            productos,
+            f'?categoria={categoria_producto.pk}"',
+        )
+        self.assertContains(productos, categoria_eliminable.nombre)
+        self.assertContains(productos, 'clientProductsSubmenu')
+
+        categoria_producto.nombre = 'Categoría de producto renombrada'
+        categoria_producto.save(update_fields=['nombre'])
+        productos_actualizados = self.client.get(reverse('cliente_productos'))
+        self.assertContains(productos_actualizados, 'Categoría de producto renombrada')
+        self.assertNotContains(productos_actualizados, 'Categoría de producto nueva')
+
+        categoria_producto.activa = False
+        categoria_producto.save(update_fields=['activa'])
+        productos_actualizados = self.client.get(reverse('cliente_productos'))
+        self.assertNotContains(productos_actualizados, 'Categoría de producto renombrada')
+
+        categoria_eliminable.delete()
+        productos_actualizados = self.client.get(reverse('cliente_productos'))
+        self.assertNotContains(productos_actualizados, 'Categoría de producto eliminable')
+
+    def test_service_category_displays_records_calendar_and_color_banner(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
-        categoria = Categoria.objects.create(nombre='Peluquería', tipo='Peluquería')
-        colorimetria = Servicio.objects.create(
+        categoria = Categoria.objects.create(
             nombre='Colorimetría',
-            categoria=categoria,
-            descripcion='Diagnóstico personalizado de color.',
-            precio=20000,
-            duracion_minutos=60,
-            activo=True,
+            tipo='servicio',
+            activa=True,
         )
-        colaborador_role, _ = Rol.objects.get_or_create(nombre='Colaborador')
-        colaborador = Usuario.objects.create_user(
-            email='colaborador.colorimetria@example.com',
-            password='Colaborador123!',
-            nombre='Profesional',
-            apellido_paterno='Colorimetría',
-            apellido_materno='Prueba',
-            telefono='+56911112223',
-            rol=colaborador_role,
-        )
-        ProfesionalCategoria.objects.create(
-            profesional=colaborador,
-            categoria_id=categoria.pk,
-        )
-        fecha_disponible = timezone.localdate() + timedelta(days=7)
-        Disponibilidad.objects.create(
-            dia_semana=str(fecha_disponible.weekday()),
-            hora_inicio=time(10, 0),
-            hora_fin=time(11, 0),
-            activo=True,
-            profesional=colaborador,
-            servicio_id=colorimetria.pk,
-            fecha_especifica=fecha_disponible,
-            intervalo_minutos=60,
-        )
+        servicios = [
+            Servicio.objects.create(
+                nombre=f'Técnica de color {index}',
+                descripcion=f'Descripción amplia {index}.',
+                precio=20000 + index,
+                duracion_minutos=60,
+                activo=True,
+                categoria=categoria,
+            )
+            for index in range(5)
+        ]
 
         response = self.client.get(
             reverse('cliente_servicios'),
-            {'categoria': 'coloracion'},
+            {'categoria': categoria.pk},
         )
 
-        self.assertContains(response, 'src="/static/img/colorimetria_afiche_dorado.png?v=20261026a"')
-        self.assertContains(
-            response,
-            'alt="Afiche dorado de servicios de coloración Nicolett Studio Fantasy con opciones y precios"',
-        )
-        self.assertContains(response, 'class="colorimetry-flyer"')
-        self.assertContains(response, 'background: rgb(197 138 58 / 18%);')
-        self.assertNotContains(response, f'id="servicio-{colorimetria.pk}"')
-        booking_url = f'href="{reverse("cliente_agendamiento")}?servicio={colorimetria.pk}"'
-        self.assertEqual(response.content.count(booking_url.encode()), 7)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.content.count(b'class="colorimetry-booking-link colorimetry-booking-link--'),
-            7,
+            {item.pk for item in response.context['servicios']},
+            {item.pk for item in servicios},
         )
-        agendamiento = self.client.get(
-            reverse('cliente_agendamiento'),
-            {'servicio': colorimetria.pk},
+        self.assertContains(response, 'img/catalogo/servicios/colorimetria.jpg')
+        self.assertContains(response, '<h1 class="mt-1 font-serif text-4xl font-bold text-[#281b14] sm:text-5xl">Colorimetría</h1>')
+        self.assertContains(response, 'Productos profesionales seleccionados')
+        self.assertContains(response, 'Evaluación personalizada')
+        self.assertContains(response, 'Cuidado capilar')
+        self.assertContains(response, 'id="serviceBookingCalendar"')
+        self.assertContains(response, 'id="servicePageNext"')
+        self.assertContains(response, 'grid items-stretch gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]')
+        self.assertContains(response, 'grid flex-1 content-start gap-3 xl:grid-cols-2')
+        self.assertContains(response, '<details class="service-description text-xs text-[#6b5643]">')
+        self.assertContains(response, '.service-description > p')
+        self.assertNotContains(response, '<dialog')
+        self.assertContains(response, 'id="bookingPreviousMonth" type="button" class="flex h-8 w-8')
+        self.assertContains(response, 'Reservar cita')
+        self.assertContains(response, 'data-select-service')
+        self.assertContains(response, 'aria-label="Imagen no disponible para Técnica de color 0"')
+        self.assertContains(response, 'Reservar cita')
+        self.assertContains(response, 'Agendamiento y pago seguros')
+        self.assertContains(response, 'Página')
+        for servicio in servicios:
+            self.assertContains(response, servicio.nombre)
+            self.assertContains(response, servicio.descripcion)
+        self.assertNotContains(response, 'mx-auto max-w-4xl border border-[#ead7bc] bg-white p-8 shadow-sm')
+        self.assertNotContains(response, 'Continuar con la cita')
+        self.assertNotContains(response, 'class="mx-auto max-w-6xl overflow-hidden border border-[#ead7bc] bg-white shadow-sm"')
+
+    def test_podology_category_is_empty_and_service_remains_bookable(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        categoria = Categoria.objects.create(nombre='Podologia prueba', tipo='servicio')
+        servicio = Servicio.objects.create(
+            nombre='Podologia de prueba',
+            categoria=categoria,
+            descripcion='Cuidado experto para consentir tus pies.',
+            precio=20000,
+            duracion_minutos=60,
+            activo=True,
         )
-        self.assertContains(agendamiento, f'<option value="{colorimetria.pk}" selected>')
+
+        with patch(
+            'usuarios.views.servicios_con_horarios_disponibles',
+            return_value={servicio.pk},
+        ):
+            response = self.client.get(
+                reverse('cliente_servicios'),
+                {'categoria': categoria.pk},
+            )
+            booking_response = self.client.get(
+                reverse('cliente_agendamiento'),
+                {'servicio': servicio.pk},
+            )
+
+        self.assert_service_category_view_is_empty(response)
+        self.assertContains(booking_response, f'<option value="{servicio.pk}" selected>')
+
+    def test_colorimetry_category_is_empty_and_service_remains_bookable(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        categoria = Categoria.objects.create(nombre='Colorimetria prueba', tipo='servicio')
+        servicio = Servicio.objects.create(
+            nombre='Colorimetria de prueba',
+            categoria=categoria,
+            descripcion='Diagnostico personalizado de color.',
+            precio=20000,
+            duracion_minutos=60,
+            activo=True,
+        )
+
+        with patch(
+            'usuarios.views.servicios_con_horarios_disponibles',
+            return_value={servicio.pk},
+        ):
+            response = self.client.get(
+                reverse('cliente_servicios'),
+                {'categoria': categoria.pk},
+            )
+            booking_response = self.client.get(
+                reverse('cliente_agendamiento'),
+                {'servicio': servicio.pk},
+            )
+
+        self.assert_service_category_view_is_empty(response)
+        self.assertContains(booking_response, f'<option value="{servicio.pk}" selected>')
 
     def test_customers_only_see_active_services_and_products(self):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
-        categoria = Categoria.objects.get(nombre='Cortes & estilos', tipo='servicio')
-        categoria_tratamientos = Categoria.objects.get(
-            nombre='Tratamientos capilares',
+        categoria_servicio = Categoria.objects.create(
+            nombre='Servicio category test',
             tipo='servicio',
         )
-        categoria_manos = Categoria.objects.get(
-            nombre='Nail care & beauty',
-            tipo='servicio',
-        )
-        categoria_colorimetria = Categoria.objects.get(
-            nombre='Colorimetría',
-            tipo='servicio',
-        )
-        categoria_depilacion = Categoria.objects.get(
-            nombre='Depilación',
-            tipo='servicio',
-        )
-        depilacion_facial = Servicio.objects.get(
-            nombre='Rostro completo',
-            categoria=categoria_depilacion,
-        )
-        categoria_peinados = Categoria.objects.get(nombre='Peinados', tipo='servicio')
-        peinado_sencillo, _ = Servicio.objects.get_or_create(
-            nombre='Peinado sencillo',
-            categoria=categoria_peinados,
-            defaults={
-                'descripcion': 'Peinado sencillo para una ocasión especial.',
-                'precio': 10000,
-                'duracion_minutos': 60,
-                'activo': True,
-            },
-        )
-        manicure_prueba = Servicio.objects.create(
-            nombre='Manicure clásica de prueba',
-            categoria=categoria_manos,
-            descripcion='Limado, cuidado de cutículas y esmaltado tradicional.',
-            precio=15000,
-            duracion_minutos=60,
-            activo=True,
-        )
-        colorimetria = Servicio.objects.create(
-            nombre='Colorimetría',
-            categoria=categoria_colorimetria,
-            descripcion='Diagnóstico personalizado de color, tinte, balayage y decoloración con productos de alta gama.',
-            precio=20000,
-            duracion_minutos=60,
-            activo=True,
-        )
-        categoria_podologia = Categoria.objects.get(nombre='Podología', tipo='servicio')
-        podologia = Servicio.objects.create(
-            nombre='Podología',
-            categoria=categoria_podologia,
-            descripcion='Cuidado experto para consentir tus pies y mantenerlos saludables.',
-            precio=20000,
-            duracion_minutos=60,
-            activo=True,
-        )
-        lash_brow = Servicio.objects.get(nombre='Laminado de cejas')
-        maquillaje = Servicio.objects.get(nombre='Maquillaje', activo=True)
         servicio = Servicio.objects.create(
-            nombre='Corte de prueba',
-            categoria=categoria,
-            descripcion='Servicio de prueba para clientes.',
+            nombre='Active service test',
+            categoria=categoria_servicio,
+            descripcion='Service description.',
             precio=15000,
             duracion_minutos=45,
             activo=True,
         )
-        tratamiento_prueba = Servicio.objects.create(
-            nombre='Tratamiento capilar de prueba',
-            categoria=categoria_tratamientos,
-            descripcion='Hidratación intensiva para un cabello suave y brillante.',
-            precio=22000,
-            duracion_minutos=50,
-            activo=True,
-        )
         Servicio.objects.create(
-            nombre='Servicio oculto',
-            categoria=categoria,
-            descripcion='No debe aparecer al cliente.',
+            nombre='Inactive service test',
+            categoria=categoria_servicio,
             precio=10000,
             duracion_minutos=30,
             activo=False,
         )
-        servicio_caro = Servicio.objects.create(
-            nombre='Masaje de prueba',
-            categoria=categoria,
-            precio=20000,
-            duracion_minutos=60,
-            activo=True,
-            imagen_url='servicios/masaje-prueba.jpg',
-        )
-        servicio_sin_horarios = Servicio.objects.create(
-            nombre='Servicio sin horarios',
-            categoria=categoria,
-            precio=11000,
-            duracion_minutos=30,
-            activo=True,
-        )
-        rol_colaborador, _ = Rol.objects.get_or_create(nombre='Colaborador')
-        profesional = Usuario.objects.create_user(
-            email='profesional.catalogo@example.com',
-            password='Colaborador123!',
-            nombre='Profesional',
-            apellido_paterno='Prueba',
-            apellido_materno='Catálogo',
-            telefono='+56911112222',
-            rol=rol_colaborador,
-        )
-        ProfesionalCategoria.objects.create(
-            profesional=profesional,
-            categoria_id=categoria.pk,
-        )
-        ProfesionalCategoria.objects.get_or_create(
-            profesional=profesional,
-            categoria_id=categoria_tratamientos.pk,
-        )
-        ProfesionalCategoria.objects.get_or_create(
-            profesional=profesional,
-            categoria_id=categoria_colorimetria.pk,
-        )
-        ProfesionalCategoria.objects.get_or_create(
-            profesional=profesional,
-            categoria_id=depilacion_facial.categoria_id,
-        )
-        ProfesionalCategoria.objects.get_or_create(
-            profesional=profesional,
-            categoria_id=peinado_sencillo.categoria_id,
-        )
-        ProfesionalCategoria.objects.get_or_create(
-            profesional=profesional,
-            categoria_id=maquillaje.categoria_id,
-        )
-        ProfesionalCategoria.objects.get_or_create(
-            profesional=profesional,
-            categoria_id=podologia.categoria_id,
-        )
-        fecha = timezone.localdate() + timedelta(days=7)
-        for servicio_con_horarios in (
-            servicio,
-            servicio_caro,
-            tratamiento_prueba,
-            maquillaje,
-            podologia,
-            colorimetria,
-        ):
-            inicio = time(10, 0)
-            fin = (
-                datetime.combine(fecha, inicio)
-                + timedelta(minutes=servicio_con_horarios.duracion_minutos)
-            ).time()
-            Disponibilidad.objects.create(
-                dia_semana=str(fecha.weekday()),
-                hora_inicio=inicio,
-                hora_fin=fin,
-                activo=True,
-                profesional=profesional,
-                servicio_id=servicio_con_horarios.pk,
-                fecha_especifica=fecha,
-                intervalo_minutos=servicio_con_horarios.duracion_minutos,
-            )
-        Disponibilidad.objects.create(
-            dia_semana=str(fecha.weekday()),
-            hora_inicio=time(9, 0),
-            hora_fin=time(9, 30),
-            activo=True,
-            profesional=profesional,
-            servicio_id=depilacion_facial.pk,
-            fecha_especifica=fecha,
-            intervalo_minutos=30,
-        )
-        Disponibilidad.objects.create(
-            dia_semana=str(fecha.weekday()),
-            hora_inicio=time(11, 0),
-            hora_fin=time(12, 0),
-            activo=True,
-            profesional=profesional,
-            servicio_id=peinado_sencillo.pk,
-            fecha_especifica=fecha,
-            intervalo_minutos=60,
-        )
         categoria_producto = Categoria.objects.create(
-            nombre='Cuidado capilar',
+            nombre='Product category test',
             tipo='producto',
         )
-        producto = Producto.objects.create(
-            nombre='Shampoo de prueba',
+        Producto.objects.create(
+            nombre='Available product test',
             categoria=categoria_producto,
-            descripcion='Producto de prueba para clientes.',
+            descripcion='Product description.',
             precio=9900,
             stock=5,
             activo=True,
-            imagen_url='productos/shampoo-prueba.jpg',
         )
         Producto.objects.create(
-            nombre='Producto oculto',
+            nombre='Inactive product test',
             categoria=categoria_producto,
-            descripcion='No debe aparecer al cliente.',
             precio=5000,
             stock=1,
             activo=False,
         )
         Producto.objects.create(
-            nombre='Producto sin stock',
+            nombre='Out of stock product test',
             categoria=categoria_producto,
-            descripcion='No debe aparecer sin stock.',
             precio=5000,
             stock=0,
             activo=True,
         )
-        servicios = self.client.get(reverse('cliente_servicios'))
-        productos = self.client.get(reverse('cliente_productos'))
-        agendamiento = self.client.get(reverse('cliente_agendamiento'))
-        agendamiento_corte = self.client.get(
-            reverse('cliente_agendamiento'),
-            {'servicio': servicio.pk},
-        )
 
-        self.assertContains(servicios, 'Corte de prueba')
-        self.assertNotContains(servicios, 'Servicio oculto')
-        self.assertNotContains(servicios, 'Servicio sin horarios')
-        self.assertContains(agendamiento, 'Corte de prueba')
-        self.assertNotContains(agendamiento, 'Servicio sin horarios')
-        self.assertContains(agendamiento, 'Tratamiento capilar de prueba')
-        self.assertNotContains(servicios, 'id="catalog-search"')
-        self.assertNotContains(servicios, 'id="catalog-sort"')
-        self.assertNotContains(servicios, 'id="catalog-results"')
-        self.assertContains(servicios, 'id="servicios-semana"')
-        self.assertContains(servicios, 'data-services-intro')
-        self.assertContains(servicios, 'data-service-gallery-grid')
-        self.assertContains(servicios, 'w-full text-center')
-        self.assertContains(servicios, 'data-service-gallery-grid class="grid grid-cols-1 gap-3"')
-        self.assertNotContains(servicios, 'aspect-ratio: 1 / 1;')
-        self.assertNotContains(servicios, 'data-service-category-filters')
-        self.assertNotContains(servicios, 'Filtrar servicios por categoría')
-        self.assertContains(servicios, 'data-service-gallery="all tratamientos"')
-        self.assertContains(servicios, 'data-service-gallery="all manos"')
-        self.assertContains(servicios, 'data-service-gallery="all depilaciones"')
-        self.assertContains(servicios, 'data-service-gallery="all maquillaje"')
-        self.assertContains(servicios, 'src="/static/img/maquillaje_galeria_brand.png"')
-        self.assertContains(
-            servicios,
-            'alt="Maquillaje social, de novia y para eventos con logo Nicolett Studio Fantasy"',
-        )
-        self.assertContains(servicios, 'Maquillaje social, novia y eventos especiales.')
-        self.assertContains(servicios, 'Desde $22.000')
-        self.assertContains(servicios, '60 min')
-        self.assertContains(
-            servicios,
-            f'href="{reverse("cliente_agendamiento")}?servicio={maquillaje.pk}"',
-        )
-        maquillaje_categoria = self.client.get(
-            reverse('cliente_servicios'),
-            {'categoria': 'maquillaje'},
-        )
-        self.assertContains(
-            maquillaje_categoria,
-            'data-service-gallery="all maquillaje"',
-        )
-        self.assertNotContains(
-            maquillaje_categoria,
-            'data-service-gallery="all maquillaje" hidden',
-        )
-        self.assertNotContains(
-            servicios,
-            'src="/static/img/depilacion_facial_galeria_brand.png"',
-        )
-        self.assertContains(servicios, 'class="h-auto w-full object-contain"')
-        self.assertContains(servicios, 'Rostro completo')
-        self.assertContains(servicios, '$10.000')
-        self.assertContains(servicios, 'data-service-gallery="all peinados"')
-        self.assertContains(servicios, 'src="/static/img/peinados_galeria_brand.png"')
-        self.assertNotContains(servicios, 'Peinado sencillo')
-        self.assertNotContains(servicios, peinado_sencillo.descripcion)
-        self.assertNotContains(
-            servicios,
-            f'aria-label="Consultar por WhatsApp sobre {peinado_sencillo.nombre}"',
-        )
-        self.assertContains(servicios, 'data-service-gallery="all coloracion"')
-        self.assertContains(servicios, 'data-service-gallery="all podologia"')
-        self.assertContains(servicios, 'data-service-gallery="all lash_brow"')
-        self.assertContains(servicios, 'src="/static/img/lash_brow_afiche_dorado.png"')
-        self.assertContains(servicios, 'class="lash-brow-gallery-image"')
-        self.assertNotContains(servicios, 'Tratamientos de pestañas y cejas.')
-        self.assertContains(
-            servicios,
-            'class="order-8 overflow-hidden border border-[#c9a56b] bg-[#fffaf0]"',
-        )
-        self.assertNotContains(servicios, '2 horas')
-        self.assertEqual(lash_brow.duracion_minutos, 120)
-        self.assertNotContains(servicios, 'data-service-gallery="all corte" hidden')
-        self.assertContains(servicios, 'Atención de lunes a sábado')
-        self.assertContains(servicios, 'servicesIntro.hidden = !showIntro')
-        self.assertNotContains(servicios, "galleryGrid.classList.toggle('sm:grid-cols-2'")
-        self.assertNotContains(servicios, "galleryGrid.classList.toggle('sm:grid-cols-1'")
-        tratamientos = self.client.get(
-            reverse('cliente_servicios'),
-            {'categoria': 'tratamientos'},
-        )
-        self.assertNotContains(tratamientos, 'data-service-category-filters')
-        self.assertContains(tratamientos, 'data-service-gallery="all tratamientos"')
-        self.assertNotContains(tratamientos, 'data-service-gallery="all tratamientos" hidden')
-        self.assertContains(tratamientos, 'data-service-gallery="all corte" hidden')
-        self.assertNotContains(tratamientos, 'Tratamiento capilar de prueba')
-        self.assertNotContains(tratamientos, 'Hidratación intensiva para un cabello suave y brillante.')
-        self.assertNotContains(
-            tratamientos,
-            'aria-label="Consultar por WhatsApp sobre Tratamiento capilar de prueba"',
-        )
-        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_afiche_dorado.png?v=20261026b"')
-        self.assertNotContains(servicios, 'Hidratación profunda, keratina, botox capilar y reconstrucción para cabello dañado.')
-        cortes = self.client.get(reverse('cliente_servicios'), {'categoria': 'corte'})
-        self.assertNotContains(cortes, 'data-service-category-filters')
-        self.assertContains(cortes, 'data-service-gallery="all corte"')
-        self.assertContains(cortes, 'class="haircut-photos h-auto w-full object-contain"')
-        self.assertContains(cortes, '.service-gallery-compact > img.haircut-photos')
-        self.assertContains(cortes, 'width: 100%;')
-        self.assertNotContains(cortes, 'src="/static/img/cortes_estilos_detalle.png"')
-        self.assertContains(cortes, 'data-service-gallery-grid class="grid grid-cols-1 gap-3"')
-        self.assertContains(cortes, 'TOMAR CITAS')
-        self.assertContains(
-            cortes,
-            f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}"',
-        )
-        self.assertContains(
-            agendamiento_corte,
-            f'<option value="{servicio.pk}" selected>',
-        )
-        self.assertContains(agendamiento_corte, 'if (service.value) return loadProfessionals()')
-        self.assertContains(cortes, 'class="font-medium"')
-        self.assertContains(cortes, '<h2 class="font-semibold text-[#281b14]">Cortes &amp; estilos</h2>')
-        self.assertNotContains(cortes, 'Corte &amp; Estilo')
-        self.assertNotContains(cortes, 'aria-label="Consultar por WhatsApp sobre Corte &amp; Estilo"')
-        self.assertContains(cortes, 'data-service-gallery="all tratamientos" hidden')
-        self.assertContains(cortes, 'data-service-gallery="all manos" hidden')
-        self.assertContains(cortes, 'data-service-gallery="all pedicure" hidden')
-        self.assertContains(cortes, 'data-service-gallery="all depilaciones" hidden')
-        self.assertContains(cortes, 'data-service-gallery="all peinados" hidden')
-        self.assertContains(cortes, 'class="service-gallery-compact order-1 overflow-hidden border border-[#ead7bc] bg-white"')
-        self.assertContains(servicios, 'src="/static/img/cortes_y_estilos_panel.png"')
-        self.assertContains(
-            servicios,
-            'alt="Galería de cortes y estilos de cabello de Nicolett Studio Fantasy"',
-        )
-        self.assertContains(servicios, 'src="/static/img/tratamientos_capilares_afiche_dorado.png?v=20261026b"')
-        corte_image_position = servicios.content.index(b'img/cortes_y_estilos_panel.png')
-        corte_title_position = servicios.content.index(
-            b'<h2 class="font-semibold text-[#281b14]">Cortes &amp; estilos</h2>',
-        )
-        tratamientos_image_position = servicios.content.index(b'img/tratamientos_capilares_afiche_dorado.png')
-        self.assertLess(corte_image_position, corte_title_position)
-        self.assertLess(corte_image_position, tratamientos_image_position)
-        gallery_image_positions = [
-            servicios.content.index(image.encode())
-            for image in (
-                'img/cortes_y_estilos_panel.png',
-                'img/tratamientos_capilares_afiche_dorado.png',
-                'img/manicura_lista_precios.png',
-                'img/depilacion_catalogo_afiche.png',
-                'img/peinados_galeria_brand.png',
+        with patch(
+            'usuarios.views.servicios_con_horarios_disponibles',
+            return_value={servicio.pk},
+        ):
+            services_response = self.client.get(
+                reverse('cliente_servicios'),
+                {'categoria': categoria_servicio.pk},
             )
-        ]
-        self.assertEqual(gallery_image_positions, sorted(gallery_image_positions))
-        self.assertContains(servicios, 'class="order-3 w-full overflow-hidden bg-transparent"')
-        self.assertContains(
-            servicios,
-            'class="service-gallery-compact order-4 overflow-hidden border border-[#ead7bc] bg-white p-2"',
-        )
-        self.assertContains(servicios, 'class="order-5 overflow-hidden border border-[#ead7bc] bg-white p-2"')
-        self.assertContains(cortes, 'class="haircut-photos h-auto w-full object-contain"')
-        self.assertContains(servicios, 'class="service-gallery-compact order-1 overflow-hidden border border-[#ead7bc] bg-white"')
-        self.assertContains(servicios, 'class="service-gallery-compact order-2 overflow-hidden border border-[#ead7bc] bg-white p-2"')
-        self.assertContains(servicios, 'class="px-2 pb-1 pt-1 text-xs leading-4 text-[#6b5643]"')
-        self.assertContains(
-            servicios,
-            'Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.',
-        )
+            booking_response = self.client.get(
+                reverse('cliente_agendamiento'),
+                {'servicio': servicio.pk},
+            )
+
+        self.assert_service_category_view_is_empty(services_response)
         self.assertEqual(
-            servicios.content.count(
-                'Cortes modernos y clásicos adaptados a tu tipo de rostro, con secado y peinado incluido.'.encode(),
-            ),
-            1,
+            [item.pk for item in services_response.context['servicios']],
+            [servicio.pk],
         )
-        self.assertEqual(
-            servicios.content.count(b'src="/static/img/depilacion_facial_galeria_brand.png"'),
-            0,
+        self.assertContains(booking_response, f'<option value="{servicio.pk}" selected>')
+        self.assertNotContains(booking_response, 'Inactive service test')
+
+        products_response = self.client.get(
+            reverse('cliente_productos'),
+            {'categoria': categoria_producto.pk},
         )
-        self.assertContains(servicios, 'src="/static/img/podologia_galeria_dorada.png?v=20261026a"')
-        self.assertContains(
-            servicios,
-            'alt="Afiche dorado de podología con tratamientos y niveles de complejidad de uñas encarnadas"',
-        )
-        self.assertContains(servicios, 'class="podology-flyer"')
-        self.assertNotContains(servicios, f'id="servicio-{podologia.pk}"')
-        self.assertContains(
-            servicios,
-            f'href="{reverse("cliente_agendamiento")}?servicio={podologia.pk}" aria-label="Agendar cita para Podología"',
-        )
-        self.assertContains(servicios, 'src="/static/img/manicura_lista_precios.png"')
-        self.assertContains(
-            servicios,
-            'alt="Lista completa de precios de manicura Nicolett Studio Fantasy con servicios y adicionales"',
-        )
-        self.assertNotContains(
-            servicios,
-            '<h2 class="font-semibold text-[#281b14]">Nail Care &amp; Beauty</h2>',
-        )
-        self.assertContains(
-            servicios,
-            'class="nail-care-gallery-image"',
-        )
-        self.assertContains(servicios, 'width: 100%;')
-        self.assertContains(servicios, 'height: auto;')
-        self.assertContains(servicios, 'object-fit: contain;')
-        self.assertNotContains(servicios, 'Los adicionales se cobran aparte según el diseño elegido.')
-        self.assertNotContains(servicios, 'src="/static/img/nail_care/permanente.png"')
-        self.assertNotContains(servicios, 'Manicure clásica de prueba')
-        self.assertNotContains(servicios, manicure_prueba.descripcion)
-        self.assertNotContains(
-            servicios,
-            f'aria-label="Consultar por WhatsApp sobre {manicure_prueba.nombre}"',
-        )
-        self.assertContains(servicios, 'aria-label="Agendar cita para')
-        self.assertNotContains(servicios, 'src="/static/img/manicure_pedicure.jpg" alt="Podología"')
-        self.assertContains(servicios, 'src="/static/img/colorimetria_afiche_dorado.png?v=20261026a"')
-        self.assertContains(
-            servicios,
-            'alt="Afiche dorado de servicios de coloración Nicolett Studio Fantasy con opciones y precios"',
-        )
-        self.assertEqual(
-            servicios.content.count(
-                f'href="{reverse("cliente_agendamiento")}?servicio={colorimetria.pk}"'.encode(),
-            ),
-            7,
-        )
-        self.assertNotContains(servicios, f'id="servicio-{colorimetria.pk}"')
-        self.assertNotContains(servicios, 'Tratamientos capilares</h2>')
-        self.assertContains(servicios, 'src="/static/img/peinados_galeria_brand.png"')
-        self.assertContains(servicios, 'Peinados con estilo para realzar tu belleza en cada ocasión.')
-        self.assertContains(servicios, 'src="/static/img/podologia_galeria_dorada.png?v=20261026a"')
-        self.assertContains(
-            servicios,
-            'alt="Afiche dorado de podología con tratamientos y niveles de complejidad de uñas encarnadas"',
-        )
-        self.assertContains(
-            servicios,
-            'alt="Catálogo completo de depilación Nicolett Studio Fantasy con precios y botones para agendar citas"',
-        )
-        self.assertContains(cortes, 'Corte de prueba')
-        self.assertContains(cortes, 'Servicio de prueba para clientes.')
-        self.assertContains(cortes, '$15.000')
-        self.assertContains(cortes, 'TOMAR CITAS')
-        servicio_catalogo = next(
-            item for item in cortes.context['servicios'] if item.pk == servicio.pk
-        )
-        self.assertContains(
-            cortes,
-            f'href="{servicio_catalogo.whatsapp_url}" target="_blank" rel="noopener noreferrer"',
-        )
-        mensaje_servicio = parse_qs(
-            urlparse(servicio_catalogo.whatsapp_url).query,
-        )['text'][0]
-        self.assertIn('Hola, soy CLIENTE PRUEBA PRUEBA.', mensaje_servicio)
-        self.assertIn('CORTE DE PRUEBA', mensaje_servicio)
-        depilaciones = self.client.get(
-            reverse('cliente_servicios'),
-            {'categoria': 'depilaciones'},
-        )
-        precios_depilacion = {
-            'Pierna completa': 15000,
-            'Media pierna': 7000,
-            'Brazo completo': 13000,
-            'Medio brazo': 6000,
-            'Axila': 5000,
-            'Rebaje completo': 15000,
-            'Medio rebaje': 10000,
-            'Rostro completo': 10000,
-            'Bozo': 5000,
-            'Cejas': 5000,
-            'Nariz': 5000,
-            'Oídos': 5000,
-            'Mentón': 3000,
-        }
-        servicios_depilacion = Servicio.objects.filter(
-            categoria=categoria_depilacion,
-            activo=True,
-        )
-        self.assertEqual(
-            {servicio.nombre: servicio.precio for servicio in servicios_depilacion},
-            precios_depilacion,
-        )
-        self.assertEqual(
-            {servicio.duracion_minutos for servicio in servicios_depilacion},
-            {30},
-        )
-        self.assertContains(
-            depilaciones,
-            'src="/static/img/depilacion_catalogo_afiche.png?v=20261025c"',
-        )
-        self.assertContains(
-            depilaciones,
-            f'aria-label="Agendar cita para {depilacion_facial.nombre}"',
-        )
-        self.assertNotContains(
-            depilaciones,
-            f'aria-label="Consultar por WhatsApp sobre {depilacion_facial.nombre}"',
-        )
-        peinados = self.client.get(
-            reverse('cliente_servicios'),
-            {'categoria': 'peinados'},
-        )
-        self.assertNotContains(peinados, 'Peinado sencillo')
-        self.assertContains(peinados, '$10.000')
-        self.assertContains(peinados, 'AGENDAR CITA')
-        self.assertContains(
-            peinados,
-            f'href="{reverse("cliente_agendamiento")}?servicio={peinado_sencillo.pk}"',
-        )
-        self.assertContains(servicios, 'Depilación')
-        self.assertContains(servicios, 'data-service-gallery="all corte"')
-        self.assertNotContains(servicios, 'descuento')
-        self.assertNotContains(servicios, 'OFF')
-        self.assertNotContains(servicios, 'data-gallery-filter=')
-        self.assertContains(servicios, 'function showServiceGallery(category)')
-        self.assertContains(servicios, "gallery.hidden = category === 'pedicure'")
-        self.assertNotContains(servicios, 'haircutRelatedGalleries')
-        self.assertNotContains(servicios, 'isHaircutRelated')
-        self.assertContains(servicios, "showServiceGallery(initialCategory || 'todos')")
-        self.assertNotContains(servicios, 'Barbería')
-        self.assertContains(servicios, 'border-[#ead7bc]')
-        self.assertContains(servicios, 'TOMAR CITAS')
-        self.assertContains(
-            servicios,
-            f'href="{reverse("cliente_agendamiento")}?servicio={servicio.pk}"',
-        )
-        respuesta_carrito = self.client.post(
-            reverse('cliente_carrito_agregar_servicio', args=[servicio.pk]),
-            {'return_to': reverse('cliente_servicios')},
-        )
-        self.assertRedirects(respuesta_carrito, reverse('cliente_servicios'))
-        respuesta_carrito_peinado = self.client.post(
-            reverse('cliente_carrito_agregar_servicio', args=[peinado_sencillo.pk]),
-            {'return_to': reverse('cliente_servicios')},
-        )
-        self.assertRedirects(respuesta_carrito_peinado, reverse('cliente_servicios'))
-        self.assertEqual(
-            {
-                item['id']
-                for item in self.client.session['carrito_compra']['servicios']
-            },
-            {servicio.pk, peinado_sencillo.pk},
-        )
-        self.assertNotContains(
-            servicios,
-            'mt-auto flex items-center justify-between border-t border-[#ead7bc] pt-4 text-sm',
-        )
-        self.assertNotContains(servicios, 'id="catalog-grid"')
-        self.assertContains(servicios, 'aria-label="Servicios"')
-        self.assertContains(servicios, 'Buscar servicios, productos...')
-        self.assertNotContains(servicios, 'resultados')
-        ordenados = self.client.get(reverse('cliente_servicios'), {'orden': 'precio_desc'})
-        servicios_ordenados = list(ordenados.context['servicios'])
-        self.assertEqual(
-            [item.precio for item in servicios_ordenados],
-            sorted((item.precio for item in servicios_ordenados), reverse=True),
-        )
-        self.assertIn(colorimetria, servicios_ordenados)
-        self.assertNotContains(servicios, 'Aquí podrás conocer los servicios disponibles.')
-        self.assertNotContains(servicios, 'border-b border-[#ead7bc] p-6 sm:p-8')
-        self.assertContains(productos, 'Shampoo de prueba')
-        self.assertContains(productos, '$9.900')
-        self.assertNotContains(productos, 'Producto oculto')
-        self.assertNotContains(productos, 'Producto sin stock')
-        self.assertContains(productos, 'id="catalog-search"')
-        self.assertContains(productos, 'data-category-filter="Cuidado capilar"')
-        self.assertNotContains(productos, 'data-category-filter="Tratamientos"')
-        self.assertContains(productos, 'border-[#ead7bc]')
-        self.assertContains(productos, 'Producto de prueba para clientes.')
-        self.assertContains(productos, 'data-image-zoom-action="in"')
-        self.assertContains(productos, 'data-zoomable-image')
-        self.assertNotContains(
-            productos,
-            'mt-auto flex items-center justify-between border-t border-[#ead7bc] pt-4 text-sm',
-        )
-        self.assertContains(productos, 'data-catalog-item')
-        self.assertNotContains(productos, 'Al añadir un producto, su stock se reserva')
-        self.assertContains(productos, 'aria-label="Productos"')
-        self.assertContains(productos, 'Nombre: Z-A')
-        self.assertNotContains(productos, 'Aquí podrás revisar los productos del estudio.')
-        self.assertNotContains(productos, 'border-b border-[#ead7bc] p-6 sm:p-8')
-        self.assertNotContains(productos, 'overflow-auto bg-[#fae9cf]')
-        self.assertContains(
-            productos,
-            f'action="{reverse("cliente_carrito_agregar_producto", args=[producto.pk])}"',
-        )
-        producto_catalogo = productos.context['productos'][0]
-        self.assertContains(
-            productos,
-            f'href="{producto_catalogo.whatsapp_url}" target="_blank" rel="noopener noreferrer"',
-        )
-        mensaje_producto = parse_qs(
-            urlparse(producto_catalogo.whatsapp_url).query,
-        )['text'][0]
-        self.assertIn('Hola, soy CLIENTE PRUEBA PRUEBA.', mensaje_producto)
-        self.assertIn('SHAMPOO DE PRUEBA', mensaje_producto)
+        self.assertContains(products_response, 'Available product test')
+        self.assertNotContains(products_response, 'Inactive product test')
+        self.assertNotContains(products_response, 'Out of stock product test')
 
     def test_client_about_page_shows_brand_story_and_verified_contact_options(self):
         self.client.force_login(self.crear_cliente())
@@ -1824,25 +1132,7 @@ class RoleAccessTests(TestCase):
             )['text'][0]
             self.assertIn(nombre.upper(), mensaje_categoria)
             self.assertIn('Hola, soy CLIENTE PRUEBA PRUEBA.', mensaje_categoria)
-            self.assertContains(
-                response,
-                f'href="{categorias[categoria]}" target="_blank" rel="noopener noreferrer"',
-            )
-        for label in (
-            'Corte y Estilo',
-            'Tratamientos capilares',
-            'Manicure y Pedicure',
-            'Depilación',
-            'Peinados',
-            'Colorimetría',
-            'Podología',
-            'Lash &amp; Brow',
-            'Maquillaje',
-        ):
-            self.assertContains(
-                response,
-                f'aria-label="Consultar por WhatsApp sobre {label}"',
-            )
+        self.assertNotContains(response, 'Consultar por WhatsApp sobre')
 
         productos = self.client.get(reverse('cliente_productos'))
         mensaje_productos = parse_qs(
@@ -1875,8 +1165,18 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'id="clientMenuBackdrop"')
         self.assertContains(response, 'id="clientSidebarCollapseToggle"')
         self.assertContains(response, 'client-sidebar-tools')
+        self.assertContains(response, 'client-sidebar-brand-initial')
+        self.assertContains(response, 'nicolett-client-sidebar-collapsed')
+        self.assertContains(response, 'positionCategoryPopover')
+        self.assertContains(response, 'menu.submenu.style.left')
+        self.assertContains(response, 'clientProductsToggle')
+        self.assertRegex(
+            response.content.decode(),
+            r'<div class="client-sidebar-tools[^"]*">[\s\S]*?id="clientSidebarCollapseToggle"',
+        )
         self.assertContains(response, 'data-collapsed="false"')
         self.assertContains(response, 'client-sidebar-label')
+        self.assertContains(response, 'client-topbar-actions')
         self.assertContains(response, 'Mis citas')
         self.assertNotContains(response, 'Gestionar citas')
         self.assertContains(response, 'client-sidebar[data-open="true"]')
@@ -1905,10 +1205,11 @@ class RoleAccessTests(TestCase):
         self.client.force_login(self.crear_cliente())
 
         address_response = self.client.get(reverse('cliente_busqueda'), {'q': 'direcciones'})
-        services_response = self.client.get(reverse('cliente_busqueda'), {'q': 'hidratacion'})
-        product_response = self.client.get(reverse('cliente_busqueda'), {'q': 'mascarilla'})
+        services_response = self.client.get(reverse('cliente_busqueda'), {'q': 'hidra'})
+        product_response = self.client.get(reverse('cliente_busqueda'), {'q': 'mascar'})
         empty_response = self.client.get(reverse('cliente_busqueda'), {'q': 'noexiste'})
 
+        self.assertContains(self.client.get(reverse('cliente_home')), 'No hay coincidencias existentes para')
         address_results = address_response.json()['results']
         self.assertEqual(
             {result['title'] for result in address_results},
@@ -2269,7 +1570,7 @@ class RoleAccessTests(TestCase):
         )
         self.assertContains(response, 'Cambiar vista')
         self.assertContains(response, reverse('admin_vista_cliente'))
-        self.assertContains(response, 'dashboard.css?v=20261027-5')
+        self.assertContains(response, 'dashboard.css?v=20261103-2')
 
     def test_customer_can_update_account_details_and_password(self):
         cliente = self.crear_cliente()
@@ -2394,56 +1695,9 @@ class RoleAccessTests(TestCase):
             deleted_at__isnull=True,
         ).exists())
 
-    def test_customer_payment_history_is_private_and_lists_transactions(self):
-        cliente = self.crear_cliente()
-        otro_cliente = Usuario.objects.create_user(
-            email='otra.pago@example.com',
-            password='Cliente123!',
-            nombre='Otra',
-            apellido_paterno='Cliente',
-            apellido_materno='Prueba',
-            telefono='+56900000000',
-            rol=self.client_role,
-        )
-        pedido = Pedido.objects.create(
-            cliente=cliente,
-            total=10000,
-            monto_pagado=5000,
-            estado='abono',
-        )
-        PagoSimulado.objects.create(
-            pedido=pedido,
-            monto=5000,
-            transaccion_id='transaction-visible',
-        )
-        DetallePedido.objects.create(
-            pedido=pedido,
-            tipo='producto',
-            nombre='Producto de pago',
-            cantidad=2,
-            precio_unitario=2500,
-            monto_pagado=5000,
-            modalidad_pago='no_aplica',
-        )
-        pedido_ajeno = Pedido.objects.create(
-            cliente=otro_cliente,
-            total=20000,
-            monto_pagado=20000,
-            estado='pagado',
-        )
-        PagoSimulado.objects.create(
-            pedido=pedido_ajeno,
-            monto=20000,
-            transaccion_id='transaction-private',
-        )
-        self.client.force_login(cliente)
+    def test_customer_payment_history_route_is_removed(self):
+        self.client.force_login(self.crear_cliente())
 
-        response = self.client.get(reverse('cliente_historial_pagos'))
+        response = self.client.get('/cliente/historial-pagos/')
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'transaction-visible')
-        self.assertContains(response, 'Pago parcial')
-        self.assertContains(response, 'Producto de pago')
-        self.assertContains(response, '2 × $2.500')
-        self.assertContains(response, '$5.000')
-        self.assertNotContains(response, 'transaction-private')
+        self.assertEqual(response.status_code, 404)

@@ -3,13 +3,14 @@ import tempfile
 from datetime import datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
+from openpyxl import Workbook, load_workbook
 
 from .models import Categoria, Producto, Servicio
 from usuarios.models import Rol, Usuario
@@ -64,6 +65,21 @@ class ServiciosPageTests(TestCase):
             activo=True,
         )
 
+    def excel_file(self, headers, rows, name='catalogo.xlsx'):
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.append(headers)
+        for row in rows:
+            worksheet.append(row)
+        content = BytesIO()
+        workbook.save(content)
+        workbook.close()
+        return SimpleUploadedFile(
+            name,
+            content.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+
     def test_servicios_page_renders_service_and_category_controls(self):
         servicio = self.crear_servicio()
         response = self.client.get(reverse('listar_servicios'))
@@ -82,6 +98,7 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, 'id="adminSidebar"')
         self.assertContains(response, 'class="sidebar-brand-row"')
         self.assertContains(response, 'admin-sidebar-collapsed')
+        self.assertContains(response, 'nicolett-staff-sidebar-collapsed')
         self.assertContains(response, 'admin-sidebar-open')
         self.assertContains(response, 'class="sidebar-catalog-menu" open')
         self.assertContains(response, f'href="{reverse("listar_servicios")}?categoria={self.categoria.pk}"')
@@ -118,6 +135,26 @@ class ServiciosPageTests(TestCase):
         list_response = self.client.get(reverse('listar_servicios'), {'categoria': self.categoria.pk})
         self.assertContains(list_response, 'data-live-filter="#serviciosTabla"')
         self.assertContains(list_response, 'data-filter-row')
+        self.assertContains(list_response, 'Ordenar: A-Z')
+        self.assertContains(list_response, 'Mayor precio a menor')
+        self.assertContains(list_response, 'Seleccionar todos los servicios')
+        self.assertContains(list_response, 'Importar registros')
+        self.assertContains(list_response, 'data-bulk-action="activate"')
+        self.assertContains(list_response, 'data-bulk-action="deactivate"')
+        self.assertContains(list_response, 'id="bulkStatusServiciosForm"')
+        self.assertContains(list_response, 'id="bulkDeleteConfirmationModal"')
+        self.assertContains(list_response, 'modal-dialog modal-dialog-centered')
+        self.assertContains(list_response, 'data-bulk-confirmation-count')
+        self.assertContains(list_response, 'Eliminar seleccionados')
+        self.assertLess(
+            list_response.content.index(b'data-select-all="#serviciosTabla"'),
+            list_response.content.index(b'>IMAGEN</th>'),
+        )
+        self.assertLess(
+            list_response.content.index(b'name="ids"'),
+            list_response.content.index(b'Sin imagen'),
+        )
+        self.assertNotContains(list_response, 'Todas las categorías')
         self.assertContains(list_response, 'Manicure clásica')
         self.assertEqual(
             set(list_response.context['servicios'].values_list('categoria_id', flat=True)),
@@ -168,6 +205,304 @@ class ServiciosPageTests(TestCase):
         category_ids = set(response.context['servicios'].values_list('categoria_id', flat=True))
         self.assertIn(self.categoria.pk, category_ids)
         self.assertIn(otra_categoria.pk, category_ids)
+
+    def test_service_category_counters_only_count_selected_category(self):
+        self.crear_servicio()
+        Servicio.objects.create(
+            nombre='Manicure express',
+            categoria=self.categoria,
+            descripcion='',
+            precio='8000',
+            duracion_minutos=30,
+            activo=False,
+        )
+        otra_categoria = Categoria.objects.create(nombre='Depilación', tipo='servicio')
+        Servicio.objects.create(
+            nombre='Depilación facial',
+            categoria=otra_categoria,
+            descripcion='',
+            precio='5000',
+            duracion_minutos=20,
+            activo=True,
+        )
+
+        response = self.client.get(reverse('listar_servicios'), {'categoria': self.categoria.pk})
+
+        self.assertEqual(response.context['total_servicios'], 2)
+        self.assertEqual(response.context['total_activos'], 1)
+        self.assertEqual(response.context['total_inactivos'], 1)
+
+    def test_service_excel_export_button_is_disabled_when_category_is_empty(self):
+        response = self.client.get(
+            reverse('listar_servicios'),
+            {'categoria': self.categoria.pk},
+        )
+
+        self.assertContains(response, 'Exportar registros')
+        self.assertContains(response, 'catalog-toolbar-export text-uppercase disabled')
+        self.assertContains(response, 'aria-disabled="true"')
+        self.assertFalse(response.context['hay_registros_excel'])
+        self.assertContains(response, reverse('plantilla_servicios_excel'))
+
+    def test_service_excel_export_is_limited_to_selected_category(self):
+        servicio = self.crear_servicio()
+        otra_categoria = Categoria.objects.create(nombre='Depilación', tipo='servicio')
+        Servicio.objects.create(
+            nombre='Depilación facial',
+            categoria=otra_categoria,
+            descripcion='',
+            precio='5000',
+            duracion_minutos=20,
+        )
+
+        response = self.client.get(
+            reverse('exportar_servicios_excel'),
+            {'categoria': self.categoria.pk},
+        )
+        exported = load_workbook(BytesIO(response.content), read_only=True)
+        worksheet = exported.active
+        rows = list(worksheet.values)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(rows[0], ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Duración (minutos)', 'Activo'))
+        self.assertEqual(rows[1][1], 'Manicure clásica')
+        self.assertEqual(rows[1][0], servicio.pk)
+        self.assertEqual(len(rows), 2)
+        exported.close()
+
+    def test_service_excel_import_uses_selected_category(self):
+        upload = self.excel_file(
+            ('Nombre', 'Categoría', 'Descripción', 'Precio', 'Duración (minutos)', 'Activo'),
+            [('Manicure spa', '', 'Tratamiento relajante', 15000, 60, 'Activo')],
+        )
+
+        response = self.client.post(
+            f"{reverse('importar_servicios_excel')}?categoria={self.categoria.pk}",
+            {'archivo': upload},
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('listar_servicios')}?categoria={self.categoria.pk}",
+        )
+        imported = Servicio.objects.get(nombre='Manicure spa')
+        self.assertEqual(imported.categoria, self.categoria)
+        self.assertEqual(imported.precio, Decimal('15000'))
+        self.assertTrue(imported.activo)
+
+    def test_service_excel_import_updates_existing_rows_and_adds_only_new_rows(self):
+        existing = self.crear_servicio()
+        upload = self.excel_file(
+            ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Duración (minutos)', 'Activo'),
+            [
+                (existing.pk, existing.nombre, self.categoria.nombre, 'Descripción revisada', 13500, 50, 'Desactivado'),
+                ('', 'Manicure spa', self.categoria.nombre, 'Tratamiento spa', 16000, 60, 'Activo'),
+                ('', 'Manicure express', self.categoria.nombre, 'Servicio express', 9000, 30, 'Activo'),
+            ],
+        )
+
+        response = self.client.post(
+            f"{reverse('importar_servicios_excel')}?categoria={self.categoria.pk}",
+            {'archivo': upload},
+            follow=True,
+        )
+
+        self.assertContains(response, 'Importación completada')
+        self.assertEqual(Servicio.objects.filter(categoria=self.categoria).count(), 3)
+        existing.refresh_from_db()
+        self.assertEqual(existing.descripcion, 'Descripción revisada')
+        self.assertEqual(existing.precio, Decimal('13500'))
+        self.assertFalse(existing.activo)
+        self.assertTrue(Servicio.objects.filter(nombre='Manicure spa').exists())
+        self.assertTrue(Servicio.objects.filter(nombre='Manicure express').exists())
+
+    def test_service_import_rejects_duplicate_name_description_price_even_if_duration_differs(self):
+        existing = self.crear_servicio()
+        upload = self.excel_file(
+            ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Duración (minutos)', 'Activo'),
+            [('', existing.nombre, self.categoria.nombre, existing.descripcion, existing.precio, 90, 'Desactivado')],
+        )
+
+        response = self.client.post(
+            f"{reverse('importar_servicios_excel')}?categoria={self.categoria.pk}",
+            {'archivo': upload},
+            follow=True,
+        )
+
+        self.assertEqual(Servicio.objects.filter(categoria=self.categoria).count(), 1)
+        self.assertContains(response, 'Ya existe un servicio con estas características.')
+
+    def test_bulk_delete_services_deletes_only_selected_ids(self):
+        first = self.crear_servicio()
+        second = Servicio.objects.create(
+            nombre='Manicure express',
+            categoria=self.categoria,
+            descripcion='',
+            precio='8000',
+            duracion_minutos=30,
+        )
+
+        with patch('agenda.services.desactivar_servicio_y_cancelar_citas', return_value=(0, 0, 0, 0)):
+            response = self.client.post(
+                f"{reverse('eliminar_servicios_seleccionados')}?categoria={self.categoria.pk}",
+                {'ids': [first.pk]},
+            )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('listar_servicios')}?categoria={self.categoria.pk}",
+        )
+        self.assertFalse(Servicio.objects.filter(pk=first.pk).exists())
+        self.assertTrue(Servicio.objects.filter(pk=second.pk).exists())
+
+    def test_bulk_delete_services_preserves_sales_history_and_redirects_to_category(self):
+        from ventas.models import DetalleVenta, Venta
+
+        service_with_sale = self.crear_servicio()
+        service_to_delete = Servicio.objects.create(
+            nombre='Manicure express',
+            categoria=self.categoria,
+            descripcion='',
+            precio='8000',
+            duracion_minutos=30,
+        )
+        sale = Venta.objects.create(
+            cliente=Usuario.objects.get(is_superuser=True),
+            total='12000',
+        )
+        detail = DetalleVenta.objects.create(
+            venta=sale,
+            servicio=service_with_sale,
+            cantidad=1,
+            subtotal='12000',
+            item_nombre=service_with_sale.nombre,
+            item_descripcion=service_with_sale.descripcion,
+            precio_unitario=service_with_sale.precio,
+        )
+
+        response = self.client.post(
+            f"{reverse('eliminar_servicios_seleccionados')}?categoria={self.categoria.pk}",
+            {'ids': [service_with_sale.pk, service_to_delete.pk]},
+            follow=True,
+        )
+
+        self.assertEqual(
+            response.redirect_chain,
+            [(f"{reverse('listar_servicios')}?categoria={self.categoria.pk}", 302)],
+        )
+        self.assertFalse(Servicio.objects.filter(pk=service_to_delete.pk).exists())
+        self.assertFalse(Servicio.objects.filter(pk=service_with_sale.pk).exists())
+        detail.refresh_from_db()
+        self.assertIsNone(detail.servicio_id)
+        self.assertEqual(detail.item_nombre, service_with_sale.nombre)
+        self.assertEqual(detail.item_descripcion, service_with_sale.descripcion)
+        self.assertEqual(detail.precio_unitario, Decimal(service_with_sale.precio))
+        self.assertContains(response, 'Se eliminaron 2 servicios correctamente.')
+
+    def test_bulk_delete_services_rejects_ids_outside_selected_category(self):
+        service = self.crear_servicio()
+        other_category = Categoria.objects.create(nombre='Depilación', tipo='servicio')
+        other_service = Servicio.objects.create(
+            nombre='Depilación facial',
+            categoria=other_category,
+            descripcion='',
+            precio='5000',
+            duracion_minutos=20,
+        )
+
+        response = self.client.post(
+            f"{reverse('eliminar_servicios_seleccionados')}?categoria={self.categoria.pk}",
+            {'ids': [service.pk, other_service.pk]},
+            follow=True,
+        )
+
+        self.assertTrue(Servicio.objects.filter(pk=service.pk).exists())
+        self.assertTrue(Servicio.objects.filter(pk=other_service.pk).exists())
+        self.assertContains(response, 'fuera de esta vista')
+
+    def test_bulk_service_status_actions_update_selected_category_and_show_success(self):
+        first = self.crear_servicio()
+        second = Servicio.objects.create(
+            nombre='Manicure express',
+            categoria=self.categoria,
+            descripcion='',
+            precio='8000',
+            duracion_minutos=30,
+            activo=False,
+        )
+        other_category = Categoria.objects.create(nombre='Pedicure', tipo='servicio')
+        other_service = Servicio.objects.create(
+            nombre='Pedicure spa',
+            categoria=other_category,
+            descripcion='',
+            precio='18000',
+            duracion_minutos=60,
+            activo=False,
+        )
+        return_url = f"{reverse('listar_servicios')}?categoria={self.categoria.pk}"
+
+        deactivate_response = self.client.post(
+            f"{reverse('cambiar_estado_servicios_seleccionados')}?categoria={self.categoria.pk}",
+            {'ids': [first.pk, second.pk], 'estado': 'inactivo'},
+            follow=True,
+        )
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        other_service.refresh_from_db()
+        self.assertEqual(deactivate_response.redirect_chain, [(return_url, 302)])
+        self.assertFalse(first.activo)
+        self.assertFalse(second.activo)
+        self.assertFalse(other_service.activo)
+        self.assertContains(deactivate_response, 'Se desactivó 1 servicio correctamente.')
+
+        activate_response = self.client.post(
+            f"{reverse('cambiar_estado_servicios_seleccionados')}?categoria={self.categoria.pk}",
+            {'ids': [first.pk, second.pk], 'estado': 'activo'},
+            follow=True,
+        )
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertTrue(first.activo)
+        self.assertTrue(second.activo)
+        self.assertContains(activate_response, 'Se activaron 2 servicios correctamente.')
+
+    def test_bulk_service_deactivation_blocks_selection_with_upcoming_appointments(self):
+        service = self.crear_servicio()
+        upcoming_queryset = MagicMock()
+        upcoming_queryset.exists.return_value = True
+        with patch(
+            'agenda.services.reservas_activas_futuras',
+            return_value=upcoming_queryset,
+        ):
+            response = self.client.post(
+                f"{reverse('cambiar_estado_servicios_seleccionados')}?categoria={self.categoria.pk}",
+                {'ids': [service.pk], 'estado': 'inactivo'},
+                follow=True,
+            )
+
+        service.refresh_from_db()
+        self.assertTrue(service.activo)
+        self.assertContains(response, 'No se desactivaron los servicios')
+        self.assertContains(response, 'citas futuras')
+
+    def test_bulk_delete_services_does_not_bypass_upcoming_appointment_confirmation(self):
+        service = self.crear_servicio()
+        upcoming_queryset = MagicMock()
+        upcoming_queryset.exists.return_value = True
+        with patch(
+            'agenda.services.reservas_activas_futuras',
+            return_value=upcoming_queryset,
+        ):
+            response = self.client.post(
+                f"{reverse('eliminar_servicios_seleccionados')}?categoria={self.categoria.pk}",
+                {'ids': [service.pk]},
+                follow=True,
+            )
+
+        self.assertTrue(Servicio.objects.filter(pk=service.pk).exists())
+        self.assertContains(response, 'Elimínalos individualmente')
 
     def test_admin_services_week_gallery_reuses_customer_photos_without_cart(self):
         servicio = self.crear_servicio()
@@ -227,6 +562,28 @@ class ServiciosPageTests(TestCase):
         self.assertEqual(str(servicio.precio), '18000.00')
         self.assertFalse(servicio.activo)
 
+    def test_edit_service_returns_to_selected_category_and_shows_success_message(self):
+        servicio = self.crear_servicio()
+        return_url = f'{reverse("listar_servicios")}?categoria={self.categoria.pk}'
+        listing = self.client.get(reverse('listar_servicios'), {'categoria': self.categoria.pk})
+        self.assertContains(
+            listing,
+            f'name="return_categoria" value="{self.categoria.pk}"',
+        )
+
+        response = self.client.post(
+            reverse('editar_servicio', args=[servicio.pk]),
+            {
+                **self.servicio_data(nombre='Manicure actualizada'),
+                'return_categoria': str(self.categoria.pk),
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.redirect_chain, [(return_url, 302)])
+        self.assertEqual(response.request['QUERY_STRING'], f'categoria={self.categoria.pk}')
+        self.assertContains(response, 'El servicio se actualizó correctamente.')
+
     def test_service_can_be_activated_and_deactivated(self):
         servicio = self.crear_servicio()
         url = reverse('cambiar_estado_servicio', args=[servicio.pk])
@@ -240,7 +597,19 @@ class ServiciosPageTests(TestCase):
         self.assertTrue(servicio.activo)
 
     def test_delete_service_requires_post_and_removes_database_record(self):
+        from ventas.models import DetalleVenta, Venta
+
         servicio = self.crear_servicio()
+        venta = Venta.objects.create(cliente=Usuario.objects.get(is_superuser=True), total='12000')
+        detalle = DetalleVenta.objects.create(
+            venta=venta,
+            servicio=servicio,
+            cantidad=1,
+            subtotal='12000',
+            item_nombre=servicio.nombre,
+            item_descripcion=servicio.descripcion or '',
+            precio_unitario=servicio.precio,
+        )
         url = reverse('eliminar_servicio', args=[servicio.pk])
 
         self.assertEqual(self.client.get(url).status_code, 405)
@@ -248,6 +617,10 @@ class ServiciosPageTests(TestCase):
 
         self.assertRedirects(response, reverse('listar_servicios'))
         self.assertFalse(Servicio.objects.filter(pk=servicio.pk).exists())
+        detalle.refresh_from_db()
+        self.assertIsNone(detalle.servicio_id)
+        self.assertEqual(detalle.item_nombre, servicio.nombre)
+        self.assertEqual(detalle.precio_unitario, Decimal(servicio.precio))
 
     def test_delete_service_also_removes_its_image_from_media_storage(self):
         response = self.client.post(
@@ -367,6 +740,12 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, 'Aceite nutritivo')
         self.assertContains(response, 'Cuidado en casa')
         self.assertContains(response, 'Aceites (producto)')
+        self.assertContains(response, 'id="bulkDeleteConfirmationModal"')
+        self.assertContains(response, 'data-bulk-action="activate"')
+        self.assertContains(response, 'data-bulk-action="deactivate"')
+        self.assertContains(response, 'id="bulkStatusProductosForm"')
+        self.assertContains(response, 'data-bulk-confirmation-count')
+        self.assertContains(response, 'Eliminar seleccionados')
         self.assertNotContains(response, 'data-manage-categories')
         self.assertNotContains(response, 'data-create-category')
         self.assertNotContains(response, 'listaCategoriasInlineProducto')
@@ -485,15 +864,15 @@ class ServiciosPageTests(TestCase):
         self.assertFalse(producto.activo)
         self.assertTrue(producto.imagen_url.storage.exists(producto.imagen_url.name))
 
-    def test_create_product_requires_an_image(self):
+    def test_create_product_can_be_saved_without_an_image(self):
         response = self.client.post(
             reverse('crear_producto'),
             self.producto_data(),
-            follow=True,
         )
 
-        self.assertFalse(Producto.objects.exists())
-        self.assertContains(response, 'Este campo es obligatorio.')
+        self.assertRedirects(response, reverse('admin_productos'))
+        producto = Producto.objects.get(nombre='Aceite nutritivo')
+        self.assertFalse(producto.imagen_url)
 
     def test_edit_product_updates_stock_price_category_and_status(self):
         producto = self.crear_producto()
@@ -517,6 +896,31 @@ class ServiciosPageTests(TestCase):
         self.assertEqual(str(producto.precio), '15990.00')
         self.assertEqual(producto.stock, 4)
         self.assertFalse(producto.activo)
+
+    def test_edit_product_returns_to_selected_category_and_shows_success_message(self):
+        producto = self.crear_producto()
+        return_url = f'{reverse("admin_productos")}?categoria={self.categoria_producto.pk}'
+        listing = self.client.get(
+            reverse('admin_productos'),
+            {'categoria': self.categoria_producto.pk},
+        )
+        self.assertContains(
+            listing,
+            f'name="return_categoria" value="{self.categoria_producto.pk}"',
+        )
+
+        response = self.client.post(
+            reverse('editar_producto', args=[producto.pk]),
+            {
+                **self.producto_data(nombre='Aceite actualizado'),
+                'return_categoria': str(self.categoria_producto.pk),
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.redirect_chain, [(return_url, 302)])
+        self.assertEqual(response.request['QUERY_STRING'], f'categoria={self.categoria_producto.pk}')
+        self.assertContains(response, 'El producto se actualizó correctamente.')
 
     def test_edit_product_preserves_existing_image_when_no_replacement_is_selected(self):
         producto = self.crear_producto()
@@ -573,12 +977,305 @@ class ServiciosPageTests(TestCase):
         self.assertEqual(producto.imagen_url.name, image_name)
         self.assertTrue(storage.exists(image_name))
 
-    def test_product_form_marks_image_required_only_for_new_products(self):
-        response = self.client.get(reverse('admin_productos'))
+    def test_product_form_marks_image_optional(self):
+        response = self.client.get(reverse('admin_productos'), {'todos': '1'})
 
         self.assertContains(response, 'id="productoImagen" type="file" name="imagen_url" class="form-control salon-file-input" accept="image/*"')
-        self.assertContains(response, 'La imagen es obligatoria al registrar el producto.')
+        self.assertContains(response, 'Ordenar: Z-A')
+        self.assertContains(response, 'Mayor stock a menor')
+        self.assertContains(response, 'Menor stock a mayor')
+        self.assertContains(response, 'Seleccionar todos los productos')
+        self.assertContains(response, 'Exportar registros')
+        self.assertNotContains(response, 'Todas las categorías')
+        self.assertContains(response, '(opcional)')
+        self.assertContains(response, 'Puedes adjuntar una imagen ahora o agregarla después.')
         self.assertNotContains(response, 'Quitar imagen actual')
+
+    def test_product_category_counters_only_count_selected_category(self):
+        self.crear_producto()
+        Producto.objects.create(
+            nombre='Aceite hidratante',
+            categoria=self.categoria_producto,
+            descripcion='',
+            precio='8000',
+            stock=3,
+            activo=False,
+        )
+        otra_categoria = Categoria.objects.create(nombre='Cabello', tipo='producto')
+        Producto.objects.create(
+            nombre='Mascarilla capilar',
+            categoria=otra_categoria,
+            descripcion='',
+            precio='12000',
+            stock=1,
+            activo=True,
+        )
+
+        response = self.client.get(
+            reverse('admin_productos'),
+            {'categoria': self.categoria_producto.pk},
+        )
+
+        self.assertEqual(response.context['total_productos'], 2)
+        self.assertEqual(response.context['total_activos'], 1)
+        self.assertEqual(response.context['total_inactivos'], 1)
+
+    def test_product_excel_export_button_is_disabled_when_category_is_empty(self):
+        response = self.client.get(
+            reverse('admin_productos'),
+            {'categoria': self.categoria_producto.pk},
+        )
+
+        self.assertContains(response, 'Exportar registros')
+        self.assertContains(response, 'catalog-toolbar-export text-uppercase disabled')
+        self.assertContains(response, 'aria-disabled="true"')
+        self.assertFalse(response.context['hay_registros_excel'])
+        self.assertContains(response, reverse('plantilla_productos_excel'))
+
+    def test_product_excel_export_is_limited_to_selected_category(self):
+        self.crear_producto()
+        otra_categoria = Categoria.objects.create(nombre='Cabello', tipo='producto')
+        Producto.objects.create(
+            nombre='Mascarilla capilar',
+            categoria=otra_categoria,
+            descripcion='',
+            precio='12000',
+            stock=1,
+        )
+
+        response = self.client.get(
+            reverse('exportar_productos_excel'),
+            {'categoria': self.categoria_producto.pk},
+        )
+        exported = load_workbook(BytesIO(response.content), read_only=True)
+        rows = list(exported.active.values)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(rows[0], ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo'))
+        self.assertEqual(rows[1][1], 'Aceite nutritivo')
+        self.assertEqual(len(rows), 2)
+        exported.close()
+
+    def test_product_excel_import_accepts_rows_without_images(self):
+        upload = self.excel_file(
+            ('Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo'),
+            [('Aceite de argán', '', 'Nutrición capilar', 9900, 5, 'Activo')],
+        )
+
+        response = self.client.post(
+            f"{reverse('importar_productos_excel')}?categoria={self.categoria_producto.pk}",
+            {'archivo': upload},
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('admin_productos')}?categoria={self.categoria_producto.pk}",
+        )
+        producto = Producto.objects.get(nombre='Aceite de argán')
+        self.assertEqual(producto.categoria, self.categoria_producto)
+        self.assertEqual(producto.stock, 5)
+        self.assertFalse(producto.imagen_url)
+
+    def test_product_excel_import_rejects_all_rows_when_any_row_is_invalid(self):
+        upload = self.excel_file(
+            ('Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo'),
+            [
+                ('Aceite válido', '', 'Nutrición', 9900, 5, 'Activo'),
+                ('Producto inválido', '', 'Descripción', 0, 2, 'Activo'),
+            ],
+        )
+
+        response = self.client.post(
+            f"{reverse('importar_productos_excel')}?categoria={self.categoria_producto.pk}",
+            {'archivo': upload},
+            follow=True,
+        )
+
+        self.assertFalse(Producto.objects.filter(nombre='Aceite válido').exists())
+        self.assertContains(response, 'El precio debe ser mayor que cero.')
+
+    def test_product_excel_import_updates_existing_rows_and_adds_new_rows(self):
+        existing = self.crear_producto()
+        upload = self.excel_file(
+            ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo'),
+            [
+                (existing.pk, existing.nombre, self.categoria_producto.nombre, 'Descripción revisada', existing.precio, 20, 'Desactivado'),
+                ('', 'Crema nutritiva', self.categoria_producto.nombre, 'Hidratación', 7900, 8, 'Activo'),
+            ],
+        )
+
+        response = self.client.post(
+            f"{reverse('importar_productos_excel')}?categoria={self.categoria_producto.pk}",
+            {'archivo': upload},
+            follow=True,
+        )
+
+        self.assertContains(response, 'Importación completada')
+        self.assertContains(response, '1 registro actualizado')
+        self.assertEqual(Producto.objects.filter(categoria=self.categoria_producto).count(), 2)
+        existing.refresh_from_db()
+        self.assertEqual(existing.descripcion, 'Descripción revisada')
+        self.assertEqual(existing.stock, 20)
+        self.assertFalse(existing.activo)
+        self.assertTrue(Producto.objects.filter(nombre='Crema nutritiva').exists())
+
+    def test_product_excel_import_rejects_duplicate_even_if_stock_and_status_differ(self):
+        existing = self.crear_producto()
+        upload = self.excel_file(
+            ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo'),
+            [('', existing.nombre, self.categoria_producto.nombre, existing.descripcion, existing.precio, 999, 'Desactivado')],
+        )
+
+        response = self.client.post(
+            f"{reverse('importar_productos_excel')}?categoria={self.categoria_producto.pk}",
+            {'archivo': upload},
+            follow=True,
+        )
+
+        self.assertEqual(Producto.objects.filter(categoria=self.categoria_producto).count(), 1)
+        self.assertContains(response, 'Ya existe un producto con estas características.')
+
+    def test_bulk_delete_products_deletes_only_selected_ids(self):
+        first = self.crear_producto()
+        second = Producto.objects.create(
+            nombre='Aceite hidratante',
+            categoria=self.categoria_producto,
+            descripcion='',
+            precio='8000',
+            stock=3,
+        )
+
+        response = self.client.post(
+            f"{reverse('eliminar_productos_seleccionados')}?categoria={self.categoria_producto.pk}",
+            {'ids': [first.pk]},
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('admin_productos')}?categoria={self.categoria_producto.pk}",
+        )
+        self.assertFalse(Producto.objects.filter(pk=first.pk).exists())
+        self.assertTrue(Producto.objects.filter(pk=second.pk).exists())
+
+    def test_bulk_product_status_actions_update_selected_category_and_show_success(self):
+        first = self.crear_producto(activo='false')
+        second = Producto.objects.create(
+            nombre='Aceite hidratante',
+            categoria=self.categoria_producto,
+            descripcion='',
+            precio='8000',
+            stock=3,
+            activo=True,
+        )
+        other_category = Categoria.objects.create(nombre='Cabello', tipo='producto')
+        other_product = Producto.objects.create(
+            nombre='Mascarilla capilar',
+            categoria=other_category,
+            descripcion='',
+            precio='18000',
+            stock=5,
+            activo=False,
+        )
+        return_url = f"{reverse('admin_productos')}?categoria={self.categoria_producto.pk}"
+
+        activate_response = self.client.post(
+            f"{reverse('cambiar_estado_productos_seleccionados')}?categoria={self.categoria_producto.pk}",
+            {'ids': [first.pk, second.pk], 'estado': 'activo'},
+            follow=True,
+        )
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        other_product.refresh_from_db()
+        self.assertEqual(activate_response.redirect_chain, [(return_url, 302)])
+        self.assertTrue(first.activo)
+        self.assertTrue(second.activo)
+        self.assertFalse(other_product.activo)
+        self.assertContains(activate_response, 'Se activó 1 producto correctamente.')
+
+        deactivate_response = self.client.post(
+            f"{reverse('cambiar_estado_productos_seleccionados')}?categoria={self.categoria_producto.pk}",
+            {'ids': [first.pk, second.pk], 'estado': 'inactivo'},
+            follow=True,
+        )
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertFalse(first.activo)
+        self.assertFalse(second.activo)
+        self.assertContains(deactivate_response, 'Se desactivaron 2 productos correctamente.')
+
+    def test_bulk_product_status_action_works_in_all_categories_view(self):
+        first = self.crear_producto(activo='false')
+        other_category = Categoria.objects.create(nombre='Cabello', tipo='producto')
+        second = Producto.objects.create(
+            nombre='Mascarilla capilar',
+            categoria=other_category,
+            descripcion='',
+            precio='18000',
+            stock=5,
+            activo=False,
+        )
+
+        response = self.client.post(
+            f"{reverse('cambiar_estado_productos_seleccionados')}?todos=1",
+            {'ids': [first.pk, second.pk], 'estado': 'activo'},
+            follow=True,
+        )
+
+        self.assertEqual(
+            response.redirect_chain,
+            [(f"{reverse('admin_productos')}?todos=1", 302)],
+        )
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertTrue(first.activo)
+        self.assertTrue(second.activo)
+        self.assertContains(response, 'Se activaron 2 productos correctamente.')
+
+    def test_bulk_delete_products_preserves_sales_history_and_redirects_to_all(self):
+        from ventas.models import DetalleVenta, Venta
+
+        product_with_sale = self.crear_producto()
+        product_to_delete = Producto.objects.create(
+            nombre='Aceite hidratante',
+            categoria=self.categoria_producto,
+            descripcion='',
+            precio='8000',
+            stock=3,
+        )
+        sale = Venta.objects.create(
+            cliente=Usuario.objects.get(is_superuser=True),
+            total='9900',
+        )
+        detail = DetalleVenta.objects.create(
+            venta=sale,
+            producto=product_with_sale,
+            cantidad=1,
+            subtotal='9900',
+            item_nombre=product_with_sale.nombre,
+            item_descripcion=product_with_sale.descripcion,
+            precio_unitario=product_with_sale.precio,
+        )
+
+        response = self.client.post(
+            f"{reverse('eliminar_productos_seleccionados')}?todos=1",
+            {'ids': [product_with_sale.pk, product_to_delete.pk]},
+            follow=True,
+        )
+
+        self.assertEqual(
+            response.redirect_chain,
+            [(f"{reverse('admin_productos')}?todos=1", 302)],
+        )
+        self.assertFalse(Producto.objects.filter(pk=product_to_delete.pk).exists())
+        self.assertFalse(Producto.objects.filter(pk=product_with_sale.pk).exists())
+        detail.refresh_from_db()
+        self.assertIsNone(detail.producto_id)
+        self.assertEqual(detail.item_nombre, product_with_sale.nombre)
+        self.assertEqual(detail.item_descripcion, product_with_sale.descripcion)
+        self.assertEqual(detail.precio_unitario, Decimal(product_with_sale.precio))
+        self.assertContains(response, 'Se eliminaron 2 productos correctamente.')
 
 
     def test_product_stock_cannot_be_negative(self):
@@ -604,16 +1301,32 @@ class ServiciosPageTests(TestCase):
         self.assertTrue(producto.activo)
 
     def test_delete_product_removes_database_record_and_image(self):
+        from ventas.models import DetalleVenta, Venta
+
         producto = self.crear_producto()
         producto.imagen_url = self.imagen_png('producto.png')
         producto.save()
         image_name = producto.imagen_url.name
         storage = producto.imagen_url.storage
+        venta = Venta.objects.create(cliente=Usuario.objects.get(is_superuser=True), total='9900')
+        detalle = DetalleVenta.objects.create(
+            venta=venta,
+            producto=producto,
+            cantidad=1,
+            subtotal='9900',
+            item_nombre=producto.nombre,
+            item_descripcion=producto.descripcion or '',
+            precio_unitario=producto.precio,
+        )
 
         self.client.post(reverse('eliminar_producto', args=[producto.pk]))
 
         self.assertFalse(Producto.objects.filter(pk=producto.pk).exists())
         self.assertFalse(storage.exists(image_name))
+        detalle.refresh_from_db()
+        self.assertIsNone(detalle.producto_id)
+        self.assertEqual(detalle.item_nombre, producto.nombre)
+        self.assertEqual(detalle.precio_unitario, Decimal(producto.precio))
 
     def test_category_can_be_created_with_same_name_in_separate_catalog_scopes(self):
         response = self.client.post(
@@ -1580,7 +2293,8 @@ class DuplicateCatalogEntryTests(TestCase):
         self.assertTrue(edicion.is_valid(), edicion.errors)
 
         servicio_diferente = ServicioForm(data={**datos, 'duracion_minutos': '60'})
-        self.assertTrue(servicio_diferente.is_valid(), servicio_diferente.errors)
+        self.assertFalse(servicio_diferente.is_valid())
+        self.assertIn('__all__', servicio_diferente.errors)
 
     def test_duplicate_service_creation_request_does_not_add_a_second_record(self):
         Servicio.objects.create(
@@ -1874,6 +2588,42 @@ class SalesAndReminderPageTests(TestCase):
         detalle = self.client.get(reverse('admin_detalle_venta', args=[venta.pk]))
         self.assertEqual(detalle.status_code, 200)
         self.assertContains(detalle, 'Pagos recibidos')
+
+    def test_sales_detail_shows_snapshot_after_catalog_product_is_deleted(self):
+        from panel_admin.models import Categoria, Producto
+        from ventas.models import DetalleVenta, Venta
+
+        category = Categoria.objects.create(nombre='Cuidado', tipo='producto')
+        product = Producto.objects.create(
+            nombre='Crema histórica',
+            descripcion='Hidratación intensiva',
+            categoria=category,
+            precio='7900',
+            stock=2,
+        )
+        sale = Venta.objects.create(cliente=self.admin, total='15800')
+        detail = DetalleVenta.objects.create(
+            venta=sale,
+            producto=product,
+            cantidad=2,
+            subtotal='15800',
+            item_nombre=product.nombre,
+            item_descripcion=product.descripcion,
+            precio_unitario=product.precio,
+        )
+
+        response = self.client.post(reverse('eliminar_producto', args=[product.pk]))
+
+        self.assertRedirects(response, reverse('admin_productos'))
+        self.assertFalse(Producto.objects.filter(pk=product.pk).exists())
+        detail.refresh_from_db()
+        self.assertIsNone(detail.producto_id)
+
+        detail_page = self.client.get(reverse('admin_detalle_venta', args=[sale.pk]))
+        self.assertContains(detail_page, 'Crema histórica')
+        self.assertContains(detail_page, 'Hidratación intensiva')
+        self.assertContains(detail_page, '$7.900')
+        self.assertContains(detail_page, '$15.800')
 
     def test_admin_registers_remaining_sale_balance_as_a_linked_payment(self):
         from pagos.models import Pago

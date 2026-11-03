@@ -12,12 +12,18 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <!-- Nuestro archivo CSS externo y profesional -->
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261027-5">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261103-5">
     {% include 'accessibility_styles.html' %}
     {% block extra_head %}{% endblock %}
 </head>
 
 <body>
+    <script>
+        if (window.matchMedia('(min-width: 1024px)').matches
+            && window.localStorage.getItem('nicolett-staff-sidebar-collapsed') === 'true') {
+            document.body.classList.add('admin-sidebar-collapsed');
+        }
+    </script>
 
     <button type="button" class="admin-sidebar-toggle" id="adminSidebarToggle"
             aria-label="Abrir menú" aria-expanded="false" aria-controls="adminSidebar">
@@ -136,6 +142,35 @@
         {% endblock %}
     </main>
 
+    <div class="modal fade catalog-confirmation-modal" id="bulkDeleteConfirmationModal" tabindex="-1"
+         aria-labelledby="bulkDeleteConfirmationTitle" aria-describedby="bulkDeleteConfirmationMessage"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="catalog-confirmation-icon" aria-hidden="true">
+                        <i class="fas fa-trash-can" data-bulk-confirmation-icon></i>
+                    </span>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <h2 class="modal-title" id="bulkDeleteConfirmationTitle" data-bulk-confirmation-title>¿Eliminar los registros?</h2>
+                    <p id="bulkDeleteConfirmationMessage" data-bulk-confirmation-message>
+                        Vas a <span data-bulk-confirmation-verb>eliminar</span>
+                        <strong data-bulk-confirmation-count>0</strong>
+                        <span data-bulk-confirmation-noun>registros</span>
+                        <span data-bulk-confirmation-selected>seleccionados</span><span data-bulk-confirmation-irreversible>.
+                        Esta acción no se puede deshacer.</span>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn catalog-confirmation-cancel" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn catalog-confirmation-delete" data-bulk-confirm>Eliminar seleccionados</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -147,6 +182,7 @@
             if (!sidebar || !toggle || !collapseToggle || !backdrop) return;
 
             const desktop = window.matchMedia('(min-width: 1024px)');
+            const collapsedStorageKey = 'nicolett-staff-sidebar-collapsed';
             const setCollapsed = (collapsed) => {
                 document.body.classList.toggle('admin-sidebar-collapsed', collapsed);
                 if (collapsed) {
@@ -167,10 +203,12 @@
                 backdrop.hidden = !open;
             };
 
-            if (desktop.matches) setCollapsed(false);
+            setCollapsed(desktop.matches && window.localStorage.getItem(collapsedStorageKey) === 'true');
             toggle.addEventListener('click', () => setMobileOpen(!document.body.classList.contains('admin-sidebar-open')));
             collapseToggle.addEventListener('click', () => {
-                setCollapsed(!document.body.classList.contains('admin-sidebar-collapsed'));
+                const collapsed = !document.body.classList.contains('admin-sidebar-collapsed');
+                setCollapsed(collapsed);
+                window.localStorage.setItem(collapsedStorageKey, String(collapsed));
             });
             backdrop.addEventListener('click', () => setMobileOpen(false));
             document.addEventListener('keydown', (event) => {
@@ -180,7 +218,7 @@
                 document.body.classList.remove('admin-sidebar-open');
                 backdrop.hidden = true;
                 if (event.matches) {
-                    setCollapsed(false);
+                    setCollapsed(window.localStorage.getItem(collapsedStorageKey) === 'true');
                 } else {
                     document.body.classList.remove('admin-sidebar-collapsed');
                     toggle.setAttribute('aria-expanded', 'false');
@@ -435,6 +473,169 @@
             if (search) search.addEventListener('input', applyFilters);
             controls.forEach((control) => control.addEventListener('change', applyFilters));
             applyFilters();
+        });
+
+        document.querySelectorAll('[data-table-sort]').forEach((sortControl) => {
+            const table = document.querySelector(sortControl.dataset.tableSort);
+            const body = table?.tBodies[0];
+            if (!table || !body) return;
+
+            const sortRows = () => {
+                const rows = Array.from(body.querySelectorAll('tr[data-filter-row]'));
+                const [field, direction] = sortControl.value.startsWith('price-')
+                    ? ['price', sortControl.value.endsWith('desc') ? -1 : 1]
+                    : sortControl.value.startsWith('stock-')
+                        ? ['stock', sortControl.value.endsWith('desc') ? -1 : 1]
+                        : ['name', sortControl.value === 'za' ? -1 : 1];
+                rows.sort((left, right) => {
+                    if (field === 'name') {
+                        return direction * (left.dataset.sortName || '').localeCompare(
+                            right.dataset.sortName || '',
+                            'es',
+                            { sensitivity: 'base' },
+                        );
+                    }
+                    const key = `sort${field[0].toUpperCase()}${field.slice(1)}`;
+                    return direction * (Number(left.dataset[key] || 0) - Number(right.dataset[key] || 0));
+                });
+                rows.forEach((row) => body.append(row));
+                body.querySelectorAll('[data-filter-empty]').forEach((row) => body.append(row));
+            };
+
+            sortControl.addEventListener('change', sortRows);
+            sortRows();
+        });
+
+        document.querySelectorAll('[data-select-all]').forEach((selectAll) => {
+            const table = document.querySelector(selectAll.dataset.selectAll);
+            if (!table) return;
+            const rowSelections = Array.from(table.querySelectorAll('[data-row-select]'));
+            const toolbar = document.querySelector(`[data-bulk-toolbar-for="${selectAll.dataset.selectAll}"]`);
+            const count = toolbar?.querySelector('[data-selected-count]');
+
+            const updateSelection = () => {
+                const selectedCount = rowSelections.filter((checkbox) => checkbox.checked).length;
+                if (count) count.textContent = String(selectedCount);
+                if (toolbar) toolbar.hidden = selectedCount === 0;
+                selectAll.checked = rowSelections.length > 0 && selectedCount === rowSelections.length;
+                selectAll.indeterminate = selectedCount > 0 && selectedCount < rowSelections.length;
+            };
+
+            selectAll.addEventListener('change', () => {
+                rowSelections.forEach((checkbox) => {
+                    checkbox.checked = selectAll.checked;
+                });
+                updateSelection();
+            });
+            rowSelections.forEach((checkbox) => checkbox.addEventListener('change', updateSelection));
+            updateSelection();
+        });
+
+        const bulkConfirmationElement = document.getElementById('bulkDeleteConfirmationModal');
+        const bulkConfirmationModal = bulkConfirmationElement
+            ? bootstrap.Modal.getOrCreateInstance(bulkConfirmationElement)
+            : null;
+        const bulkConfirmationCount = bulkConfirmationElement?.querySelector('[data-bulk-confirmation-count]');
+        let pendingBulkForm = null;
+
+        document.querySelectorAll('[data-bulk-form]').forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                if (form.dataset.confirmed === 'true') {
+                    delete form.dataset.confirmed;
+                    return;
+                }
+                const selectedCount = document.querySelectorAll(
+                    `[form="${form.id}"][data-row-select]:checked`,
+                ).length;
+                if (!selectedCount) {
+                    event.preventDefault();
+                    return;
+                }
+                event.preventDefault();
+                if (!bulkConfirmationModal || !bulkConfirmationCount) return;
+                showBulkConfirmation(form, 'delete', selectedCount, form.dataset.catalogNoun || 'registro');
+            });
+        });
+
+        const bulkConfirmationTitle = bulkConfirmationElement?.querySelector('[data-bulk-confirmation-title]');
+        const bulkConfirmationMessage = bulkConfirmationElement?.querySelector('[data-bulk-confirmation-message]');
+        const bulkConfirmationVerb = bulkConfirmationElement?.querySelector('[data-bulk-confirmation-verb]');
+        const bulkConfirmationNoun = bulkConfirmationElement?.querySelector('[data-bulk-confirmation-noun]');
+        const bulkConfirmationSelected = bulkConfirmationElement?.querySelector('[data-bulk-confirmation-selected]');
+        const bulkConfirmationIrreversible = bulkConfirmationElement?.querySelector('[data-bulk-confirmation-irreversible]');
+        const bulkConfirmationIcon = bulkConfirmationElement?.querySelector('[data-bulk-confirmation-icon]');
+        const bulkConfirmationButton = bulkConfirmationElement?.querySelector('[data-bulk-confirm]');
+        const showBulkConfirmation = (form, operation, selectedCount, noun) => {
+            if (!bulkConfirmationModal || !bulkConfirmationCount || !bulkConfirmationTitle
+                || !bulkConfirmationMessage || !bulkConfirmationVerb || !bulkConfirmationNoun
+                || !bulkConfirmationSelected || !bulkConfirmationIrreversible || !bulkConfirmationButton) return;
+            pendingBulkForm = {form, operation};
+            const verb = operation === 'activate' ? 'activar' : operation === 'deactivate' ? 'desactivar' : 'eliminar';
+            const label = operation === 'activate' ? 'Activar' : operation === 'deactivate' ? 'Desactivar' : 'Eliminar';
+            bulkConfirmationTitle.textContent = `¿${label} los registros?`;
+            bulkConfirmationCount.textContent = String(selectedCount);
+            const plural = selectedCount !== 1;
+            const itemNoun = operation === 'delete'
+                ? (plural ? `${noun}s` : noun)
+                : `${noun}${plural ? 's' : ''}`;
+            bulkConfirmationVerb.textContent = verb;
+            bulkConfirmationNoun.textContent = itemNoun;
+            bulkConfirmationSelected.textContent = plural ? 'seleccionados' : 'seleccionado';
+            bulkConfirmationIrreversible.hidden = operation !== 'delete';
+            bulkConfirmationButton.textContent = `${label} seleccionados`;
+            if (bulkConfirmationIcon) {
+                bulkConfirmationIcon.className = operation === 'activate'
+                    ? 'fas fa-eye'
+                    : operation === 'deactivate'
+                        ? 'fas fa-eye-slash'
+                        : 'fas fa-trash-can';
+            }
+            bulkConfirmationButton.classList.toggle('catalog-confirmation-delete', operation === 'delete');
+            bulkConfirmationButton.classList.toggle('catalog-confirmation-activate', operation === 'activate');
+            bulkConfirmationButton.classList.toggle('catalog-confirmation-deactivate', operation === 'deactivate');
+            bulkConfirmationModal.show();
+        };
+
+        document.querySelectorAll('[data-bulk-action]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const table = document.querySelector(button.closest('[data-bulk-toolbar-for]').dataset.bulkToolbarFor);
+                const form = button.closest('.services-table-card')?.querySelector('[data-bulk-status-form]');
+                const selectedCount = table?.querySelectorAll('[data-row-select]:checked').length || 0;
+                if (!form || !selectedCount) return;
+                showBulkConfirmation(form, button.dataset.bulkAction, selectedCount, button.dataset.catalogNoun);
+            });
+        });
+
+        bulkConfirmationElement?.querySelector('[data-bulk-confirm]')?.addEventListener('click', () => {
+            if (!pendingBulkForm) return;
+            const {form, operation} = pendingBulkForm;
+            pendingBulkForm = null;
+            bulkConfirmationModal.hide();
+            if (operation === 'delete') {
+                form.dataset.confirmed = 'true';
+                form.requestSubmit();
+                return;
+            }
+            const tableSelector = form.closest('.services-table-card')
+                ?.querySelector('[data-bulk-toolbar-for]')?.dataset.bulkToolbarFor;
+            const table = tableSelector ? document.querySelector(tableSelector) : null;
+            if (!table) return;
+            form.querySelectorAll('[data-bulk-selected-id]').forEach((input) => input.remove());
+            table.querySelectorAll('[data-row-select]:checked').forEach((checkbox) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids';
+                input.value = checkbox.value;
+                input.dataset.bulkSelectedId = 'true';
+                form.append(input);
+            });
+            form.querySelector('[name="estado"]').value = operation === 'activate' ? 'activo' : 'inactivo';
+            form.requestSubmit();
+        });
+
+        bulkConfirmationElement?.addEventListener('hidden.bs.modal', () => {
+            pendingBulkForm = null;
+            bulkConfirmationButton?.classList.remove('catalog-confirmation-activate', 'catalog-confirmation-deactivate');
         });
 
         document.querySelectorAll('[data-category-create-trigger]').forEach((button) => {

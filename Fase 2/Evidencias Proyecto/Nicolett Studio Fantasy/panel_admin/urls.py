@@ -11,6 +11,11 @@ urlpatterns = [
     # 1. CRUD de Servicios
     path('servicios/semana/', views.servicios_semana_admin, name='admin_servicios_semana'),
     path('servicios/', views.listar_servicios, name='listar_servicios'),
+    path('servicios/exportar-excel/', views.exportar_servicios_excel, name='exportar_servicios_excel'),
+    path('servicios/plantilla-excel/', views.descargar_plantilla_servicios_excel, name='plantilla_servicios_excel'),
+    path('servicios/importar-excel/', views.importar_servicios_excel, name='importar_servicios_excel'),
+    path('servicios/eliminar-seleccionados/', views.eliminar_servicios_seleccionados, name='eliminar_servicios_seleccionados'),
+    path('servicios/estado-seleccionados/', views.cambiar_estado_servicios_seleccionados, name='cambiar_estado_servicios_seleccionados'),
     path('servicios/crear/', views.crear_servicio, name='crear_servicio'),
     path('servicios/editar/<int:servicio_id>/', views.editar_servicio, name='editar_servicio'),
     path('servicios/eliminar/<int:servicio_id>/', views.eliminar_servicio, name='eliminar_servicio'),
@@ -23,6 +28,11 @@ urlpatterns = [
 
     # 2. CRUD de Productos
     path('productos/', views.lista_productos, name='admin_productos'),
+    path('productos/exportar-excel/', views.exportar_productos_excel, name='exportar_productos_excel'),
+    path('productos/plantilla-excel/', views.descargar_plantilla_productos_excel, name='plantilla_productos_excel'),
+    path('productos/importar-excel/', views.importar_productos_excel, name='importar_productos_excel'),
+    path('productos/eliminar-seleccionados/', views.eliminar_productos_seleccionados, name='eliminar_productos_seleccionados'),
+    path('productos/estado-seleccionados/', views.cambiar_estado_productos_seleccionados, name='cambiar_estado_productos_seleccionados'),
     path('productos/crear/', views.crear_producto, name='crear_producto'),
     path('productos/editar/<int:pk>/', views.editar_producto, name='editar_producto'),
     path('productos/eliminar/<int:pk>/', views.eliminar_producto, name='eliminar_producto'),

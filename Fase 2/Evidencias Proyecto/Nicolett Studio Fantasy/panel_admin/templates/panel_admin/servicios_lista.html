@@ -15,8 +15,22 @@
             {% endif %}
         </div>
         {% if mostrar_listado %}
-        <div class="d-flex gap-2">
-            <button type="button" class="btn salon-btn-primary" data-bs-toggle="modal" data-bs-target="#modalServicio">
+        <div class="catalog-toolbar-actions">
+            <a class="btn catalog-toolbar-btn catalog-toolbar-export text-uppercase{% if not hay_registros_excel %} disabled{% endif %}"
+                {% if hay_registros_excel %}href="{% url 'exportar_servicios_excel' %}{% if categoria_seleccionada %}?categoria={{ categoria_seleccionada.pk }}{% else %}?todos=1{% endif %}"{% else %}aria-disabled="true" tabindex="-1"{% endif %}>
+                <i class="fas fa-file-export" aria-hidden="true"></i> Exportar registros
+            </a>
+            <form method="post" enctype="multipart/form-data" action="{% url 'importar_servicios_excel' %}{% if categoria_seleccionada %}?categoria={{ categoria_seleccionada.pk }}{% else %}?todos=1{% endif %}">
+                {% csrf_token %}
+                <label class="btn catalog-toolbar-btn catalog-toolbar-import text-uppercase mb-0" for="importarExcelServicios">
+                    <i class="fas fa-file-import" aria-hidden="true"></i> Importar registros
+                </label>
+                <input id="importarExcelServicios" class="visually-hidden" type="file" name="archivo" accept=".xlsx" required onchange="this.form.submit()">
+            </form>
+            <a class="btn catalog-toolbar-btn catalog-toolbar-template text-uppercase" href="{% url 'plantilla_servicios_excel' %}" aria-label="Descargar plantilla Excel de servicios">
+                <i class="fas fa-file-arrow-down" aria-hidden="true"></i> Plantilla
+            </a>
+            <button type="button" class="btn catalog-toolbar-btn salon-btn-primary text-uppercase" data-bs-toggle="modal" data-bs-target="#modalServicio">
                 + NUEVO SERVICIO
             </button>
         </div>
@@ -104,8 +118,8 @@
         </div>
     </section>
     {% else %}
-    <div class="row g-3 align-items-start">
-        <aside class="col-xl-3 col-md-4">
+    <div class="row g-3 align-items-start catalog-list-layout">
+        <aside class="catalog-list-stats">
             <div class="card-stat mb-3">
                 <div class="title">Total de servicios</div>
                 <div class="value">{{ total_servicios }}</div>
@@ -119,12 +133,12 @@
                 <div class="value">{{ total_inactivos }}</div>
             </div>
         </aside>
-        <div class="col-xl-9 col-md-8">
+        <div class="catalog-list-content">
             <div class="card-stat mb-3">
                 <div class="row g-2" data-live-filter="#serviciosTabla">
                     <div class="col-lg-6">
                         <label class="visually-hidden" for="buscarServicio">Buscar servicios</label>
-                        <input id="buscarServicio" class="form-control" type="search" placeholder="Buscar por nombre, categoría o descripción..." data-filter-search>
+                        <input id="buscarServicio" class="form-control" type="search" placeholder="Buscar por nombre o descripción..." data-filter-search>
                     </div>
                     <div class="col-sm-6 col-lg-3">
                         <label class="visually-hidden" for="filtrarEstadoServicio">Estado</label>
@@ -134,22 +148,49 @@
                             <option value="inactivo">Inactivos</option>
                         </select>
                     </div>
+                    <select id="catalogCategoryOptionsServicio" class="d-none" aria-hidden="true" tabindex="-1">
+                        {% for categoria in categorias %}
+                            <option value="{{ categoria.pk }}"{% if categoria_seleccionada.pk == categoria.pk %} selected{% endif %}>{{ categoria.nombre }}</option>
+                        {% endfor %}
+                    </select>
                     <div class="col-sm-6 col-lg-3">
-                        <label class="visually-hidden" for="filtrarCategoriaServicio">Categoría</label>
-                        <select id="filtrarCategoriaServicio" class="form-select" data-filter-field="category">
-                            <option value="">Todas las categorías</option>
-                            {% for categoria in categorias %}
-                                <option value="{{ categoria.pk }}"{% if categoria_seleccionada.pk == categoria.pk %} selected{% endif %}>{{ categoria.nombre }}</option>
-                            {% endfor %}
+                        <label class="visually-hidden" for="ordenarServicios">Ordenar servicios</label>
+                        <select id="ordenarServicios" class="form-select" data-table-sort="#serviciosTabla">
+                            <option value="az">Ordenar: A-Z</option>
+                            <option value="za">Ordenar: Z-A</option>
+                            <option value="price-desc">Mayor precio a menor precio</option>
+                            <option value="price-asc">Menor precio a mayor precio</option>
                         </select>
                     </div>
                 </div>
             </div>
             <div class="card services-table-card">
+                <div class="catalog-bulk-toolbar" data-bulk-toolbar-for="#serviciosTabla" hidden>
+                    <span><strong data-selected-count>0</strong> servicios seleccionados</span>
+                    <div class="catalog-bulk-actions">
+                        <button class="btn catalog-toolbar-btn catalog-toolbar-activate" type="button" data-bulk-action="activate" data-catalog-noun="servicio">
+                            <i class="fas fa-eye" aria-hidden="true"></i> Activar seleccionados
+                        </button>
+                        <button class="btn catalog-toolbar-btn catalog-toolbar-deactivate" type="button" data-bulk-action="deactivate" data-catalog-noun="servicio">
+                            <i class="fas fa-eye-slash" aria-hidden="true"></i> Desactivar seleccionados
+                        </button>
+                        <button class="btn catalog-toolbar-btn catalog-toolbar-delete" type="submit" form="bulkDeleteServiciosForm">
+                            <i class="fas fa-trash" aria-hidden="true"></i> Eliminar seleccionados
+                        </button>
+                    </div>
+                </div>
+                <form id="bulkDeleteServiciosForm" class="d-none" data-bulk-form data-catalog-noun="servicio" method="post" action="{% url 'eliminar_servicios_seleccionados' %}{% if categoria_seleccionada %}?categoria={{ categoria_seleccionada.pk }}{% else %}?todos=1{% endif %}">
+                    {% csrf_token %}
+                </form>
+                <form id="bulkStatusServiciosForm" class="d-none" data-bulk-status-form method="post" action="{% url 'cambiar_estado_servicios_seleccionados' %}{% if categoria_seleccionada %}?categoria={{ categoria_seleccionada.pk }}{% else %}?todos=1{% endif %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="estado">
+                </form>
                 <div class="table-responsive">
                     <table id="serviciosTabla" class="table align-middle mb-0">
                 <thead>
                     <tr>
+                        <th class="catalog-select-column"><input type="checkbox" class="form-check-input" data-select-all="#serviciosTabla" aria-label="Seleccionar todos los servicios"></th>
                         <th>IMAGEN</th>
                         <th>NOMBRE</th>
                         <th>CATEGORÍA</th>
@@ -162,7 +203,8 @@
                 </thead>
                 <tbody>
                     {% for servicio in servicios %}
-                    <tr data-filter-row data-status="{{ servicio.activo|yesno:'activo,inactivo' }}" data-category="{{ servicio.categoria_id }}" data-search="{{ servicio.nombre }} {{ servicio.categoria.nombre }} {{ servicio.descripcion }} {{ servicio.precio }} {{ servicio.duracion_minutos }}">
+                    <tr data-filter-row data-status="{{ servicio.activo|yesno:'activo,inactivo' }}" data-category="{{ servicio.categoria_id }}" data-sort-name="{{ servicio.nombre }}" data-sort-price="{{ servicio.precio|unlocalize }}" data-search="{{ servicio.nombre }} {{ servicio.categoria.nombre }} {{ servicio.descripcion }} {{ servicio.precio }} {{ servicio.duracion_minutos }}">
+                        <td class="catalog-select-column"><input type="checkbox" class="form-check-input" name="ids" value="{{ servicio.pk }}" form="bulkDeleteServiciosForm" data-row-select aria-label="Seleccionar servicio {{ servicio.nombre }}"></td>
                         <td>
                             {% if servicio.imagen_url %}
                                 <img src="{{ servicio.imagen_url.url }}" alt="{{ servicio.nombre }}" width="44" height="44" class="service-thumbnail">
@@ -222,10 +264,10 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">No hay servicios registrados.</td>
+                        <td colspan="9" class="text-center py-5 text-muted">No hay servicios registrados.</td>
                     </tr>
                     {% endfor %}
-                    <tr data-filter-empty hidden><td colspan="8" class="text-center py-4 text-muted">No hay servicios que coincidan con los filtros.</td></tr>
+                    <tr data-filter-empty hidden><td colspan="9" class="text-center py-4 text-muted">No hay servicios que coincidan con los filtros.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -240,6 +282,11 @@
         <div class="modal-content">
             <form id="formServicio" method="post" action="{% url 'crear_servicio' %}" enctype="multipart/form-data">
                 {% csrf_token %}
+                {% if categoria_seleccionada %}
+                    <input type="hidden" name="return_categoria" value="{{ categoria_seleccionada.pk }}">
+                {% elif mostrar_listado %}
+                    <input type="hidden" name="return_todos" value="1">
+                {% endif %}
                 <input type="hidden" name="confirmar_agenda" value="0">
                 <div class="modal-header">
                     <div>
@@ -397,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const servicioForm = document.getElementById('formServicio');
     const categoriaForm = document.getElementById('formCategoria');
     const categoriaSelect = document.getElementById('servicioCategoria');
-    const categoriaFiltro = document.getElementById('filtrarCategoriaServicio');
+    const categoriaOptions = document.getElementById('catalogCategoryOptionsServicio');
     const categoriaList = document.getElementById('listaCategorias');
     const categoriaSearch = document.getElementById('buscarCategoriaServicio');
     const categoriaCreateUrl = categoriaForm.action;
@@ -547,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) throw new Error((data.errors || ['No se pudo eliminar la categoría.']).join(' '));
                 categoriaList.querySelector(`[data-category-id="${button.dataset.id}"]`)?.remove();
                 categoriaSelect.querySelector(`option[value="${button.dataset.id}"]`)?.remove();
-                categoriaFiltro.querySelector(`option[value="${button.dataset.id}"]`)?.remove();
+                categoriaOptions?.querySelector(`option[value="${button.dataset.id}"]`)?.remove();
                 if (categoriaSelect.value === button.dataset.id) categoriaSelect.value = '';
                 mostrarVacioCategorias();
                 filtrarCategorias();
@@ -675,13 +722,13 @@ document.addEventListener('DOMContentLoaded', () => {
             categoriaSelect.append(option);
         }
         option.textContent = `${data.nombre} (${data.tipo})`;
-        let filterOption = categoriaFiltro.querySelector(`option[value="${data.id}"]`);
-        if (!filterOption) {
-            filterOption = document.createElement('option');
-            filterOption.value = data.id;
-            categoriaFiltro.append(filterOption);
+        let categoryOption = categoriaOptions?.querySelector(`option[value="${data.id}"]`);
+        if (categoriaOptions && !categoryOption) {
+            categoryOption = document.createElement('option');
+            categoryOption.value = data.id;
+            categoriaOptions.append(categoryOption);
         }
-        filterOption.textContent = data.nombre;
+        if (categoryOption) categoryOption.textContent = data.nombre;
         const editButton = row.querySelector('.js-editar-categoria');
         const deleteButton = row.querySelector('.js-eliminar-categoria');
         editButton.dataset.url = "{% url 'editar_categoria' 0 %}".replace('/0/', `/${data.id}/`);

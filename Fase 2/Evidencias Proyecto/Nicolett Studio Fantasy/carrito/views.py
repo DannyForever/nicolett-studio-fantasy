@@ -949,6 +949,9 @@ def pagar_carrito(request):
                 producto=producto,
                 cantidad=cantidad,
                 subtotal=producto.precio * cantidad,
+                item_nombre=producto.nombre,
+                item_descripcion=producto.descripcion or '',
+                precio_unitario=producto.precio,
             )
         for _, servicio, _, _, _, _, _ in servicios:
             DetalleVenta.objects.create(
@@ -956,6 +959,9 @@ def pagar_carrito(request):
                 servicio=servicio,
                 cantidad=1,
                 subtotal=servicio.precio,
+                item_nombre=servicio.nombre,
+                item_descripcion=servicio.descripcion or '',
+                precio_unitario=servicio.precio,
             )
         Pago.objects.create(
             venta=venta,

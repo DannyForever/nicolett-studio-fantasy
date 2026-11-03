@@ -3,22 +3,25 @@ import smtplib
 import unicodedata
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Count, F, Q, Sum
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
 from config.formatters import formatear_miles_clp
+from .catalog_excel import CatalogExcelError, build_catalog_workbook, import_catalog_workbook
 
 from .forms import (
     AdminPasswordChangeForm,
@@ -160,10 +163,9 @@ def listar_servicios(request):
     ).exclude(
         nombre__iexact=UNCATEGORIZED_CATEGORY_NAME,
     ).order_by('nombre')
-    todos_servicios = Servicio.objects.all()
-    total_activos = todos_servicios.filter(activo=True).count()
-    total_inactivos = todos_servicios.filter(activo=False).count()
-    
+    total_activos = servicios.filter(activo=True).count()
+    total_inactivos = servicios.filter(activo=False).count()
+
     context = {
         'servicios': servicios,
         'categorias': categorias,
@@ -171,9 +173,10 @@ def listar_servicios(request):
         'categoria_sin_categoria': categoria_sin_categoria,
         'categoria_seleccionada': categoria_seleccionada,
         'mostrar_listado': mostrar_listado,
-        'total_servicios': total_activos + total_inactivos,
+        'total_servicios': servicios.count(),
         'total_activos': total_activos,
         'total_inactivos': total_inactivos,
+        'hay_registros_excel': mostrar_listado and servicios.exists(),
     }
     return render(request, 'panel_admin/servicios_lista.html', context)
 
@@ -193,6 +196,22 @@ def _delete_unused_service_image(image_name):
 def _delete_unused_product_image(image_name):
     if image_name and not Producto.objects.filter(imagen_url=image_name).exists():
         Producto._meta.get_field('imagen_url').storage.delete(image_name)
+
+
+def _catalog_edit_redirect(request, catalog_type):
+    category_type = SERVICE_CATEGORY_SCOPE if catalog_type == 'servicio' else PRODUCT_CATEGORY_SCOPE
+    category_id = request.POST.get('return_categoria', '')
+    if category_id.isdecimal() and Categoria.objects.filter(
+        pk=int(category_id),
+        tipo=category_type,
+    ).exists():
+        return _catalog_excel_redirect(catalog_type, category_id, False)
+
+    return _catalog_excel_redirect(
+        catalog_type,
+        None,
+        request.POST.get('return_todos') == '1',
+    )
 
 
 @require_POST
@@ -223,7 +242,7 @@ def editar_servicio(request, servicio_id):
     )
     if not form.is_valid():
         messages.error(request, _form_error_text(form))
-        return redirect('listar_servicios')
+        return redirect(_catalog_edit_redirect(request, 'servicio'))
 
     desactivar = estaba_activo and not form.cleaned_data['activo']
     if desactivar:
@@ -234,7 +253,7 @@ def editar_servicio(request, servicio_id):
                 request,
                 f'Hay {citas_pendientes} cita(s) futura(s) de este servicio. Confirma nuevamente para cancelar las citas y enviar aviso a los clientes.',
             )
-            return redirect('listar_servicios')
+            return redirect(_catalog_edit_redirect(request, 'servicio'))
     form.save()
     if form.cleaned_data['activo'] != estaba_activo:
         ServicioDesactivadoPorPersonal.objects.filter(servicio_id=servicio.pk).delete()
@@ -261,7 +280,7 @@ def editar_servicio(request, servicio_id):
                 'El servicio se actualizó, pero no se pudo eliminar su imagen anterior del almacenamiento.',
             )
     messages.success(request, 'El servicio se actualizó correctamente.')
-    return redirect('listar_servicios')
+    return redirect(_catalog_edit_redirect(request, 'servicio'))
 
 @require_POST
 def eliminar_servicio(request, servicio_id):
@@ -464,7 +483,8 @@ def lista_productos(request):
     if categoria_seleccionada:
         productos = productos.filter(categoria_id=categoria_seleccionada.pk)
 
-    todos_productos = Producto.objects.all()
+    total_activos = productos.filter(activo=True).count()
+    total_inactivos = productos.filter(activo=False).count()
     context = {
         'productos': productos,
         'categorias': Categoria.objects.filter(
@@ -481,11 +501,337 @@ def lista_productos(request):
             tipo=PRODUCT_CATEGORY_SCOPE,
             activa=True,
         ).order_by('nombre'),
-        'total_activos': todos_productos.filter(activo=True).count(),
-        'total_inactivos': todos_productos.filter(activo=False).count(),
+        'total_activos': total_activos,
+        'total_inactivos': total_inactivos,
+        'hay_registros_excel': mostrar_listado and productos.exists(),
     }
-    context['total_productos'] = context['total_activos'] + context['total_inactivos']
+    context['total_productos'] = productos.count()
     return render(request, 'panel_admin/productos_lista.html', context)
+
+
+def _catalog_excel_redirect(catalog_type, category_id, show_all):
+    route_name = 'listar_servicios' if catalog_type == 'servicio' else 'admin_productos'
+    query = {}
+    if category_id:
+        query['categoria'] = category_id
+    elif show_all:
+        query['todos'] = '1'
+    url = reverse(route_name)
+    return f'{url}?{urlencode(query)}' if query else url
+
+
+def _catalog_excel_access_allowed(request):
+    return request.user.is_authenticated and (
+        es_administrador(request.user) or es_colaborador(request.user)
+    )
+
+
+def _selected_catalog_category(request, catalog_type):
+    category_id = request.GET.get('categoria')
+    if not category_id:
+        return None
+    return get_object_or_404(
+        Categoria.objects.filter(tipo=catalog_type),
+        pk=category_id,
+    )
+
+
+def _catalog_excel_download(request, catalog_type, template=False):
+    if not _catalog_excel_access_allowed(request):
+        return HttpResponseForbidden()
+    selected_category = _selected_catalog_category(request, catalog_type)
+    model = Servicio if catalog_type == SERVICE_CATEGORY_SCOPE else Producto
+    records = model.objects.select_related('categoria').all()
+    if selected_category:
+        records = records.filter(categoria=selected_category)
+    if not template and not records.exists():
+        messages.warning(request, 'No hay registros para exportar en esta vista.')
+        return redirect(_catalog_excel_redirect(
+            catalog_type,
+            request.GET.get('categoria'),
+            request.GET.get('todos') == '1',
+        ))
+
+    workbook_data = build_catalog_workbook(
+        catalog_type,
+        () if template else records,
+    )
+    filename = 'plantilla' if template else (
+        slugify(selected_category.nombre) if selected_category else 'todos'
+    )
+    catalog_name = 'servicios' if catalog_type == SERVICE_CATEGORY_SCOPE else 'productos'
+    response = HttpResponse(
+        workbook_data.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{catalog_name}_{filename}.xlsx"'
+    return response
+
+
+def exportar_servicios_excel(request):
+    return _catalog_excel_download(request, SERVICE_CATEGORY_SCOPE)
+
+
+def descargar_plantilla_servicios_excel(request):
+    return _catalog_excel_download(request, SERVICE_CATEGORY_SCOPE, template=True)
+
+
+def exportar_productos_excel(request):
+    return _catalog_excel_download(request, PRODUCT_CATEGORY_SCOPE)
+
+
+def descargar_plantilla_productos_excel(request):
+    return _catalog_excel_download(request, PRODUCT_CATEGORY_SCOPE, template=True)
+
+
+def _catalog_excel_import(request, catalog_type):
+    if not _catalog_excel_access_allowed(request):
+        return HttpResponseForbidden()
+    selected_category = _selected_catalog_category(request, catalog_type)
+    redirect_url = _catalog_excel_redirect(
+        catalog_type,
+        request.GET.get('categoria'),
+        request.GET.get('todos') == '1',
+    )
+    uploaded_file = request.FILES.get('archivo')
+    if not uploaded_file:
+        messages.error(request, 'Selecciona un archivo Excel .xlsx para importar.')
+        return redirect(redirect_url)
+    try:
+        created_count, updated_count = import_catalog_workbook(
+            uploaded_file,
+            catalog_type,
+            selected_category=selected_category,
+        )
+    except CatalogExcelError as error:
+        messages.error(request, str(error))
+        return redirect(redirect_url)
+
+    created_label = (
+        f'{created_count} registro nuevo' if created_count == 1
+        else f'{created_count} registros nuevos'
+    )
+    updated_label = (
+        f'{updated_count} registro actualizado' if updated_count == 1
+        else f'{updated_count} registros actualizados'
+    )
+    messages.success(
+        request,
+        f'Importación completada: {created_label} y {updated_label}.',
+    )
+    return redirect(redirect_url)
+
+
+@require_POST
+def importar_servicios_excel(request):
+    return _catalog_excel_import(request, SERVICE_CATEGORY_SCOPE)
+
+
+@require_POST
+def importar_productos_excel(request):
+    return _catalog_excel_import(request, PRODUCT_CATEGORY_SCOPE)
+
+
+def _delete_catalog_records(request, catalog_type):
+    if not _catalog_excel_access_allowed(request):
+        return HttpResponseForbidden()
+    redirect_url = _catalog_excel_redirect(
+        catalog_type,
+        request.GET.get('categoria'),
+        request.GET.get('todos') == '1',
+    )
+    raw_ids = request.POST.getlist('ids')
+    try:
+        selected_ids = list(dict.fromkeys(int(value) for value in raw_ids))
+    except (TypeError, ValueError):
+        messages.error(request, 'La selección contiene identificadores no válidos.')
+        return redirect(redirect_url)
+    if not selected_ids:
+        messages.warning(request, 'Selecciona al menos un registro para eliminar.')
+        return redirect(redirect_url)
+
+    model = Servicio if catalog_type == SERVICE_CATEGORY_SCOPE else Producto
+    records = model.objects.filter(
+        pk__in=selected_ids,
+        categoria__tipo=catalog_type,
+    ).select_related('categoria')
+    selected_category = _selected_catalog_category(request, catalog_type)
+    if selected_category:
+        records = records.filter(categoria=selected_category)
+    records = list(records)
+    if len(records) != len(selected_ids):
+        messages.error(request, 'La selección incluye registros fuera de esta vista o que ya no existen.')
+        return redirect(redirect_url)
+
+    deleted_count = 0
+    image_cleanup_failed = False
+    cancelled_appointments = 0
+
+    if catalog_type == SERVICE_CATEGORY_SCOPE:
+        from agenda.models import ProfesionalServicio, Reserva
+        from agenda.services import desactivar_servicio_y_cancelar_citas, reservas_activas_futuras
+
+        for servicio in records:
+            if reservas_activas_futuras(servicio.pk).exists():
+                messages.warning(
+                    request,
+                    'La selección incluye servicios con citas futuras. Elimínalos individualmente '
+                    'para revisar y confirmar la notificación a cada cliente.',
+                )
+                return redirect(redirect_url)
+
+        for servicio in records:
+            image_name = servicio.imagen_url.name
+            cancelled, _, _, _ = desactivar_servicio_y_cancelar_citas(
+                servicio.pk,
+                'El servicio será eliminado del catálogo.',
+            )
+            cancelled_appointments += cancelled
+            Reserva.objects.filter(servicio_id=servicio.pk).update(servicio=None)
+            ProfesionalServicio.objects.filter(servicio_id=servicio.pk).delete()
+            ServicioDesactivadoPorPersonal.objects.filter(servicio_id=servicio.pk).delete()
+            servicio.delete()
+            if image_name:
+                try:
+                    _delete_unused_service_image(image_name)
+                except OSError:
+                    image_cleanup_failed = True
+                    logger.exception(
+                        'No se pudo eliminar la imagen del servicio %s durante una eliminación múltiple.',
+                        servicio.pk,
+                    )
+            deleted_count += 1
+        noun = 'servicio'
+    else:
+        for producto in records:
+            image_name = producto.imagen_url.name
+            producto.delete()
+            if image_name:
+                try:
+                    _delete_unused_product_image(image_name)
+                except OSError:
+                    image_cleanup_failed = True
+                    logger.exception(
+                        'No se pudo eliminar la imagen del producto %s durante una eliminación múltiple.',
+                        producto.pk,
+                    )
+            deleted_count += 1
+        noun = 'producto'
+
+    if deleted_count:
+        messages.success(
+            request,
+            f'Se eliminaron {deleted_count} {noun}{"" if deleted_count == 1 else "s"} correctamente.',
+        )
+    if cancelled_appointments:
+        messages.warning(
+            request,
+            f'También se cancelaron {cancelled_appointments} cita(s) futura(s) asociada(s) a los servicios.',
+        )
+    if image_cleanup_failed:
+        messages.warning(
+            request,
+            'Algunos registros se eliminaron, pero no se pudieron borrar todas las imágenes del almacenamiento.',
+        )
+    return redirect(redirect_url)
+
+
+@require_POST
+def eliminar_servicios_seleccionados(request):
+    return _delete_catalog_records(request, SERVICE_CATEGORY_SCOPE)
+
+
+@require_POST
+def eliminar_productos_seleccionados(request):
+    return _delete_catalog_records(request, PRODUCT_CATEGORY_SCOPE)
+
+
+def _set_catalog_records_status(request, catalog_type):
+    if not _catalog_excel_access_allowed(request):
+        return HttpResponseForbidden()
+
+    redirect_url = _catalog_excel_redirect(
+        catalog_type,
+        request.GET.get('categoria'),
+        request.GET.get('todos') == '1',
+    )
+    target_status = request.POST.get('estado')
+    if target_status not in {'activo', 'inactivo'}:
+        messages.error(request, 'La acción solicitada no es válida.')
+        return redirect(redirect_url)
+    target_active = target_status == 'activo'
+
+    try:
+        selected_ids = list(dict.fromkeys(int(value) for value in request.POST.getlist('ids')))
+    except (TypeError, ValueError):
+        messages.error(request, 'La selección contiene identificadores no válidos.')
+        return redirect(redirect_url)
+    if not selected_ids:
+        messages.warning(request, 'Selecciona al menos un registro para cambiar su estado.')
+        return redirect(redirect_url)
+
+    model = Servicio if catalog_type == SERVICE_CATEGORY_SCOPE else Producto
+    records = model.objects.filter(
+        pk__in=selected_ids,
+        categoria__tipo=catalog_type,
+    )
+    selected_category = _selected_catalog_category(request, catalog_type)
+    if selected_category:
+        records = records.filter(categoria=selected_category)
+    records = list(records)
+    if len(records) != len(selected_ids):
+        messages.error(request, 'La selección incluye registros fuera de esta vista o que ya no existen.')
+        return redirect(redirect_url)
+
+    if catalog_type == SERVICE_CATEGORY_SCOPE and not target_active:
+        from agenda.services import reservas_activas_futuras
+
+        has_upcoming_appointments = any(
+            servicio.activo and reservas_activas_futuras(servicio.pk).exists()
+            for servicio in records
+        )
+        if has_upcoming_appointments:
+            messages.warning(
+                request,
+                'No se desactivaron los servicios porque algunos tienen citas futuras. '
+                'Desactívalos individualmente para confirmar la notificación a cada cliente.',
+            )
+            return redirect(redirect_url)
+
+    ids_to_update = [record.pk for record in records if record.activo != target_active]
+    changed_count = model.objects.filter(pk__in=ids_to_update).update(activo=target_active)
+    if catalog_type == SERVICE_CATEGORY_SCOPE:
+        ServicioDesactivadoPorPersonal.objects.filter(
+            servicio_id__in=[record.pk for record in records],
+        ).delete()
+
+    noun = 'servicio' if catalog_type == SERVICE_CATEGORY_SCOPE else 'producto'
+    if changed_count:
+        if target_active:
+            status_text = 'activó' if changed_count == 1 else 'activaron'
+        else:
+            status_text = 'desactivó' if changed_count == 1 else 'desactivaron'
+        messages.success(
+            request,
+            f'Se {status_text} {changed_count} {noun}{"" if changed_count == 1 else "s"} correctamente.',
+        )
+    else:
+        messages.info(
+            request,
+            'Los registros seleccionados ya estaban '
+            f'{"activos" if target_active else "desactivados"}.',
+        )
+    return redirect(redirect_url)
+
+
+@require_POST
+def cambiar_estado_servicios_seleccionados(request):
+    return _set_catalog_records_status(request, SERVICE_CATEGORY_SCOPE)
+
+
+@require_POST
+def cambiar_estado_productos_seleccionados(request):
+    return _set_catalog_records_status(request, PRODUCT_CATEGORY_SCOPE)
 
 
 @login_required(login_url='login')
@@ -572,7 +918,7 @@ def editar_producto(request, pk):
     )
     if not form.is_valid():
         messages.error(request, _form_error_text(form))
-        return redirect('admin_productos')
+        return redirect(_catalog_edit_redirect(request, 'producto'))
 
     form.save()
     imagen_nueva = producto.imagen_url.name
@@ -586,7 +932,7 @@ def editar_producto(request, pk):
                 'El producto se actualizó, pero no se pudo eliminar su imagen anterior del almacenamiento.',
             )
     messages.success(request, 'El producto se actualizó correctamente.')
-    return redirect('admin_productos')
+    return redirect(_catalog_edit_redirect(request, 'producto'))
 
 
 @require_POST

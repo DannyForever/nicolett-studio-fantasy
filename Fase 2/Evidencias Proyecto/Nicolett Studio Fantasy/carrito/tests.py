@@ -104,7 +104,11 @@ class CarritoTests(TestCase):
         venta = Venta.objects.get(cliente=self.cliente)
         self.assertEqual(venta.total, Decimal('7500'))
         self.assertEqual(venta.estado, 'Completada')
-        self.assertEqual(DetalleVenta.objects.get(venta=venta).producto_id, self.producto.pk)
+        detalle_venta = DetalleVenta.objects.get(venta=venta)
+        self.assertEqual(detalle_venta.producto_id, self.producto.pk)
+        self.assertEqual(detalle_venta.item_nombre, self.producto.nombre)
+        self.assertEqual(detalle_venta.item_descripcion, self.producto.descripcion or '')
+        self.assertEqual(detalle_venta.precio_unitario, self.producto.precio)
         self.assertEqual(Pago.objects.get(venta=venta).monto, Decimal('7500'))
         self.assertFalse(ReservaProductoCarrito.objects.exists())
 
@@ -335,7 +339,11 @@ class CarritoTests(TestCase):
         venta = Venta.objects.get(cliente=self.cliente)
         self.assertEqual(venta.total, Decimal('12000'))
         self.assertEqual(venta.estado, 'Pendiente')
-        self.assertEqual(DetalleVenta.objects.get(venta=venta).servicio_id, self.servicio.pk)
+        detalle_venta = DetalleVenta.objects.get(venta=venta)
+        self.assertEqual(detalle_venta.servicio_id, self.servicio.pk)
+        self.assertEqual(detalle_venta.item_nombre, self.servicio.nombre)
+        self.assertEqual(detalle_venta.item_descripcion, self.servicio.descripcion or '')
+        self.assertEqual(detalle_venta.precio_unitario, self.servicio.precio)
         self.assertEqual(Pago.objects.get(venta=venta).monto, Decimal('5000'))
         self.assertFalse(ReservaCitaTemporal.objects.exists())
 
@@ -422,7 +430,11 @@ class CarritoTests(TestCase):
         self.assertEqual(len(detalles), 2)
         self.assertEqual(detalles[0].producto_id, self.producto.pk)
         self.assertEqual(detalles[0].cantidad, 2)
+        self.assertEqual(detalles[0].item_nombre, self.producto.nombre)
+        self.assertEqual(detalles[0].precio_unitario, self.producto.precio)
         self.assertEqual(detalles[1].servicio_id, self.servicio.pk)
+        self.assertEqual(detalles[1].item_nombre, self.servicio.nombre)
+        self.assertEqual(detalles[1].precio_unitario, self.servicio.precio)
         self.assertEqual(Pago.objects.get(venta=venta).monto, Decimal('10000'))
 
     def test_checkout_rejects_overlapping_service_appointments_for_customer(self):

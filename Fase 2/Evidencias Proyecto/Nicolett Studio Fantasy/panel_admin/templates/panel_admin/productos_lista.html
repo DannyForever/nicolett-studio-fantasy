@@ -15,8 +15,22 @@
             {% endif %}
         </div>
         {% if mostrar_listado %}
-        <div class="d-flex gap-2">
-            <button type="button" class="btn salon-btn-primary" data-bs-toggle="modal" data-bs-target="#modalProducto">
+        <div class="catalog-toolbar-actions">
+            <a class="btn catalog-toolbar-btn catalog-toolbar-export text-uppercase{% if not hay_registros_excel %} disabled{% endif %}"
+                {% if hay_registros_excel %}href="{% url 'exportar_productos_excel' %}{% if categoria_seleccionada %}?categoria={{ categoria_seleccionada.pk }}{% else %}?todos=1{% endif %}"{% else %}aria-disabled="true" tabindex="-1"{% endif %}>
+                <i class="fas fa-file-export" aria-hidden="true"></i> Exportar registros
+            </a>
+            <form method="post" enctype="multipart/form-data" action="{% url 'importar_productos_excel' %}{% if categoria_seleccionada %}?categoria={{ categoria_seleccionada.pk }}{% else %}?todos=1{% endif %}">
+                {% csrf_token %}
+                <label class="btn catalog-toolbar-btn catalog-toolbar-import text-uppercase mb-0" for="importarExcelProductos">
+                    <i class="fas fa-file-import" aria-hidden="true"></i> Importar registros
+                </label>
+                <input id="importarExcelProductos" class="visually-hidden" type="file" name="archivo" accept=".xlsx" required onchange="this.form.submit()">
+            </form>
+            <a class="btn catalog-toolbar-btn catalog-toolbar-template text-uppercase" href="{% url 'plantilla_productos_excel' %}" aria-label="Descargar plantilla Excel de productos">
+                <i class="fas fa-file-arrow-down" aria-hidden="true"></i> Plantilla
+            </a>
+            <button type="button" class="btn catalog-toolbar-btn salon-btn-primary text-uppercase" data-bs-toggle="modal" data-bs-target="#modalProducto">
                 + NUEVO PRODUCTO
             </button>
         </div>
@@ -105,8 +119,8 @@
         </div>
     </section>
     {% else %}
-    <div class="row g-3 align-items-start">
-        <aside class="col-xl-3 col-md-4">
+    <div class="row g-3 align-items-start catalog-list-layout">
+        <aside class="catalog-list-stats">
             <div class="card-stat mb-3">
                 <div class="title">Total de productos</div>
                 <div class="value">{{ total_productos }}</div>
@@ -120,12 +134,12 @@
                 <div class="value">{{ total_inactivos }}</div>
             </div>
         </aside>
-        <div class="col-xl-9 col-md-8">
+        <div class="catalog-list-content">
             <div class="card-stat mb-3">
                 <div class="row g-2" data-live-filter="#productosTabla">
                     <div class="col-lg-6">
                         <label class="visually-hidden" for="buscarProducto">Buscar productos</label>
-                        <input id="buscarProducto" class="form-control" type="search" placeholder="Buscar por nombre, categoría o descripción..." data-filter-search>
+                        <input id="buscarProducto" class="form-control" type="search" placeholder="Buscar por nombre o descripción..." data-filter-search>
                     </div>
                     <div class="col-sm-6 col-lg-3">
                         <label class="visually-hidden" for="filtrarEstadoProducto">Estado</label>
@@ -135,22 +149,51 @@
                             <option value="inactivo">Inactivos</option>
                         </select>
                     </div>
+                    <select id="catalogCategoryOptionsProducto" class="d-none" aria-hidden="true" tabindex="-1">
+                        {% for categoria in categorias %}
+                            <option value="{{ categoria.pk }}"{% if categoria_seleccionada.pk == categoria.pk %} selected{% endif %}>{{ categoria.nombre }}</option>
+                        {% endfor %}
+                    </select>
                     <div class="col-sm-6 col-lg-3">
-                        <label class="visually-hidden" for="filtrarCategoriaProducto">Categoría</label>
-                        <select id="filtrarCategoriaProducto" class="form-select" data-filter-field="category">
-                            <option value="">Todas las categorías</option>
-                            {% for categoria in categorias %}
-                                <option value="{{ categoria.pk }}"{% if categoria_seleccionada.pk == categoria.pk %} selected{% endif %}>{{ categoria.nombre }}</option>
-                            {% endfor %}
+                        <label class="visually-hidden" for="ordenarProductos">Ordenar productos</label>
+                        <select id="ordenarProductos" class="form-select" data-table-sort="#productosTabla">
+                            <option value="az">Ordenar: A-Z</option>
+                            <option value="za">Ordenar: Z-A</option>
+                            <option value="price-desc">Mayor precio a menor precio</option>
+                            <option value="price-asc">Menor precio a mayor precio</option>
+                            <option value="stock-desc">Mayor stock a menor stock</option>
+                            <option value="stock-asc">Menor stock a mayor stock</option>
                         </select>
                     </div>
                 </div>
             </div>
             <div class="card services-table-card">
+                <div class="catalog-bulk-toolbar" data-bulk-toolbar-for="#productosTabla" hidden>
+                    <span><strong data-selected-count>0</strong> productos seleccionados</span>
+                    <div class="catalog-bulk-actions">
+                        <button class="btn catalog-toolbar-btn catalog-toolbar-activate" type="button" data-bulk-action="activate" data-catalog-noun="producto">
+                            <i class="fas fa-eye" aria-hidden="true"></i> Activar seleccionados
+                        </button>
+                        <button class="btn catalog-toolbar-btn catalog-toolbar-deactivate" type="button" data-bulk-action="deactivate" data-catalog-noun="producto">
+                            <i class="fas fa-eye-slash" aria-hidden="true"></i> Desactivar seleccionados
+                        </button>
+                        <button class="btn catalog-toolbar-btn catalog-toolbar-delete" type="submit" form="bulkDeleteProductosForm">
+                            <i class="fas fa-trash" aria-hidden="true"></i> Eliminar seleccionados
+                        </button>
+                    </div>
+                </div>
+                <form id="bulkDeleteProductosForm" class="d-none" data-bulk-form data-catalog-noun="producto" method="post" action="{% url 'eliminar_productos_seleccionados' %}{% if categoria_seleccionada %}?categoria={{ categoria_seleccionada.pk }}{% else %}?todos=1{% endif %}">
+                    {% csrf_token %}
+                </form>
+                <form id="bulkStatusProductosForm" class="d-none" data-bulk-status-form method="post" action="{% url 'cambiar_estado_productos_seleccionados' %}{% if categoria_seleccionada %}?categoria={{ categoria_seleccionada.pk }}{% else %}?todos=1{% endif %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="estado">
+                </form>
                 <div class="table-responsive">
                     <table id="productosTabla" class="table align-middle mb-0">
                 <thead>
                     <tr>
+                        <th class="catalog-select-column"><input type="checkbox" class="form-check-input" data-select-all="#productosTabla" aria-label="Seleccionar todos los productos"></th>
                         <th>IMAGEN</th>
                         <th>NOMBRE</th>
                         <th>CATEGORÍA</th>
@@ -163,7 +206,8 @@
                 </thead>
                 <tbody>
                     {% for producto in productos %}
-                    <tr data-filter-row data-status="{{ producto.activo|yesno:'activo,inactivo' }}" data-category="{{ producto.categoria_id }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion }} {{ producto.precio }} {{ producto.stock }}">
+                    <tr data-filter-row data-status="{{ producto.activo|yesno:'activo,inactivo' }}" data-category="{{ producto.categoria_id }}" data-sort-name="{{ producto.nombre }}" data-sort-price="{{ producto.precio|unlocalize }}" data-sort-stock="{{ producto.stock }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion }} {{ producto.precio }} {{ producto.stock }}">
+                        <td class="catalog-select-column"><input type="checkbox" class="form-check-input" name="ids" value="{{ producto.pk }}" form="bulkDeleteProductosForm" data-row-select aria-label="Seleccionar producto {{ producto.nombre }}"></td>
                         <td>
                             {% if producto.imagen_url %}
                                 <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" width="44" height="44" class="service-thumbnail">
@@ -220,10 +264,10 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">No hay productos registrados.</td>
+                        <td colspan="9" class="text-center py-5 text-muted">No hay productos registrados.</td>
                     </tr>
                     {% endfor %}
-                    <tr data-filter-empty hidden><td colspan="8" class="text-center py-4 text-muted">No hay productos que coincidan con los filtros.</td></tr>
+                    <tr data-filter-empty hidden><td colspan="9" class="text-center py-4 text-muted">No hay productos que coincidan con los filtros.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -238,6 +282,11 @@
         <div class="modal-content">
             <form id="formProducto" method="post" action="{% url 'crear_producto' %}" enctype="multipart/form-data">
                 {% csrf_token %}
+                {% if categoria_seleccionada %}
+                    <input type="hidden" name="return_categoria" value="{{ categoria_seleccionada.pk }}">
+                {% elif mostrar_listado %}
+                    <input type="hidden" name="return_todos" value="1">
+                {% endif %}
                 <div class="modal-header">
                     <div>
                         <span class="salon-modal-eyebrow">CUIDADO EN CASA</span>
@@ -286,7 +335,7 @@
                             </select>
                         </div>
                         <div class="col-12">
-                            <label for="productoImagen" class="form-label">Imagen del producto <span id="productoImagenObligatoria" class="text-danger">*</span></label>
+                            <label for="productoImagen" class="form-label">Imagen del producto <span id="productoImagenOpcional" class="text-muted">(opcional)</span></label>
                             <input id="productoImagen" type="file" name="imagen_url" class="form-control salon-file-input" accept="image/*">
                             <div id="productoImagenActual" class="service-image-current d-none">
                                 <img id="productoImagenPreview" class="service-image-preview" alt="Imagen actual del producto">
@@ -295,7 +344,7 @@
                                     <span id="productoImagenNombre" class="service-image-name"></span>
                                 </div>
                             </div>
-                            <div id="productoImagenEstado" class="form-text">La imagen es obligatoria al registrar el producto.</div>
+                            <div id="productoImagenEstado" class="form-text">Puedes adjuntar una imagen ahora o agregarla después.</div>
                         </div>
                     </div>
                 </div>
@@ -393,7 +442,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const imagePreview = document.getElementById('productoImagenPreview');
     const imageName = document.getElementById('productoImagenNombre');
     const imageStatus = document.getElementById('productoImagenEstado');
-    const imageRequiredIndicator = document.getElementById('productoImagenObligatoria');
     const createUrl = form.action;
     const categoryModalElement = document.getElementById('modalCategoriasProducto');
     const categoryModal = bootstrap.Modal.getOrCreateInstance(categoryModalElement);
@@ -401,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryList = document.getElementById('listaCategoriasProducto');
     const categorySearch = document.getElementById('buscarCategoriaProducto');
     const categorySelect = document.getElementById('productoCategoria');
-    const categoryFilter = document.getElementById('filtrarCategoriaProducto');
+    const categoryOptions = document.getElementById('catalogCategoryOptionsProducto');
     const categoryError = document.getElementById('errorCategoriaProducto');
     const categoryMessage = document.getElementById('mensajeCategoriasProducto');
     const csrfToken = categoryForm.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -416,10 +464,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('tituloModalProducto').textContent = 'Nuevo producto';
         document.getElementById('btnGuardarProducto').textContent = 'Guardar producto';
         currentImage.classList.add('d-none');
-        fileInput.required = true;
-        imageRequiredIndicator.classList.remove('d-none');
+        fileInput.required = false;
         savedImageUrl = '';
-        imageStatus.textContent = 'La imagen es obligatoria al registrar el producto.';
+        imageStatus.textContent = 'Puedes adjuntar una imagen ahora o agregarla después.';
         document.getElementById('productoStock').value = '0';
         document.getElementById('productoActivo').value = 'true';
     }
@@ -442,7 +489,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('productoActivo').value = trigger.dataset.activo;
         savedImageUrl = trigger.dataset.imagen;
         fileInput.required = false;
-        imageRequiredIndicator.classList.add('d-none');
         if (savedImageUrl) {
             imagePreview.src = savedImageUrl;
             imageName.textContent = trigger.dataset.imagenNombre;
@@ -505,14 +551,14 @@ document.addEventListener('DOMContentLoaded', () => {
         option.textContent = `${data.nombre} (${data.tipo})`;
         categorySelect.value = data.id;
 
-        if (categoryFilter) {
-            let filterOption = categoryFilter.querySelector(`option[value="${data.id}"]`);
-            if (!filterOption) {
-                filterOption = document.createElement('option');
-                filterOption.value = data.id;
-                categoryFilter.append(filterOption);
+        if (categoryOptions) {
+            let categoryOption = categoryOptions.querySelector(`option[value="${data.id}"]`);
+            if (!categoryOption) {
+                categoryOption = document.createElement('option');
+                categoryOption.value = data.id;
+                categoryOptions.append(categoryOption);
             }
-            filterOption.textContent = data.nombre;
+            categoryOption.textContent = data.nombre;
         }
         document.getElementById('btnGuardarProducto').disabled = false;
     }
@@ -600,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then((data) => {
                 categoryList.querySelector(`[data-category-id="${button.dataset.id}"]`).remove();
                 categorySelect.querySelector(`option[value="${button.dataset.id}"]`)?.remove();
-                categoryFilter.querySelector(`option[value="${button.dataset.id}"]`)?.remove();
+                categoryOptions?.querySelector(`option[value="${button.dataset.id}"]`)?.remove();
                 if (categorySelect.options.length === 1) {
                     document.getElementById('btnGuardarProducto').disabled = true;
                 }

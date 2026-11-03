@@ -1,5 +1,4 @@
 from datetime import timedelta
-from collections.abc import Iterable
 import binascii
 import logging
 import re
@@ -29,8 +28,8 @@ from django.views.decorators.http import require_GET, require_POST
 
 from agenda.models import HistorialReserva, Reserva
 from agenda.views import servicios_con_horarios_disponibles
-from carrito.models import Pedido, ReservaProductoCarrito
-from panel_admin.models import Producto, Servicio
+from carrito.models import ReservaProductoCarrito
+from panel_admin.models import Categoria, Producto, Servicio
 
 from .forms import ClienteCambiarContrasenaForm, ClienteConfiguracionForm
 from .models import Rol, Usuario
@@ -578,12 +577,6 @@ def _vista_cliente(request, template, context=None):
     if not request.user.is_authenticated:
         return redirect('login')
     contexto = context.copy() if context else {}
-    contexto.setdefault(
-        'categorias_servicio_menu',
-        _categorias_servicio_menu(
-            Servicio.objects.select_related('categoria').order_by('nombre'),
-        ),
-    )
     vista_previa = _usuario_en_vista_cliente(request)
     vista_admin_existente = contexto.get('vista_admin', False)
     paginas_previsualizables = {
@@ -819,82 +812,19 @@ def cliente_servicios_view(request):
     }
     if orden not in ordenes:
         orden = 'nombre_asc'
-    servicios_catalogo = list(
-        Servicio.objects.select_related('categoria').order_by('nombre'),
-    )
     servicios = Servicio.objects.filter(
         activo=True,
     ).select_related('categoria').order_by(*ordenes[orden])
     categoria_solicitada = request.GET.get('categoria', '').strip()
-    categorias_menu = _categorias_servicio_menu(servicios_catalogo)
-    categoria_seleccionada = next(
-        (
-            categoria['nombre']
-            for categoria in categorias_menu
-            if categoria['nombre'].casefold() == categoria_solicitada.casefold()
-        ),
-        '',
+    categoria_seleccionada = _resolver_categoria_cliente(
+        categoria_solicitada,
+        'servicio',
     )
-    categorias_galeria_seleccionadas = []
-    if categoria_seleccionada:
-        servicios_categoria = Servicio.objects.filter(
-            categoria__nombre__iexact=categoria_seleccionada,
-        ).select_related('categoria')
-        galerias_categoria = _agrupar_servicios_galeria(servicios_categoria)
-        categorias_galeria_seleccionadas = [
-            categoria
-            for categoria, servicios_de_categoria in galerias_categoria.items()
-            if servicios_de_categoria
-        ]
-        if not categorias_galeria_seleccionadas:
-            categorias_galeria_seleccionadas = ['otros']
-        servicios = servicios.filter(
-            categoria__nombre__iexact=categoria_seleccionada,
-        )
-    elif categoria_solicitada in {
-        'corte',
-        'tratamientos',
-        'manos',
-        'pedicure',
-        'depilaciones',
-        'peinados',
-        'coloracion',
-        'podologia',
-        'lash_brow',
-        'cuidado_facial',
-        'maquillaje',
-    }:
-        categorias_galeria_seleccionadas = [categoria_solicitada]
-        for categoria in categorias_menu:
-            servicios_categoria = [
-                servicio
-                for servicio in servicios_catalogo
-                if servicio.categoria.nombre == categoria['nombre']
-            ]
-            galerias_categoria = _agrupar_servicios_galeria(
-                servicios_categoria,
-            )
-            if any(
-                galerias_categoria.get(categoria_solicitada, [])
-            ):
-                categoria_seleccionada = categoria['nombre']
-                break
-    servicios_con_horario = servicios.filter(
-        pk__in=servicios_con_horarios_disponibles(),
-    )
-    servicios_galeria = _agrupar_servicios_galeria(servicios_con_horario)
-    servicios_categorizados = {
-        servicio.pk
-        for servicios_de_categoria in servicios_galeria.values()
-        for servicio in servicios_de_categoria
-    }
-    servicios_sin_galeria = [
-        servicio
-        for servicio in servicios_con_horario
-        if servicio.pk not in servicios_categorizados
-    ]
-    if servicios_sin_galeria:
-        servicios_galeria['otros'] = servicios_sin_galeria
+    if categoria_solicitada:
+        if categoria_seleccionada:
+            servicios = servicios.filter(categoria_id=categoria_seleccionada.pk)
+        else:
+            servicios = servicios.none()
     return _vista_cliente(
         request,
         'usuarios/cliente_seccion.html',
@@ -902,11 +832,15 @@ def cliente_servicios_view(request):
             'titulo': 'Servicios',
             'descripcion': 'Aquí podrás conocer los servicios disponibles.',
             'servicios': servicios,
-            'servicios_galeria': servicios_galeria,
             'categoria_seleccionada': categoria_seleccionada,
-            'categorias_galeria_seleccionadas': categorias_galeria_seleccionadas,
-            'filtros_categoria': _filtros_catalogo(servicios),
+            'categoria_seleccionada_id': (
+                categoria_seleccionada.pk if categoria_seleccionada else None
+            ),
             'orden_catalogo': orden,
+            'hoy': timezone.localdate().isoformat(),
+            'cliente_profesionales_url': reverse('cliente_profesionales_disponibles'),
+            'cliente_horas_url': reverse('cliente_horas_disponibles'),
+            'cliente_calendario_url': reverse('cliente_calendario_disponibilidad'),
         },
     )
 
@@ -926,20 +860,24 @@ def cliente_productos_view(request):
         activo=True,
         stock__gt=0,
     ).select_related('categoria')
-    filtros_categoria = _filtros_catalogo(productos_disponibles)
-    categoria_seleccionada = request.GET.get('categoria', '').strip()
-    if categoria_seleccionada:
-        productos_disponibles = productos_disponibles.filter(
-            categoria__nombre__iexact=categoria_seleccionada,
-        )
-        categoria_seleccionada = next(
-            (
-                categoria
-                for categoria in filtros_categoria
-                if categoria.casefold() == categoria_seleccionada.casefold()
-            ),
-            categoria_seleccionada,
-        )
+    categoria_solicitada = request.GET.get('categoria', '').strip()
+    categoria_seleccionada = _resolver_categoria_cliente(
+        categoria_solicitada,
+        'producto',
+    )
+    if categoria_solicitada:
+        if categoria_seleccionada:
+            productos_disponibles = productos_disponibles.filter(
+                categoria_id=categoria_seleccionada.pk,
+            )
+        else:
+            productos_disponibles = productos_disponibles.none()
+    filtros_categoria = list(
+        Categoria.objects.filter(tipo='producto', activa=True)
+        .exclude(nombre__iexact='Sin categoría')
+        .order_by('nombre')
+        .values_list('nombre', flat=True)
+    )
     productos = productos_disponibles.order_by(*ordenes[orden])
     return _vista_cliente(
         request,
@@ -950,32 +888,24 @@ def cliente_productos_view(request):
             'productos': productos,
             'filtros_categoria': filtros_categoria,
             'categoria_seleccionada': categoria_seleccionada,
+            'categoria_seleccionada_id': (
+                categoria_seleccionada.pk if categoria_seleccionada else None
+            ),
             'orden_catalogo': orden,
         },
     )
 
 
-def _filtros_catalogo(items: QuerySet) -> list[str]:
-    filtros = {
-        nombre.strip().casefold(): nombre.strip()
-        for nombre in items.values_list('categoria__nombre', flat=True).distinct()
-        if nombre and nombre.strip()
-    }
-    return sorted(filtros.values(), key=str.casefold)
-
-
-def _categorias_servicio_menu(
-    servicios: Iterable[Servicio],
-) -> list[dict[str, str]]:
-    nombres = {
-        servicio.categoria.nombre.strip()
-        for servicio in servicios
-        if servicio.categoria.nombre and servicio.categoria.nombre.strip()
-    }
-    return [
-        {'nombre': nombre}
-        for nombre in sorted(nombres, key=str.casefold)
-    ]
+def _resolver_categoria_cliente(valor: str, tipo: str) -> Categoria | None:
+    categorias = Categoria.objects.filter(
+        tipo=tipo,
+        activa=True,
+    ).exclude(nombre__iexact='Sin categoría')
+    if valor.isdecimal():
+        return categorias.filter(pk=int(valor)).first()
+    if valor:
+        return categorias.filter(nombre__iexact=valor).first()
+    return None
 
 
 def _agrupar_servicios_galeria(servicios: QuerySet) -> dict[str, list[Servicio]]:
@@ -1125,22 +1055,6 @@ def cliente_agendamiento_view(request):
 @never_cache
 def cliente_historial_view(request):
     return redirect(f"{reverse('cliente_gestionar_citas')}?tab=historial")
-
-
-@never_cache
-def cliente_historial_pagos_view(request):
-    pedidos = Pedido.objects.filter(
-        cliente=request.user,
-        pagos_simulados__isnull=False,
-    ).distinct().prefetch_related(
-        'pagos_simulados',
-        'detalles',
-    ).order_by('-creado_en')
-    return _vista_cliente(
-        request,
-        'usuarios/cliente_historial_pagos.html',
-        {'pedidos': pedidos},
-    )
 
 
 @never_cache

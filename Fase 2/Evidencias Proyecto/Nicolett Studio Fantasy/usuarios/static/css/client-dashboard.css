@@ -1,0 +1,1857 @@
+:root {
+    --client-cream: #fffaf5;
+    --client-paper: #ffffff;
+    --client-bg: #f1e9dd;
+    --client-ink: #281b14;
+    --client-brown: #5a4030;
+    --client-muted: #786553;
+    --client-gold: #bd8c43;
+    --client-gold-dark: #956b2f;
+    --client-border: #eadfcf;
+    --client-soft: #f8efe1;
+    --client-sidebar-width: 248px;
+    --client-sidebar-mini-width: 84px;
+    --client-topbar-height: 68px;
+}
+
+body.client-platform {
+    min-height: 100vh;
+    background: var(--client-bg);
+    color: var(--client-ink);
+    font-family: Outfit, sans-serif;
+}
+
+body.client-platform,
+body.client-platform #clientLayoutContent {
+    overflow-x: clip;
+}
+
+body.client-platform > header.client-topbar {
+    z-index: 50;
+    width: calc(100% - var(--client-sidebar-width));
+    min-height: var(--client-topbar-height);
+    height: var(--client-topbar-height);
+    margin-left: var(--client-sidebar-width);
+    border: 0;
+    border-bottom: 1px solid var(--client-border);
+    border-radius: 0;
+    background: rgb(255 255 255 / 94%);
+    background-image: none;
+    padding-inline: clamp(16px, 3vw, 40px);
+    color: var(--client-ink);
+    box-shadow: 0 4px 18px rgb(40 27 20 / 5%);
+    backdrop-filter: blur(14px);
+}
+
+body.client-platform > header.client-topbar > a.client-topbar-brand,
+body.client-platform > header.client-topbar > a.lg\:hidden {
+    display: flex;
+    height: 100%;
+    flex: 0 0 auto;
+    align-items: center;
+    color: var(--client-ink);
+    text-shadow: none;
+}
+
+body.client-platform > header.client-topbar > a.client-topbar-brand span,
+body.client-platform > header.client-topbar > a.lg\:hidden span {
+    color: var(--client-brown);
+    line-height: 1;
+}
+
+body.client-platform > header.client-topbar > a.client-topbar-brand i {
+    color: var(--client-gold);
+}
+
+body.client-platform > header.client-topbar > div.relative.ml-auto {
+    display: flex;
+    align-items: center;
+    gap: clamp(10px, 1.5vw, 20px);
+    color: var(--client-muted);
+}
+
+body.client-platform > header.client-topbar > div.relative.ml-auto > span {
+    color: var(--client-muted);
+}
+
+body.client-platform > header.client-topbar > div.relative.ml-auto > span strong {
+    color: var(--client-ink);
+}
+
+body.client-platform .client-topbar [data-client-search] > div {
+    min-height: 40px;
+    border: 1px solid var(--client-border);
+    border-radius: 999px;
+    background: #fbf8f3;
+    color: var(--client-muted);
+}
+
+body.client-platform .client-topbar [data-client-search] i,
+body.client-platform .client-topbar #client-smart-search,
+body.client-platform .client-topbar #cart-summary-toggle,
+body.client-platform .client-topbar #clientSearchToggle {
+    color: var(--client-brown);
+}
+
+body.client-platform .client-topbar #client-smart-search {
+    font-family: Outfit, sans-serif;
+}
+
+body.client-platform .client-topbar #client-smart-search::placeholder {
+    color: #988876;
+}
+
+body.client-platform .client-topbar #clientMenuToggle,
+body.client-platform .client-topbar #clientSearchToggle {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--client-border);
+    border-radius: 12px;
+    background: var(--client-paper);
+    box-shadow: 0 2px 6px rgb(40 27 20 / 5%);
+}
+
+body.client-platform .client-topbar #clientMenuToggle:hover,
+body.client-platform .client-topbar #clientSearchToggle:hover {
+    border-color: var(--client-gold);
+    background: var(--client-soft);
+}
+
+body.client-platform #clientLayoutContent {
+    min-height: calc(100vh - var(--client-topbar-height));
+    margin-left: var(--client-sidebar-width);
+    background: transparent;
+}
+
+body.client-platform #clientSidebar {
+    z-index: 60;
+    top: 0;
+    bottom: 0;
+    width: var(--client-sidebar-width);
+    height: 100vh;
+    height: 100dvh;
+    border: 0;
+    border-right: 1px solid var(--client-border);
+    background: var(--client-paper);
+    padding: 18px 14px 16px;
+    box-shadow: 6px 0 24px rgb(40 27 20 / 3%);
+    transition: transform 220ms ease;
+}
+
+body.client-platform .client-sidebar-tools {
+    min-height: 70px;
+    margin: 0 4px 22px;
+    border: 0;
+    border-bottom: 1px solid var(--client-border);
+    border-radius: 0;
+    background: transparent;
+    padding: 4px 8px 18px !important;
+    box-shadow: none;
+}
+
+body.client-platform .client-sidebar-brand {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 7px;
+    padding: 0;
+}
+
+body.client-platform .client-sidebar-brand::before,
+body.client-platform .client-sidebar-brand::after {
+    content: none;
+}
+
+body.client-platform .client-sidebar-brand span:first-child {
+    color: var(--client-brown) !important;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 1.35rem;
+}
+
+body.client-platform .client-sidebar-brand span:nth-child(2) {
+    color: var(--client-gold-dark) !important;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+}
+
+body.client-platform .client-sidebar nav {
+    gap: 6px !important;
+    padding: 0 2px;
+}
+
+body.client-platform .client-sidebar-home-row,
+body.client-platform .client-sidebar nav > a,
+body.client-platform .client-sidebar nav > div.flex.flex-col {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid transparent !important;
+    border-radius: 12px;
+    background: transparent !important;
+    box-shadow: none;
+}
+
+body.client-platform .client-sidebar-home-row > a,
+body.client-platform .client-sidebar nav > a,
+body.client-platform .client-sidebar .client-services-toggle {
+    min-height: 46px;
+    border: 0 !important;
+    border-left: 0 !important;
+    border-radius: 11px;
+    padding: 11px 12px;
+    color: var(--client-muted);
+    font-family: Outfit, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 160ms ease, background-color 160ms ease;
+}
+
+body.client-platform .client-sidebar-home-row > a:hover,
+body.client-platform .client-sidebar nav > a:hover,
+body.client-platform .client-sidebar .client-services-toggle:hover {
+    background: #faf6f0 !important;
+    color: var(--client-ink);
+}
+
+body.client-platform .client-sidebar-home-row > a[aria-current="page"],
+body.client-platform .client-sidebar nav > a[aria-current="page"],
+body.client-platform .client-sidebar .client-services-toggle[aria-current="page"] {
+    border: 1px solid #efdfc5 !important;
+    background: var(--client-soft) !important;
+    box-shadow: none;
+    color: var(--client-brown);
+    font-weight: 600;
+}
+
+body.client-platform .client-sidebar-home-row > a > i,
+body.client-platform .client-sidebar nav > a > i,
+body.client-platform .client-sidebar .client-services-toggle > i:first-child {
+    color: var(--client-gold-dark) !important;
+}
+
+body.client-platform .client-sidebar .client-services-toggle[aria-expanded="true"] {
+    background: var(--client-soft) !important;
+    color: var(--client-brown) !important;
+}
+
+body.client-platform .client-sidebar .client-services-toggle[aria-expanded="true"] > i {
+    color: var(--client-gold-dark) !important;
+}
+
+body.client-platform .client-sidebar .client-services-toggle .client-sidebar-chevron {
+    color: #9c8975;
+}
+
+body.client-platform .client-sidebar-submenu {
+    margin: 2px 6px 8px 20px;
+    border-left: 1px solid var(--client-border);
+    padding: 2px 4px 4px 12px;
+}
+
+body.client-platform .client-sidebar-submenu a {
+    min-height: 38px;
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 10px;
+    color: var(--client-muted);
+    font-family: Outfit, sans-serif;
+    font-size: 0.8rem;
+}
+
+body.client-platform .client-sidebar-submenu a:hover,
+body.client-platform .client-sidebar-submenu a[aria-current="page"] {
+    background: #faf6f0;
+    color: var(--client-brown);
+}
+
+body.client-platform .client-sidebar form {
+    padding: 16px 4px 0;
+}
+
+body.client-platform .client-sidebar form button[title="Cerrar sesión"],
+body.client-platform .client-sidebar > a[title^="Volver a"] {
+    min-height: 44px;
+    border: 1px solid #efdfd7;
+    border-radius: 11px;
+    background: #fff8f5;
+    color: #9a5142;
+}
+
+body.client-platform .client-sidebar form button[title="Cerrar sesión"]:hover {
+    background: #f9ece6;
+    color: #7d3e32;
+}
+
+body.client-platform .client-sidebar-collapse-toggle {
+    position: fixed;
+    z-index: 70;
+    top: 15px;
+    left: calc(var(--client-sidebar-width) - 48px);
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--client-border);
+    border-radius: 10px;
+    background: var(--client-paper);
+    color: var(--client-brown);
+    box-shadow: 0 2px 8px rgb(40 27 20 / 6%);
+}
+
+body.client-platform .client-sidebar-collapse-toggle:hover {
+    background: var(--client-soft);
+}
+
+body.client-platform #clientMenuBackdrop {
+    z-index: 55;
+    top: var(--client-topbar-height) !important;
+    background: rgb(40 27 20 / 38%);
+    backdrop-filter: blur(2px);
+}
+
+body.client-platform #clientLayoutContent > main {
+    min-width: 0;
+    background: transparent;
+    padding: clamp(20px, 3vw, 40px);
+}
+
+body.client-platform #clientLayoutContent > main[data-service-catalog-main][data-full-bleed="true"] {
+    background-color: #d8b56f;
+    padding: 0;
+}
+
+body.client-platform #clientLayoutContent > main table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+body.client-platform #clientLayoutContent > main img,
+body.client-platform #clientLayoutContent > main video,
+body.client-platform #clientLayoutContent > main iframe {
+    max-width: 100%;
+}
+
+body.client-platform .client-settings-main #datos-contacto,
+body.client-platform .client-settings-main #direcciones-envio,
+body.client-platform .client-settings-main #direcciones-facturacion,
+body.client-platform .client-settings-main #eliminar-cuenta {
+    border: 1px solid var(--client-border);
+    border-radius: 18px;
+    background: var(--client-paper) !important;
+    box-shadow: 0 8px 24px rgb(40 27 20 / 5%);
+}
+
+body.client-platform .client-settings-main #direcciones-envio > div,
+body.client-platform .client-settings-main #direcciones-facturacion > div {
+    border-color: var(--client-border);
+    border-radius: 14px;
+    background: #fcfaf7 !important;
+}
+
+body.client-platform .client-settings-main input,
+body.client-platform .client-settings-main select,
+body.client-platform .client-settings-main textarea {
+    max-width: 100%;
+    border: 1px solid var(--client-border);
+    border-radius: 9px;
+    background: #fffdfa !important;
+}
+
+body.client-platform .client-settings-main input:focus,
+body.client-platform .client-settings-main select:focus,
+body.client-platform .client-settings-main textarea:focus {
+    border-color: var(--client-gold);
+    box-shadow: 0 0 0 3px rgb(189 140 67 / 14%);
+}
+
+body.client-platform.client-bookings-page {
+    background: var(--client-bg);
+    background-image: none;
+}
+
+body.client-platform.client-bookings-page > header.client-topbar {
+    width: calc(100% - var(--client-sidebar-width));
+    height: var(--client-topbar-height);
+    min-height: var(--client-topbar-height);
+    margin-left: var(--client-sidebar-width);
+    border: 0;
+    border-bottom: 1px solid var(--client-border);
+    background: rgb(255 255 255 / 94%);
+    background-image: none;
+    padding-inline: clamp(16px, 3vw, 40px);
+    color: var(--client-ink);
+    box-shadow: 0 4px 18px rgb(40 27 20 / 5%);
+}
+
+body.client-platform.client-bookings-page > header.client-topbar > a.client-topbar-brand,
+body.client-platform.client-bookings-page > header.client-topbar > a.client-topbar-brand span,
+body.client-platform.client-bookings-page > header.client-topbar .client-bookings-topnav a,
+body.client-platform.client-bookings-page > header.client-topbar > div,
+body.client-platform.client-bookings-page > header.client-topbar > div > span,
+body.client-platform.client-bookings-page > header.client-topbar > div > span strong {
+    color: var(--client-brown);
+}
+
+body.client-platform.client-bookings-page .client-bookings-topnav {
+    display: none;
+}
+
+body.client-platform.client-bookings-page #clientLayoutContent {
+    margin-left: var(--client-sidebar-width);
+    background: transparent;
+}
+
+body.client-platform.client-bookings-page #clientSidebar {
+    top: 0;
+    width: var(--client-sidebar-width);
+    padding-top: 18px;
+    border: 0;
+    border-right: 1px solid var(--client-border) !important;
+    background: var(--client-paper) !important;
+    background-image: none !important;
+    box-shadow: 6px 0 24px rgb(40 27 20 / 3%);
+}
+
+body.client-platform.client-bookings-page .client-sidebar-tools {
+    min-height: 70px;
+    margin: 0 4px 22px;
+    border: 0;
+    border-bottom: 1px solid var(--client-border);
+    border-radius: 0;
+    background: transparent;
+    padding: 4px 8px 18px !important;
+    box-shadow: none;
+}
+
+body.client-platform.client-bookings-page .client-sidebar-brand {
+    min-height: 0;
+    width: auto;
+    flex: 1;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+body.client-platform.client-bookings-page .client-sidebar nav {
+    gap: 6px !important;
+    padding: 0 2px;
+}
+
+body.client-platform.client-bookings-page .client-sidebar-home-row > a,
+body.client-platform.client-bookings-page .client-sidebar nav > a,
+body.client-platform.client-bookings-page .client-sidebar nav > div.flex.flex-col,
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle {
+    min-height: 46px;
+    border: 1px solid transparent !important;
+    border-radius: 11px;
+    background: transparent !important;
+    box-shadow: none;
+    padding: 11px 12px;
+    color: var(--client-muted);
+    font-family: Outfit, sans-serif;
+    font-size: 0.875rem;
+}
+
+body.client-platform.client-bookings-page .client-sidebar-home-row > a[aria-current="page"],
+body.client-platform.client-bookings-page .client-sidebar nav > a[aria-current="page"],
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle[aria-current="page"] {
+    border-color: #efdfc5 !important;
+    background: var(--client-soft) !important;
+    color: var(--client-brown);
+}
+
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle .client-sidebar-chevron,
+body.client-platform.client-bookings-page .client-sidebar-collapse-toggle {
+    color: var(--client-brown);
+}
+
+body.client-platform.client-bookings-page .client-bookings-topnav,
+body.client-platform.client-bookings-page > header.client-topbar + button#clientMenuBackdrop {
+    display: none;
+}
+
+body.client-platform.client-bookings-page main.client-bookings-main {
+    min-height: calc(100vh - var(--client-topbar-height));
+    padding: clamp(20px, 3vw, 40px);
+}
+
+body.client-platform.client-bookings-page .client-bookings-frame {
+    max-width: 1100px;
+    border: 1px solid var(--client-border);
+    border-radius: 22px;
+    background: var(--client-paper);
+    box-shadow: 0 12px 34px rgb(40 27 20 / 7%);
+    padding: clamp(18px, 3vw, 32px);
+}
+
+body.client-platform.client-bookings-page .client-bookings-corner {
+    display: none;
+}
+
+body.client-platform.client-bookings-page .client-bookings-tabs {
+    border-color: var(--client-border);
+}
+
+body.client-platform.client-bookings-page .client-bookings-tabs .js-bookings-tab {
+    border: 1px solid var(--client-border);
+    border-radius: 10px 10px 0 0;
+    background: #faf6f0;
+    color: var(--client-brown);
+}
+
+body.client-platform.client-bookings-page .client-bookings-tabs .js-bookings-tab[aria-selected="true"] {
+    border-color: var(--client-gold);
+    background: var(--client-soft);
+    color: var(--client-ink);
+}
+
+body.client-platform.client-bookings-page .client-bookings-card,
+body.client-platform.client-bookings-page .client-bookings-empty {
+    border: 1px solid var(--client-border);
+    border-radius: 14px;
+    background: #fffdfa;
+    box-shadow: none;
+}
+
+body.client-platform.client-bookings-page .client-bookings-cta,
+body.client-platform.client-bookings-page .client-bookings-download {
+    border: 1px solid var(--client-gold-dark);
+    border-radius: 999px;
+    background: var(--client-brown);
+    color: #fffaf5;
+    box-shadow: none;
+}
+
+body.client-platform.client-bookings-page .client-bookings-cta:hover,
+body.client-platform.client-bookings-page .client-bookings-download:hover {
+    background: #3e2d22;
+    filter: none;
+}
+
+body.client-platform .client-about {
+    max-width: 1120px;
+    margin-inline: auto;
+    padding: 0;
+    background: transparent;
+    background-image: none;
+}
+
+body.client-platform .client-about-frame {
+    border: 1px solid var(--client-border);
+    border-radius: 22px;
+    background: linear-gradient(130deg, #fffdfa, #fbf2e4);
+    box-shadow: 0 10px 28px rgb(40 27 20 / 5%);
+}
+
+body.client-platform .client-about-frame::before,
+body.client-platform .client-about-frame::after,
+body.client-platform .client-about-card::after {
+    display: none;
+}
+
+body.client-platform .client-about-frame:first-child {
+    border-top: 3px solid var(--client-gold);
+    padding: clamp(28px, 5vw, 54px) clamp(20px, 5vw, 64px);
+}
+
+body.client-platform .client-about-frame:first-child > p:first-child {
+    color: var(--client-gold-dark);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+}
+
+body.client-platform .client-about-frame:first-child h1 {
+    color: var(--client-ink);
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    line-height: 1.15;
+}
+
+body.client-platform .client-about-frame:first-child > p:last-child {
+    color: var(--client-muted);
+    font-size: 1rem;
+}
+
+body.client-platform .client-about > section[aria-label="Nuestra historia y propósito"] {
+    gap: 18px;
+}
+
+body.client-platform .client-about-card {
+    min-width: 0;
+    border: 1px solid var(--client-border);
+    border-radius: 18px;
+    background: var(--client-paper);
+    box-shadow: 0 8px 24px rgb(40 27 20 / 4%);
+    padding: clamp(20px, 2.5vw, 28px);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+body.client-platform .client-about-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px rgb(40 27 20 / 8%);
+}
+
+body.client-platform .client-about-icon {
+    width: 46px;
+    height: 46px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--client-soft);
+    color: var(--client-gold-dark);
+}
+
+body.client-platform .client-about-card h2,
+body.client-platform .client-about-frame h2 {
+    color: var(--client-ink);
+}
+
+body.client-platform .client-about-card p,
+body.client-platform .client-about-frame p {
+    color: var(--client-muted);
+}
+
+body.client-platform .client-about > section[aria-label="Contacto y redes sociales"] {
+    gap: 24px;
+    padding: clamp(20px, 3vw, 34px);
+}
+
+body.client-platform .client-about > section[aria-label="Contacto y redes sociales"] > div + div {
+    border-color: var(--client-border);
+}
+
+body.client-platform .client-about > section[aria-label="Contacto y redes sociales"] a[href^="https://maps.google.com"] {
+    border-color: var(--client-gold-dark);
+    border-radius: 10px;
+    color: var(--client-brown);
+}
+
+body.client-platform .client-about > section[aria-label="Contacto y redes sociales"] a[href^="https://maps.google.com"]:hover {
+    background: var(--client-soft);
+}
+
+body.client-platform :focus-visible {
+    outline: 3px solid rgb(189 140 67 / 70%);
+    outline-offset: 3px;
+}
+
+@media (min-width: 1024px) {
+    body.client-platform[data-client-sidebar-collapsed="true"] > header.client-topbar,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] > header.client-topbar {
+        width: calc(100% - var(--client-sidebar-mini-width));
+        margin-left: var(--client-sidebar-mini-width);
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientLayoutContent,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientLayoutContent {
+        margin-left: var(--client-sidebar-mini-width);
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar {
+        width: var(--client-sidebar-mini-width);
+        transform: none;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar-tools {
+        display: none;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar-label,
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar-chevron,
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar-submenu {
+        display: none;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar-home-row > a,
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar nav > a,
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar .client-services-toggle,
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar form button {
+        justify-content: center;
+        padding-inline: 0;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar-collapse-toggle {
+        left: 20px;
+    }
+}
+
+@media (max-width: 1023.98px) {
+    body.client-platform > header.client-topbar,
+    body.client-platform.client-bookings-page > header.client-topbar {
+        width: 100%;
+        height: 64px;
+        min-height: 64px;
+        margin-left: 0;
+        padding-inline: 12px;
+    }
+
+    body.client-platform > header.client-topbar > div.relative.ml-auto {
+        display: flex !important;
+        flex: 0 1 auto;
+        gap: 8px;
+    }
+
+    body.client-platform > header.client-topbar > div.relative.ml-auto > a[title="Instagram"],
+    body.client-platform > header.client-topbar > div.relative.ml-auto > a[title="WhatsApp"] {
+        display: none;
+    }
+
+    body.client-platform #clientLayoutContent,
+    body.client-platform.client-bookings-page #clientLayoutContent {
+        min-height: calc(100vh - 64px);
+        margin-left: 0;
+    }
+
+    body.client-platform #clientSidebar,
+    body.client-platform.client-bookings-page #clientSidebar {
+        top: 64px !important;
+        bottom: 0 !important;
+        left: 0;
+        width: min(86vw, 320px);
+        height: auto;
+        max-height: calc(100dvh - 64px);
+        border-right: 1px solid var(--client-border) !important;
+        border-radius: 0 18px 18px 0;
+        background: var(--client-paper) !important;
+        background-image: none !important;
+        padding: 16px 14px max(16px, env(safe-area-inset-bottom));
+        box-shadow: 16px 0 40px rgb(40 27 20 / 16%);
+        transform: translateX(-105%);
+        transition: transform 220ms ease;
+    }
+
+    body.client-platform #clientSidebar[data-open="true"],
+    body.client-platform.client-bookings-page #clientSidebar[data-open="true"] {
+        display: flex;
+        transform: translateX(0);
+    }
+
+    body.client-platform #clientMenuBackdrop {
+        top: 64px !important;
+    }
+
+    body.client-platform .client-sidebar-tools,
+    body.client-platform.client-bookings-page .client-sidebar-tools {
+        min-height: 64px;
+        margin: 0 4px 18px;
+        padding: 2px 8px 14px !important;
+    }
+
+    body.client-platform .client-sidebar nav,
+    body.client-platform.client-bookings-page .client-sidebar nav {
+        gap: 5px !important;
+        padding: 0 2px;
+    }
+
+    body.client-platform .client-sidebar-home-row > a,
+    body.client-platform .client-sidebar nav > a,
+    body.client-platform .client-sidebar .client-services-toggle,
+    body.client-platform.client-bookings-page .client-sidebar-home-row > a,
+    body.client-platform.client-bookings-page .client-sidebar nav > a,
+    body.client-platform.client-bookings-page .client-sidebar .client-services-toggle {
+        min-height: 48px;
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+
+    body.client-platform .client-sidebar-collapse-toggle {
+        display: none;
+    }
+
+    body.client-platform #clientLayoutContent > main,
+    body.client-platform.client-bookings-page main.client-bookings-main {
+        padding: 20px 16px max(28px, env(safe-area-inset-bottom));
+    }
+
+    body.client-platform.client-bookings-page .client-bookings-frame {
+        padding: 18px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    body.client-platform > header.client-topbar > a.lg\:hidden {
+        gap: 4px;
+    }
+
+    body.client-platform > header.client-topbar > a.lg\:hidden span:first-child {
+        font-size: 1.1rem;
+    }
+
+    body.client-platform > header.client-topbar > a.lg\:hidden span:last-child {
+        font-size: 0.48rem;
+        letter-spacing: 0.12em;
+    }
+
+    body.client-platform > header.client-topbar > div.relative.ml-auto {
+        gap: 5px;
+    }
+
+    body.client-platform .client-topbar #clientSearchToggle {
+        width: 36px;
+        height: 36px;
+    }
+
+    body.client-platform .client-about > section[aria-label="Nuestra historia y propósito"] {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    body.client-platform .client-about-frame:first-child h1 {
+        font-size: 2rem;
+    }
+
+    body.client-platform .client-about > section[aria-label="Contacto y redes sociales"] {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.client-platform *,
+    body.client-platform *::before,
+    body.client-platform *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+body.client-platform > header.client-topbar,
+body.client-platform.client-bookings-page > header.client-topbar {
+    width: calc(100% - 260px);
+    margin-left: 260px;
+}
+
+body.client-platform #clientLayoutContent,
+body.client-platform.client-bookings-page #clientLayoutContent {
+    margin-left: 260px;
+}
+
+body.client-platform #clientSidebar,
+body.client-platform.client-bookings-page #clientSidebar {
+    position: fixed;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border: 0 !important;
+    border-right: 1px solid #493120 !important;
+    border-radius: 0;
+    background-color: #2a1b12 !important;
+    background-image: linear-gradient(180deg, #302116, #24170f 82%) !important;
+    color: #f3e8d9 !important;
+    padding: 20px 14px 16px;
+    box-shadow: 5px 0 24px rgb(40 27 20 / 15%);
+}
+
+body.client-platform .client-sidebar-tools,
+body.client-platform.client-bookings-page .client-sidebar-tools {
+    display: flex;
+    flex: 0 0 74px;
+    align-items: center;
+    min-height: 74px;
+    height: 74px;
+    margin: 0 3px 20px;
+    border-bottom-color: rgb(234 215 188 / 18%);
+    padding-block: 0 !important;
+}
+
+body.client-platform .client-sidebar-brand span:first-child,
+body.client-platform.client-bookings-page .client-sidebar-brand span:first-child {
+    color: #fff5e3 !important;
+    line-height: 1;
+}
+
+body.client-platform .client-sidebar-brand span:nth-child(2),
+body.client-platform.client-bookings-page .client-sidebar-brand span:nth-child(2) {
+    color: #e0bd7c !important;
+    line-height: 1;
+}
+
+body.client-platform .client-sidebar-home-row > a,
+body.client-platform .client-sidebar nav > a,
+body.client-platform .client-sidebar .client-services-toggle,
+body.client-platform.client-bookings-page .client-sidebar-home-row > a,
+body.client-platform.client-bookings-page .client-sidebar nav > a,
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle {
+    color: #f3e8d9 !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-label,
+body.client-platform #clientSidebar .client-services-toggle,
+body.client-platform #clientSidebar .client-sidebar-submenu a,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-submenu a {
+    color: #f3e8d9 !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a[aria-current="page"] .client-sidebar-label,
+body.client-platform #clientSidebar nav > a[aria-current="page"] .client-sidebar-label,
+body.client-platform #clientSidebar .client-services-toggle[aria-current="page"] .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a[aria-current="page"] .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar nav > a[aria-current="page"] .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle[aria-current="page"] .client-sidebar-label {
+    color: #352316 !important;
+}
+
+body.client-platform .client-sidebar-home-row > a:hover,
+body.client-platform .client-sidebar nav > a:hover,
+body.client-platform .client-sidebar .client-services-toggle:hover,
+body.client-platform.client-bookings-page .client-sidebar-home-row > a:hover,
+body.client-platform.client-bookings-page .client-sidebar nav > a:hover,
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle:hover {
+    background: #493120 !important;
+    color: #fffaf5 !important;
+}
+
+body.client-platform .client-sidebar-home-row > a[aria-current="page"],
+body.client-platform .client-sidebar nav > a[aria-current="page"],
+body.client-platform .client-sidebar .client-services-toggle[aria-current="page"],
+body.client-platform.client-bookings-page .client-sidebar-home-row > a[aria-current="page"],
+body.client-platform.client-bookings-page .client-sidebar nav > a[aria-current="page"],
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle[aria-current="page"] {
+    border-color: rgb(224 189 124 / 48%) !important;
+    background: #e0bd7c !important;
+    color: #352316 !important;
+}
+
+body.client-platform .client-sidebar-home-row > a > i,
+body.client-platform .client-sidebar nav > a > i,
+body.client-platform .client-sidebar .client-services-toggle > i:first-child,
+body.client-platform.client-bookings-page .client-sidebar-home-row > a > i,
+body.client-platform.client-bookings-page .client-sidebar nav > a > i,
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle > i:first-child {
+    color: #e0bd7c !important;
+}
+
+body.client-platform .client-sidebar-home-row > a[aria-current="page"] > i,
+body.client-platform .client-sidebar nav > a[aria-current="page"] > i,
+body.client-platform .client-sidebar .client-services-toggle[aria-current="page"] > i,
+body.client-platform.client-bookings-page .client-sidebar-home-row > a[aria-current="page"] > i,
+body.client-platform.client-bookings-page .client-sidebar nav > a[aria-current="page"] > i,
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle[aria-current="page"] > i {
+    color: #5a3e27 !important;
+}
+
+body.client-platform .client-sidebar .client-services-toggle[aria-expanded="true"],
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle[aria-expanded="true"] {
+    background: #493120 !important;
+    color: #fffaf5 !important;
+}
+
+body.client-platform .client-sidebar .client-services-toggle[aria-expanded="true"][aria-current="page"],
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle[aria-expanded="true"][aria-current="page"] {
+    border-color: rgb(224 189 124 / 48%) !important;
+    background: #e0bd7c !important;
+    color: #352316 !important;
+}
+
+body.client-platform .client-sidebar .client-services-toggle[aria-expanded="true"] > i,
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle[aria-expanded="true"] > i {
+    color: #e0bd7c !important;
+}
+
+body.client-platform .client-sidebar .client-services-toggle[aria-expanded="true"][aria-current="page"] > i,
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle[aria-expanded="true"][aria-current="page"] > i {
+    color: #5a3e27 !important;
+}
+
+body.client-platform .client-sidebar .client-services-toggle .client-sidebar-chevron,
+body.client-platform.client-bookings-page .client-sidebar .client-services-toggle .client-sidebar-chevron {
+    color: #e0bd7c !important;
+}
+
+body.client-platform .client-sidebar-submenu,
+body.client-platform.client-bookings-page .client-sidebar-submenu {
+    border-left-color: rgb(224 189 124 / 35%);
+}
+
+body.client-platform .client-sidebar-submenu a,
+body.client-platform.client-bookings-page .client-sidebar-submenu a {
+    color: #e8d6bf !important;
+}
+
+body.client-platform .client-sidebar-submenu a:hover,
+body.client-platform .client-sidebar-submenu a[aria-current="page"],
+body.client-platform.client-bookings-page .client-sidebar-submenu a:hover,
+body.client-platform.client-bookings-page .client-sidebar-submenu a[aria-current="page"] {
+    background: #493120;
+    color: #fffaf5;
+}
+
+body.client-platform .client-sidebar form button[title="Cerrar sesión"],
+body.client-platform.client-bookings-page .client-sidebar form button[title="Cerrar sesión"] {
+    border-color: rgb(224 189 124 / 30%);
+    background: rgb(255 250 245 / 5%);
+    color: #f0c4ae;
+}
+
+body.client-platform .client-sidebar form button[title="Cerrar sesión"]:hover,
+body.client-platform.client-bookings-page .client-sidebar form button[title="Cerrar sesión"]:hover {
+    background: rgb(255 250 245 / 12%);
+    color: #fffaf5;
+}
+
+body.client-platform .client-sidebar-collapse-toggle {
+    top: 20px;
+    left: 226px;
+    border-color: #60452f;
+    background: #fffaf5;
+    color: #493120;
+}
+
+body.client-platform #clientLayoutContent > main[data-service-catalog-main][data-full-bleed="true"] {
+    margin: 0;
+}
+
+body.client-platform.client-about-page #clientLayoutContent > main {
+    padding: 14px 20px;
+}
+
+body.client-platform.client-about-page .client-about {
+    display: grid;
+    gap: clamp(10px, 1.4vh, 16px);
+    max-width: 1120px;
+}
+
+body.client-platform.client-about-page .client-about-frame,
+body.client-platform.client-about-page .client-about-card {
+    border: 1px solid #d5b77e;
+    box-shadow:
+        inset 0 0 0 3px rgb(189 140 67 / 12%),
+        inset 0 0 0 5px rgb(255 255 255 / 78%),
+        0 8px 22px rgb(40 27 20 / 5%);
+}
+
+body.client-platform.client-about-page .client-about-card {
+    background: linear-gradient(145deg, #fffdf9, #fbf3e8);
+}
+
+body.client-platform.client-about-page .client-about-frame:first-child {
+    background: linear-gradient(130deg, #fffaf1, #f3e5cf);
+}
+
+body.client-platform.client-about-page .client-about-frame {
+    border-radius: 18px;
+}
+
+body.client-platform.client-about-page .client-about-card {
+    border-radius: 16px;
+}
+
+body.client-platform.client-about-page .client-about-frame::before,
+body.client-platform.client-about-page .client-about-frame::after,
+body.client-platform.client-about-page .client-about-card::after {
+    display: block;
+    color: #fffaf0;
+    text-shadow: 0 0 1px #8b5e28, 1px 1px 0 #bd8c43, -1px -1px 0 #bd8c43;
+}
+
+body.client-platform.client-about-page .client-about-frame::before {
+    top: 10px;
+    right: 16px;
+    font-size: 1.45rem;
+}
+
+body.client-platform.client-about-page .client-about-frame::after {
+    bottom: 8px;
+    left: 16px;
+    font-size: 1.25rem;
+}
+
+body.client-platform.client-about-page .client-about-card::after {
+    right: 12px;
+    bottom: 9px;
+    font-size: 1.35rem;
+}
+
+body.client-platform.client-about-page .client-about-frame:first-child {
+    padding: clamp(18px, 2.4vh, 26px) clamp(20px, 4vw, 48px);
+}
+
+body.client-platform.client-about-page .client-about-frame:first-child h1 {
+    margin-top: 8px;
+    font-size: clamp(2rem, 3.2vw, 2.8rem);
+}
+
+body.client-platform.client-about-page .client-about-frame:first-child > p:last-child {
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+body.client-platform.client-about-page .client-about > section[aria-label="Nuestra historia y propósito"] {
+    gap: clamp(10px, 1.4vw, 16px);
+}
+
+body.client-platform.client-about-page .client-about-card {
+    padding: clamp(16px, 1.8vw, 22px);
+}
+
+body.client-platform.client-about-page .client-about-card h2 {
+    margin-top: 12px;
+    font-size: 1.15rem;
+}
+
+body.client-platform.client-about-page .client-about-card p {
+    margin-top: 8px;
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+body.client-platform.client-about-page .client-about > section[aria-label="Contacto y redes sociales"] {
+    gap: 18px;
+    padding: clamp(16px, 2vw, 22px);
+}
+
+body.client-platform.client-about-page .client-about > section[aria-label="Contacto y redes sociales"] h2 {
+    margin-top: 6px;
+    font-size: 1.35rem;
+}
+
+body.client-platform.client-about-page .client-about > section[aria-label="Contacto y redes sociales"] > div:first-child > div {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 14px;
+}
+
+@media (min-width: 1024px) {
+    body.client-platform[data-client-sidebar-collapsed="true"] > header.client-topbar,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] > header.client-topbar {
+        width: calc(100% - 84px);
+        margin-left: 84px;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientLayoutContent,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientLayoutContent {
+        margin-left: 84px;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar {
+        left: 0;
+        width: 84px;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar-collapse-toggle,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] .client-sidebar-collapse-toggle {
+        left: 21px;
+    }
+
+    body.client-platform.client-about-page #clientLayoutContent > main {
+        min-height: calc(100vh - var(--client-topbar-height));
+        padding: 28px 20px 0;
+    }
+
+    body.client-platform.client-about-page .client-about-frame:first-child {
+        padding-block: clamp(20px, 3vw, 34px);
+    }
+
+    body.client-platform.client-about-page .client-about-card {
+        padding-block: 20px;
+    }
+
+    body.client-platform.client-about-page .client-about > section[aria-label="Contacto y redes sociales"] {
+        padding-block: 16px;
+    }
+
+    body.client-platform.client-about-page .client-about {
+        gap: clamp(10px, 1.25vh, 15px);
+    }
+}
+
+@media (max-width: 1023.98px) {
+    body.client-platform > header.client-topbar,
+    body.client-platform.client-bookings-page > header.client-topbar {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    body.client-platform #clientLayoutContent,
+    body.client-platform.client-bookings-page #clientLayoutContent {
+        margin-left: 0;
+    }
+
+    body.client-platform #clientSidebar,
+    body.client-platform.client-bookings-page #clientSidebar {
+        top: 64px !important;
+        bottom: 0 !important;
+        left: 0;
+        width: min(86vw, 320px);
+        height: auto;
+        max-height: none;
+        border-right: 1px solid #493120 !important;
+        border-radius: 0 16px 16px 0;
+        padding: 16px 12px max(16px, env(safe-area-inset-bottom));
+        box-shadow: 12px 0 32px rgb(40 27 20 / 22%);
+    }
+
+    body.client-platform #clientMenuBackdrop {
+        top: 64px !important;
+    }
+
+    body.client-platform .client-sidebar-collapse-toggle {
+        display: none;
+    }
+
+    body.client-platform.client-about-page #clientLayoutContent > main {
+        padding: 18px 16px 24px;
+    }
+
+    body.client-platform.client-about-page .client-about-frame:first-child {
+        padding: 24px 18px;
+    }
+
+    body.client-platform.client-about-page .client-about-card {
+        padding: 20px;
+    }
+
+    body.client-platform.client-about-page .client-about > section[aria-label="Contacto y redes sociales"] > div:first-child > div {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+body.client-platform #clientSidebar nav,
+body.client-platform.client-bookings-page #clientSidebar nav {
+    gap: 6px !important;
+    padding: 0 2px !important;
+}
+
+body.client-platform #clientSidebar nav > div.flex.flex-col,
+body.client-platform.client-bookings-page #clientSidebar nav > div.flex.flex-col {
+    display: flex;
+    min-height: 0;
+    overflow: visible;
+    border: 0 !important;
+    border-radius: 0;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a,
+body.client-platform #clientSidebar nav > a,
+body.client-platform #clientSidebar .client-services-toggle,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a,
+body.client-platform.client-bookings-page #clientSidebar nav > a,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle {
+    box-sizing: border-box;
+    display: flex;
+    width: 100%;
+    min-height: 46px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    margin: 0;
+    border-radius: 11px;
+    padding: 11px 12px;
+    font-family: Outfit, sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    text-indent: 0;
+}
+
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle {
+    min-height: 46px;
+    padding: 11px 12px;
+    font-size: 0.875rem;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover,
+body.client-platform #clientSidebar nav > a:not([aria-current="page"]):hover,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover,
+body.client-platform.client-bookings-page #clientSidebar nav > a:not([aria-current="page"]):hover {
+    border-color: transparent !important;
+    background: #493120 !important;
+    color: #fffaf5 !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a[aria-current="page"],
+body.client-platform #clientSidebar nav > a[aria-current="page"],
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a[aria-current="page"],
+body.client-platform.client-bookings-page #clientSidebar nav > a[aria-current="page"] {
+    border: 1px solid rgb(224 189 124 / 48%) !important;
+    background: #e0bd7c !important;
+    color: #352316 !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]),
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]) {
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover {
+    background: #493120 !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:focus:not(:focus-visible),
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:focus:not(:focus-visible) {
+    outline: none;
+}
+
+body.client-platform #clientSidebar .client-services-toggle,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle {
+    flex: 0 0 46px;
+    text-indent: 0 !important;
+}
+
+body.client-platform.client-bookings-page .client-sidebar-tools,
+body.client-platform.client-bookings-page .client-sidebar-brand {
+    height: 74px;
+    min-height: 74px;
+}
+
+body.client-platform > header.client-topbar,
+body.client-platform.client-bookings-page > header.client-topbar {
+    position: sticky;
+}
+
+body.client-platform .client-sidebar-tools,
+body.client-platform.client-bookings-page .client-sidebar-tools {
+    flex: 0 0 74px;
+    height: 74px;
+    min-height: 74px;
+    align-items: center;
+    padding: 0 8px !important;
+}
+
+body.client-platform .client-sidebar-brand,
+body.client-platform.client-bookings-page .client-sidebar-brand {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 7px;
+    padding: 0;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+body.client-platform .client-sidebar-brand span:first-child,
+body.client-platform.client-bookings-page .client-sidebar-brand span:first-child {
+    font-family: "Playfair Display", Georgia, serif;
+    line-height: 1;
+}
+
+body.client-platform .client-sidebar-brand span:nth-child(2),
+body.client-platform.client-bookings-page .client-sidebar-brand span:nth-child(2) {
+    align-self: center;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    line-height: 1;
+}
+
+body.client-platform #clientSidebar,
+body.client-platform.client-bookings-page #clientSidebar {
+    border-right: 1px solid rgb(218 183 117 / 35%) !important;
+    background-color: #332218 !important;
+    background-image:
+        radial-gradient(ellipse at 12% 0%, rgb(255 239 201 / 10%), transparent 45%),
+        linear-gradient(180deg, #3e2a1e 0%, #332218 58%, #291b14 100%) !important;
+    color: #fbf4e5 !important;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a,
+body.client-platform #clientSidebar nav > a,
+body.client-platform #clientSidebar .client-services-toggle,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a,
+body.client-platform.client-bookings-page #clientSidebar nav > a,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle {
+    color: #f8efdc !important;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:hover,
+body.client-platform #clientSidebar nav > a:hover,
+body.client-platform #clientSidebar .client-services-toggle:hover,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:hover,
+body.client-platform.client-bookings-page #clientSidebar nav > a:hover,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle:hover {
+    background: linear-gradient(105deg, #d6b36d, #f0d99f) !important;
+    box-shadow: 0 5px 14px rgb(20 13 9 / 18%);
+    color: #38251b !important;
+    transform: translateX(2px);
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover {
+    border-color: transparent !important;
+    background: linear-gradient(105deg, #d6b36d, #f0d99f) !important;
+    color: #38251b !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a[aria-current="page"],
+body.client-platform #clientSidebar nav > a[aria-current="page"],
+body.client-platform #clientSidebar .client-services-toggle[aria-current="page"],
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a[aria-current="page"],
+body.client-platform.client-bookings-page #clientSidebar nav > a[aria-current="page"],
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle[aria-current="page"] {
+    border-color: transparent !important;
+    background: linear-gradient(105deg, #d6b36d, #f0d99f) !important;
+    box-shadow: 0 5px 14px rgb(20 13 9 / 18%) !important;
+    color: #38251b !important;
+    transform: translateX(2px);
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:hover .client-sidebar-label,
+body.client-platform #clientSidebar nav > a:hover .client-sidebar-label,
+body.client-platform #clientSidebar .client-services-toggle:hover .client-sidebar-label,
+body.client-platform #clientSidebar .client-sidebar-home-row > a[aria-current="page"] .client-sidebar-label,
+body.client-platform #clientSidebar nav > a[aria-current="page"] .client-sidebar-label,
+body.client-platform #clientSidebar .client-services-toggle[aria-current="page"] .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:hover .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar nav > a:hover .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle:hover .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a[aria-current="page"] .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar nav > a[aria-current="page"] .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle[aria-current="page"] .client-sidebar-label {
+    color: #38251b !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:hover > i,
+body.client-platform #clientSidebar nav > a:hover > i,
+body.client-platform #clientSidebar .client-services-toggle:hover > i,
+body.client-platform #clientSidebar .client-sidebar-home-row > a[aria-current="page"] > i,
+body.client-platform #clientSidebar nav > a[aria-current="page"] > i,
+body.client-platform #clientSidebar .client-services-toggle[aria-current="page"] > i,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:hover > i,
+body.client-platform.client-bookings-page #clientSidebar nav > a:hover > i,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle:hover > i,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a[aria-current="page"] > i,
+body.client-platform.client-bookings-page #clientSidebar nav > a[aria-current="page"] > i,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle[aria-current="page"] > i {
+    color: inherit !important;
+}
+
+body.client-platform #clientSidebar form button[title="Cerrar sesión"],
+body.client-platform.client-bookings-page #clientSidebar form button[title="Cerrar sesión"] {
+    border-color: rgb(184 92 79 / 55%) !important;
+    background: rgb(184 92 79 / 16%) !important;
+    color: #f0c4ae !important;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+body.client-platform #clientSidebar form button[title="Cerrar sesión"]:hover,
+body.client-platform.client-bookings-page #clientSidebar form button[title="Cerrar sesión"]:hover {
+    background: rgb(184 92 79 / 30%) !important;
+    color: #fff1e9 !important;
+}
+
+@media (min-width: 768px) {
+    body.client-platform > header.client-topbar,
+    body.client-platform.client-bookings-page > header.client-topbar {
+        display: grid;
+        grid-template-areas: "menu search actions";
+        grid-template-columns: minmax(0, 1fr) minmax(220px, min(28vw, 360px)) minmax(0, 1fr);
+        justify-content: stretch;
+        column-gap: clamp(12px, 2vw, 24px);
+    }
+
+    body.client-platform > header.client-topbar > #clientMenuToggle {
+        grid-area: menu;
+        justify-self: start;
+    }
+
+    body.client-platform > header.client-topbar > #clientSearchToggle {
+        display: none !important;
+    }
+
+    body.client-platform > header.client-topbar > [data-client-search] {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        left: auto !important;
+        grid-area: search;
+        width: 100%;
+        justify-self: center;
+        transform: none !important;
+    }
+
+    body.client-platform > header.client-topbar > [data-client-search] > div {
+        width: 100%;
+    }
+
+    body.client-platform > header.client-topbar #client-search-results {
+        right: 0;
+        left: 0;
+        width: 100%;
+    }
+
+    body.client-platform > header.client-topbar > .client-topbar-actions {
+        grid-area: actions;
+        justify-self: end;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 767.98px) {
+    body.client-platform > header.client-topbar > [data-client-search] {
+        position: absolute !important;
+        top: calc(100% + 8px) !important;
+        right: auto !important;
+        left: 50% !important;
+        width: min(92vw, 380px) !important;
+        transform: translateX(-50%) !important;
+    }
+
+    body.client-platform > header.client-topbar > [data-client-search].hidden {
+        display: none !important;
+    }
+
+    body.client-platform > header.client-topbar > [data-client-search]:not(.hidden) {
+        display: block !important;
+    }
+
+    body.client-platform > header.client-topbar #client-search-results {
+        right: 0;
+        left: 0;
+        width: 100%;
+    }
+}
+
+body.client-platform > header.client-topbar,
+body.client-platform.client-bookings-page > header.client-topbar {
+    border-bottom: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+body.client-platform > header.client-topbar > .client-topbar-actions,
+body.client-platform.client-bookings-page > header.client-topbar > .client-topbar-actions {
+    min-height: 44px;
+    gap: clamp(10px, 1.4vw, 18px);
+    border: 1px solid var(--client-border);
+    border-radius: 999px;
+    background: rgb(255 250 245 / 96%);
+    padding: 7px 14px;
+    box-shadow: 0 4px 14px rgb(40 27 20 / 8%);
+}
+
+body.client-platform > header.client-topbar > .client-topbar-actions > span,
+body.client-platform > header.client-topbar > .client-topbar-actions > span strong,
+body.client-platform.client-bookings-page > header.client-topbar > .client-topbar-actions > span,
+body.client-platform.client-bookings-page > header.client-topbar > .client-topbar-actions > span strong {
+    color: var(--client-brown) !important;
+}
+
+body.client-platform > header.client-topbar > .client-topbar-actions #cart-summary-toggle,
+body.client-platform.client-bookings-page > header.client-topbar > .client-topbar-actions #cart-summary-toggle {
+    color: var(--client-brown);
+}
+
+body.client-platform > header.client-topbar > .client-topbar-actions > a[title="Instagram"],
+body.client-platform > header.client-topbar > .client-topbar-actions > a[title="WhatsApp"],
+body.client-platform.client-bookings-page > header.client-topbar > .client-topbar-actions > a[title="Instagram"],
+body.client-platform.client-bookings-page > header.client-topbar > .client-topbar-actions > a[title="WhatsApp"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover,
+body.client-platform #clientSidebar nav > a:not([aria-current="page"]):hover,
+body.client-platform #clientSidebar .client-services-toggle:not([aria-current="page"]):hover,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover,
+body.client-platform.client-bookings-page #clientSidebar nav > a:not([aria-current="page"]):hover,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle:not([aria-current="page"]):hover {
+    border-color: transparent !important;
+    background: linear-gradient(105deg, #d6b36d, #f0d99f) !important;
+    box-shadow: 0 5px 14px rgb(20 13 9 / 18%) !important;
+    color: #38251b !important;
+    transform: translateX(2px);
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover .client-sidebar-label,
+body.client-platform #clientSidebar nav > a:not([aria-current="page"]):hover .client-sidebar-label,
+body.client-platform #clientSidebar .client-services-toggle:not([aria-current="page"]):hover .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar nav > a:not([aria-current="page"]):hover .client-sidebar-label,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle:not([aria-current="page"]):hover .client-sidebar-label {
+    color: #38251b !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover > i,
+body.client-platform #clientSidebar nav > a:not([aria-current="page"]):hover > i,
+body.client-platform #clientSidebar .client-services-toggle:not([aria-current="page"]):hover > i,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-home-row > a:not([aria-current="page"]):hover > i,
+body.client-platform.client-bookings-page #clientSidebar nav > a:not([aria-current="page"]):hover > i,
+body.client-platform.client-bookings-page #clientSidebar .client-services-toggle:not([aria-current="page"]):hover > i {
+    color: #38251b !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-tools,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-tools {
+    position: relative;
+    justify-content: space-between;
+    margin: 0 0 20px;
+    padding: 0 4px !important;
+}
+
+body.client-platform #clientSidebar .client-sidebar-collapse-toggle,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-collapse-toggle {
+    position: static;
+    top: auto;
+    left: auto;
+    z-index: auto;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    border-color: rgb(231 203 151 / 35%);
+    border-radius: 10px;
+    background: rgb(255 248 230 / 9%);
+    color: #f8efdc;
+    box-shadow: none;
+}
+
+body.client-platform #clientSidebar .client-sidebar-collapse-toggle:hover,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-collapse-toggle:hover {
+    background: linear-gradient(105deg, #d6b36d, #f0d99f);
+    color: #38251b;
+}
+
+body.client-platform #clientSidebar .client-sidebar-brand-initial,
+body.client-platform.client-bookings-page #clientSidebar .client-sidebar-brand-initial {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-submenu:not([hidden]),
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-submenu:not([hidden]) {
+        position: fixed;
+        z-index: 90;
+        display: grid;
+        width: min(250px, calc(100vw - 110px));
+        max-height: calc(100vh - 16px);
+        gap: 3px;
+        margin: 0;
+        overflow-y: auto;
+        border: 1px solid rgb(231 203 151 / 34%);
+        border-radius: 14px;
+        background: linear-gradient(145deg, #392619, #24170f);
+        padding: 10px;
+        box-shadow: 0 12px 30px rgb(30 20 13 / 30%);
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-submenu::before,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-submenu::before {
+        position: absolute;
+        top: 16px;
+        left: -6px;
+        width: 10px;
+        height: 10px;
+        transform: rotate(45deg);
+        border-bottom: 1px solid rgb(231 203 151 / 34%);
+        border-left: 1px solid rgb(231 203 151 / 34%);
+        background: #392619;
+        content: "";
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-submenu a,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-submenu a {
+        position: relative;
+        z-index: 1;
+        min-height: 36px;
+        border: 0;
+        border-radius: 8px;
+        padding: 9px 10px;
+        color: #f3e8d9 !important;
+        font-family: "Plus Jakarta Sans", sans-serif;
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-submenu a:hover,
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-submenu a[aria-current="page"],
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-submenu a:hover,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-submenu a[aria-current="page"] {
+        background: rgb(240 217 159 / 16%) !important;
+        color: #f0d99f !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar {
+        width: var(--client-sidebar-mini-width);
+        transform: none;
+        padding-inline: 6px;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-tools,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-tools {
+        display: flex !important;
+        height: 86px;
+        min-height: 86px;
+        flex: 0 0 86px;
+        flex-direction: column-reverse;
+        justify-content: center;
+        gap: 8px;
+        margin: 0 0 16px;
+        padding: 0 !important;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand {
+        display: flex;
+        flex: 0 0 22px;
+        justify-content: center;
+        width: 100%;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand-name,
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand > span:nth-child(2),
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand-name,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand > span:nth-child(2) {
+        display: none;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand::before,
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand::after,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand::before,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand::after {
+        display: none;
+        width: 0;
+        height: 0;
+        background: none;
+        content: none;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand-initial,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-brand-initial {
+        display: block;
+        color: #e0bd7c;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar nav,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar nav {
+        gap: 5px !important;
+        padding-inline: 2px !important;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar nav > div.flex.flex-col,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar nav > div.flex.flex-col {
+        width: 100%;
+        align-items: center;
+        overflow: visible;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-home-row,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-home-row {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar-collapse-toggle,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] .client-sidebar-collapse-toggle {
+        left: auto;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar-home-row > a,
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar nav > a,
+    body.client-platform[data-client-sidebar-collapsed="true"] .client-sidebar .client-services-toggle,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] .client-sidebar-home-row > a,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] .client-sidebar nav > a,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] .client-sidebar .client-services-toggle {
+        justify-content: center;
+        gap: 0;
+        padding: 0 !important;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-home-row > a,
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar nav > a,
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-services-toggle,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-home-row > a,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar nav > a,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-services-toggle {
+        width: 52px;
+        max-width: 52px;
+        min-height: 46px;
+        flex: 0 0 46px;
+        align-items: center;
+        justify-content: center;
+        margin-inline: auto;
+        gap: 0;
+        padding: 0 !important;
+        text-indent: 0;
+        text-align: center;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-home-row > a > i,
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar nav > a > i,
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-services-toggle > i:first-child,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-sidebar-home-row > a > i,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar nav > a > i,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-services-toggle > i:first-child {
+        width: 20px;
+        margin: 0 !important;
+        text-align: center;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-services-toggle .client-sidebar-chevron,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar .client-services-toggle .client-sidebar-chevron {
+        display: none;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar form,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar form {
+        margin-inline: 0;
+        padding: 12px 0 0;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar form button,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar form button {
+        width: 100%;
+        min-height: 44px;
+        justify-content: center;
+        gap: 0;
+        padding: 0 !important;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar form button > i,
+    body.client-platform.client-bookings-page[data-client-sidebar-collapsed="true"] #clientSidebar form button > i {
+        margin: 0 !important;
+    }
+
+    body.client-platform #clientSidebar .client-sidebar-collapse-toggle,
+    body.client-platform.client-bookings-page #clientSidebar .client-sidebar-collapse-toggle {
+        border: 1px solid rgb(112 78 42 / 30%);
+        background: #f4e8cf;
+        color: #50351f;
+        box-shadow: 0 4px 12px rgb(28 19 13 / 20%);
+    }
+}
+
+@media (max-width: 1023.98px) {
+    body.client-platform > header.client-topbar > .client-topbar-actions > a[title="Instagram"],
+    body.client-platform > header.client-topbar > .client-topbar-actions > a[title="WhatsApp"],
+    body.client-platform.client-bookings-page > header.client-topbar > .client-topbar-actions > a[title="Instagram"],
+    body.client-platform.client-bookings-page > header.client-topbar > .client-topbar-actions > a[title="WhatsApp"] {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    body.client-platform > header.client-topbar > .client-topbar-actions,
+    body.client-platform.client-bookings-page > header.client-topbar > .client-topbar-actions {
+        min-height: 38px;
+        gap: 8px;
+        padding: 5px 10px;
+    }
+}

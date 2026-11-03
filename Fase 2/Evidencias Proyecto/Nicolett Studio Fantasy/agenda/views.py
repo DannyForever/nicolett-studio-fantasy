@@ -21,6 +21,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from config.formatters import formatear_pesos
+from catalogo.models import Categoria as CategoriaCatalogo
 
 from .forms import (
     CancelarReservaForm,
@@ -915,6 +916,7 @@ def cliente_horas_disponibles_json(request):
 @require_GET
 def cliente_calendario_disponibilidad_json(request):
     servicio_id = request.GET.get('servicio')
+    categoria_id = request.GET.get('categoria')
     try:
         mes = date.fromisoformat(f"{request.GET.get('mes', '')}-01")
     except (ValueError, TypeError):
@@ -923,7 +925,23 @@ def cliente_calendario_disponibilidad_json(request):
             status=400,
         )
 
-    if servicio_id:
+    if categoria_id:
+        if not categoria_id.isdecimal() or not CategoriaCatalogo.objects.filter(
+            pk=categoria_id,
+            tipo='servicio',
+            activa=True,
+        ).exists():
+            return JsonResponse(
+                {'error': 'La categoría seleccionada no está disponible.'},
+                status=400,
+            )
+        servicios = list(
+            ServicioAgenda.objects.filter(
+                categoria_id=categoria_id,
+                activo=True,
+            ).order_by('pk'),
+        )
+    elif servicio_id:
         try:
             servicios = [ServicioAgenda.objects.get(pk=servicio_id, activo=True)]
         except (ValueError, TypeError, ServicioAgenda.DoesNotExist):
@@ -986,19 +1004,18 @@ def cliente_calendario_disponibilidad_json(request):
         for day in week:
             past = day < today
             closed = day in fechas_cerradas
-            has_slots = False
             scheduled_services = [
                 service for service in servicios
                 if (day, service.pk) in reglas_por_fecha
             ]
+            available_service_ids = []
             if day.month == primer_dia.month and not past and not closed:
                 for servicio in scheduled_services:
                     for professional_id in reglas_por_fecha.get((day, servicio.pk), set()):
                         if horas_disponibles(day, servicio, professional_id):
-                            has_slots = True
+                            available_service_ids.append(servicio.pk)
                             break
-                    if has_slots:
-                        break
+            has_slots = bool(available_service_ids)
             service_names = [service.nombre for service in scheduled_services]
             if closed:
                 reason = motivos_cierre[day].strip() or 'El salón está cerrado.'
@@ -1019,6 +1036,7 @@ def cliente_calendario_disponibilidad_json(request):
                 'closed': closed,
                 'available': has_slots,
                 'services': service_names,
+                'available_service_ids': available_service_ids,
                 'closed_reason': motivos_cierre.get(day, ''),
                 'tooltip': tooltip,
             })

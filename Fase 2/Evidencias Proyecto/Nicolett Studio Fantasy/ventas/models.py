@@ -25,15 +25,18 @@ class Venta(models.Model):
 class DetalleVenta(models.Model):
     cantidad = models.IntegerField(default=1)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    item_nombre = models.CharField(max_length=150)
+    item_descripcion = models.TextField(blank=True)
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     producto = models.ForeignKey(
         Producto,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
     )
     servicio = models.ForeignKey(
         Servicio,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
     )

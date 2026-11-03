@@ -495,6 +495,10 @@ class AgendaTests(TestCase):
             for day in week
         }
         self.assertTrue(days[self.fecha.isoformat()]['available'])
+        self.assertEqual(
+            days[self.fecha.isoformat()]['available_service_ids'],
+            [self.servicio.pk],
+        )
         self.assertIn('Manicure', days[self.fecha.isoformat()]['tooltip'])
         self.assertTrue(days[closed_date.isoformat()]['closed'])
         self.assertIn('Cierre de prueba', days[closed_date.isoformat()]['tooltip'])
@@ -504,6 +508,60 @@ class AgendaTests(TestCase):
         ]
         if past_days:
             self.assertFalse(past_days[0]['available'])
+
+    def test_category_calendar_exposes_each_service_availability(self):
+        category = Categoria.objects.create(
+            nombre='Colorimetría calendario',
+            tipo='servicio',
+        )
+        available_service = Servicio.objects.create(
+            nombre='Babylights',
+            categoria=category,
+            duracion_minutos=60,
+            precio='50000',
+            activo=True,
+        )
+        unavailable_service = Servicio.objects.create(
+            nombre='Balayage',
+            categoria=category,
+            duracion_minutos=90,
+            precio='60000',
+            activo=True,
+        )
+        ProfesionalCategoria.objects.create(
+            profesional=self.profesional,
+            categoria_id=category.pk,
+        )
+        self.crear_bloque(
+            '09:00',
+            servicio=available_service,
+        )
+        self.client.force_login(self.crear_cliente())
+
+        response = self.client.get(
+            reverse('cliente_calendario_disponibilidad'),
+            {
+                'categoria': category.pk,
+                'mes': self.fecha.strftime('%Y-%m'),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        days = {
+            day['date']: day
+            for week in response.json()['weeks']
+            for day in week
+        }
+        selected_day = days[self.fecha.isoformat()]
+        self.assertTrue(selected_day['available'])
+        self.assertEqual(
+            selected_day['available_service_ids'],
+            [available_service.pk],
+        )
+        self.assertNotIn(
+            unavailable_service.pk,
+            selected_day['available_service_ids'],
+        )
 
     def test_client_calendar_loads_month_and_combined_availability_without_service_filter(self):
         self.crear_bloque('09:00')
