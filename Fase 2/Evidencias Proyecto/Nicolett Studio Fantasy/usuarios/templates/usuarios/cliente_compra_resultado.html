@@ -47,7 +47,12 @@
         </dl>
 
         <p class="mt-5 text-center text-xs text-[#6b5643]">
-            N.º de transacción: {{ pedido.pagos_simulados.first.transaccion_id }}
+            N.º de transacción:
+            {% if pedido.pago_transbank %}
+                {{ pedido.pago_transbank.transaccion_id }}
+            {% else %}
+                {{ pedido.pagos_simulados.first.transaccion_id }}
+            {% endif %}
         </p>
         <div class="mt-6 flex flex-wrap justify-center gap-3">
             <a href="{% url 'cliente_gestionar_citas' %}" class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white no-underline">Mis citas</a>

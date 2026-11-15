@@ -1,18 +1,25 @@
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from importlib import import_module
 import logging
+from secrets import compare_digest
 import smtplib
+from urllib.parse import urlencode, urlparse
 from uuid import uuid4
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.conf import settings
+from django.core import signing
+from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import DatabaseError, transaction
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from config.formatters import formatear_pesos
@@ -29,6 +36,14 @@ from agenda.views import (
     servicios_con_horarios_disponibles,
 )
 from pagos.models import Pago
+from pagos.transbank import (
+    TransbankGatewayError,
+    commit_transaction,
+    create_transaction,
+    get_transaction,
+    refund_transaction,
+    transaction_status,
+)
 from panel_admin.models import Producto, Servicio
 from ventas.models import DetalleVenta, Venta
 from usuarios.permissions import es_cliente
@@ -38,6 +53,7 @@ from .models import (
     PagoSimulado,
     Pedido,
     ReservaProductoCarrito,
+    TransbankPago,
 )
 
 
@@ -237,6 +253,29 @@ def _session_key(request):
     if request.session.session_key is None:
         request.session.create()
     return request.session.session_key
+
+
+def _mensaje_checkout(request, nivel, texto, habilitado=True):
+    if habilitado:
+        messages.add_message(request, nivel, texto)
+
+
+def _limpiar_carrito_checkout(request, session_key):
+    if request.session.session_key == session_key:
+        request.session.pop(CLAVE_CARRITO, None)
+        request.session.modified = True
+        return
+
+    session_store = import_module(settings.SESSION_ENGINE).SessionStore(
+        session_key=session_key,
+    )
+    if session_store.exists(session_key):
+        session_store.pop(CLAVE_CARRITO, None)
+        session_store.save()
+
+
+def _referencia_transbank(attempt, salt):
+    return signing.dumps({'attempt': attempt.pk}, salt=salt, compress=True)
 
 
 def _ajustar_reserva_producto(session_key, producto_id, cantidad):
@@ -704,17 +743,129 @@ def _enviar_confirmacion_pedido(request, pedido):
     )
 
 
-@_cliente_view
-@require_POST
-def pagar_carrito(request):
-    _liberar_reservas_vencidas(request)
-    carrito = _carrito_sesion(request)
-    if not carrito['productos'] and not carrito['servicios']:
-        messages.error(request, 'Tu carrito está vacío.')
+def _enviar_formulario_transbank(request, webpay_url, token):
+    return render(
+        request,
+        'usuarios/transbank_formulario.html',
+        {'webpay_url': webpay_url, 'token': token},
+    )
+
+
+def _iniciar_pago_transbank(request, cliente, carrito, session_key, monto):
+    ahora = timezone.now()
+    TransbankPago.objects.filter(
+        session_key=session_key,
+        estado__in=['iniciando', 'pendiente'],
+        creado_en__lt=ahora - timedelta(minutes=20),
+    ).update(estado='error')
+    pendiente = TransbankPago.objects.filter(
+        session_key=session_key,
+        estado__in=['iniciando', 'pendiente'],
+        creado_en__gte=ahora - timedelta(minutes=20),
+    ).first()
+    if pendiente:
+        if pendiente.webpay_url and pendiente.token:
+            return _enviar_formulario_transbank(
+                request,
+                pendiente.webpay_url,
+                pendiente.token,
+            )
+        messages.error(
+            request,
+            'Ya hay un pago iniciándose. Espera un momento y vuelve a revisar tu carrito.',
+        )
         return redirect('cliente_carrito')
-    session_key = _session_key(request)
+    if monto <= 0 or monto != monto.to_integral_value():
+        messages.error(request, 'El monto del carrito no es válido para pagar con Transbank.')
+        return redirect('cliente_carrito')
+
+    intento = TransbankPago.objects.create(
+        cliente=cliente,
+        buy_order=uuid4().hex[:26],
+        session_id=uuid4().hex,
+        session_key=session_key,
+        carrito=carrito,
+        monto=monto,
+    )
+    try:
+        gateway = get_transaction()
+        referencia = _referencia_transbank(intento, 'carrito.transbank.return')
+        ruta_retorno = reverse('cliente_webpay_retorno')
+        if settings.TRANSBANK_ENVIRONMENT == 'PRODUCTION':
+            return_url = settings.TRANSBANK_RETURN_URL
+            if not return_url.startswith('https://'):
+                raise ImproperlyConfigured(
+                    'Production Transbank requires an HTTPS TRANSBANK_RETURN_URL.'
+                )
+        else:
+            return_url = request.build_absolute_uri(ruta_retorno)
+        return_url += ('&' if '?' in return_url else '?') + urlencode({'ref': referencia})
+        respuesta = create_transaction(
+            gateway,
+            intento.buy_order,
+            intento.session_id,
+            int(monto),
+            return_url,
+        )
+        if not isinstance(respuesta, dict):
+            raise TransbankGatewayError('Transbank devolvió una respuesta de inicio inválida.')
+        token = respuesta.get('token')
+        webpay_url = respuesta.get('url')
+        host_esperado = (
+            'webpay3g.transbank.cl'
+            if settings.TRANSBANK_ENVIRONMENT == 'PRODUCTION'
+            else 'webpay3gint.transbank.cl'
+        )
+        if (
+            not isinstance(token, str)
+            or not token
+            or not isinstance(webpay_url, str)
+            or urlparse(webpay_url).scheme != 'https'
+            or urlparse(webpay_url).hostname != host_esperado
+        ):
+            raise TransbankGatewayError('Transbank devolvió una respuesta de inicio inválida.')
+    except (ImproperlyConfigured, TransbankGatewayError):
+        intento.estado = 'error'
+        intento.save(update_fields=['estado', 'actualizado_en'])
+        logger.exception('No se pudo iniciar el pago Transbank para el intento %s.', intento.pk)
+        messages.error(
+            request,
+            'No se pudo iniciar el pago. No se realizó ningún cobro; intenta nuevamente.',
+        )
+        return redirect('cliente_carrito')
+
+    intento.token = token
+    intento.webpay_url = webpay_url
+    intento.estado = 'pendiente'
+    intento.save(update_fields=['token', 'webpay_url', 'estado', 'actualizado_en'])
+    return _enviar_formulario_transbank(request, webpay_url, token)
+
+
+def _procesar_pago_carrito(
+    request,
+    carrito_override=None,
+    session_key_override=None,
+    transbank_pago=None,
+):
+    _liberar_reservas_vencidas(request if session_key_override is None else None)
+    carrito = (
+        carrito_override
+        if carrito_override is not None
+        else _carrito_sesion(request)
+    )
+    if not carrito['productos'] and not carrito['servicios']:
+        _mensaje_checkout(request, messages.ERROR, 'Tu carrito está vacío.', transbank_pago is None)
+        return redirect('cliente_carrito')
+    session_key = session_key_override or _session_key(request)
+    messages_enabled = transbank_pago is None
 
     with transaction.atomic():
+        if transbank_pago is not None:
+            transbank_pago = TransbankPago.objects.select_for_update().get(pk=transbank_pago.pk)
+            if transbank_pago.estado == 'aprobado' and transbank_pago.pedido_id:
+                return redirect('cliente_compra_resultado', pk=transbank_pago.pedido_id)
+            if transbank_pago.estado != 'autorizado':
+                return redirect('cliente_carrito')
         from usuarios.models import Usuario
 
         cliente = Usuario.objects.select_for_update().get(pk=request.user.pk)
@@ -722,7 +873,7 @@ def pagar_carrito(request):
         total_productos = Decimal('0')
         for product_id, quantity in carrito['productos'].items():
             if not str(product_id).isdecimal() or not isinstance(quantity, int) or quantity < 1:
-                messages.error(request, 'Hay una cantidad inválida en tu carrito.')
+                _mensaje_checkout(request, messages.ERROR, 'Hay una cantidad inválida en tu carrito.', messages_enabled)
                 return redirect('cliente_carrito')
             producto = Producto.objects.select_for_update().filter(pk=product_id).first()
             reserva = ReservaProductoCarrito.objects.select_for_update().filter(
@@ -736,7 +887,12 @@ def pagar_carrito(request):
                 or reserva is None
                 or reserva.cantidad != quantity
             ):
-                messages.error(request, 'Un producto ya no está disponible o no tiene stock suficiente.')
+                _mensaje_checkout(
+                    request,
+                    messages.ERROR,
+                    'Un producto ya no está disponible o no tiene stock suficiente.',
+                    messages_enabled,
+                )
                 return redirect('cliente_carrito')
             productos.append((producto, quantity))
             total_productos += producto.precio * quantity
@@ -746,7 +902,7 @@ def pagar_carrito(request):
         total_pagar = total_productos
         for item in carrito['servicios']:
             if not isinstance(item, dict):
-                messages.error(request, 'Hay un servicio inválido en tu carrito.')
+                _mensaje_checkout(request, messages.ERROR, 'Hay un servicio inválido en tu carrito.', messages_enabled)
                 return redirect('cliente_carrito')
             try:
                 servicio = Servicio.objects.get(pk=item.get('id'), activo=True)
@@ -763,13 +919,28 @@ def pagar_carrito(request):
                 ):
                     raise ValueError
             except (ValueError, TypeError, Servicio.DoesNotExist):
-                messages.error(request, 'Completa la fecha, el profesional, la hora y el pago de cada servicio antes de pagar.')
+                _mensaje_checkout(
+                    request,
+                    messages.ERROR,
+                    'Completa la fecha, el profesional, la hora y el pago de cada servicio antes de pagar.',
+                    messages_enabled,
+                )
                 return redirect('cliente_carrito')
             if fecha < timezone.localdate() or DiaCerrado.objects.filter(fecha=fecha).exists():
-                messages.error(request, 'Una cita tiene fecha pasada o el salón está cerrado ese día.')
+                _mensaje_checkout(
+                    request,
+                    messages.ERROR,
+                    'Una cita tiene fecha pasada o el salón está cerrado ese día.',
+                    messages_enabled,
+                )
                 return redirect('cliente_carrito')
             if not _profesional_valido(profesional_id, servicio.categoria_id):
-                messages.error(request, 'Un profesional no está habilitado para el servicio seleccionado.')
+                _mensaje_checkout(
+                    request,
+                    messages.ERROR,
+                    'Un profesional no está habilitado para el servicio seleccionado.',
+                    messages_enabled,
+                )
                 return redirect('cliente_carrito')
             hold = ReservaCitaTemporal.objects.select_for_update().filter(
                 session_key=session_key,
@@ -783,10 +954,12 @@ def pagar_carrito(request):
                 or hold.hora.strftime('%H:%M') != hora.strftime('%H:%M')
                 or hold.profesional_id != int(profesional_id)
             ):
-                messages.error(
+                _mensaje_checkout(
                     request,
+                    messages.ERROR,
                     'La reserva temporal de una cita venció o cambió. '
                     'Guarda nuevamente el horario antes de pagar.',
+                    messages_enabled,
                 )
                 return redirect('cliente_carrito')
             list(Disponibilidad.objects.select_for_update().filter(
@@ -802,7 +975,12 @@ def pagar_carrito(request):
                 ignorar_carrito_item_key=item.get('key', ''),
                 session_key=session_key,
             ):
-                messages.error(request, 'Uno de los horarios seleccionados ya no está disponible.')
+                _mensaje_checkout(
+                    request,
+                    messages.ERROR,
+                    'Uno de los horarios seleccionados ya no está disponible.',
+                    messages_enabled,
+                )
                 return redirect('cliente_carrito')
             monto_servicio = (
                 min(servicio.precio, ABONO_SERVICIO)
@@ -824,7 +1002,7 @@ def pagar_carrito(request):
             total_pagar += monto_servicio
 
         if not productos and not servicios:
-            messages.error(request, 'No hay artículos válidos para pagar.')
+            _mensaje_checkout(request, messages.ERROR, 'No hay artículos válidos para pagar.', messages_enabled)
             return redirect('cliente_carrito')
 
         fechas_citas = {fecha for _, _, fecha, _, _, _, _ in servicios}
@@ -846,7 +1024,12 @@ def pagar_carrito(request):
                 mismo_profesional = reserva.profesional_id == profesional_id
                 misma_clienta = reserva.cliente_id == cliente.pk
                 if se_superponen and (mismo_profesional or misma_clienta):
-                    messages.error(request, 'Una de las citas se cruza con otra reserva tuya o del profesional.')
+                    _mensaje_checkout(
+                        request,
+                        messages.ERROR,
+                        'Una de las citas se cruza con otra reserva tuya o del profesional.',
+                        messages_enabled,
+                    )
                     return redirect('cliente_carrito')
             for otra_fecha, otro_inicio, otro_fin in citas_del_pedido:
                 if (
@@ -854,9 +1037,26 @@ def pagar_carrito(request):
                     and fecha_hora < otro_fin
                     and otro_inicio < fin
                 ):
-                    messages.error(request, 'Las citas de tu carrito no pueden quedar superpuestas.')
+                    _mensaje_checkout(
+                        request,
+                        messages.ERROR,
+                        'Las citas de tu carrito no pueden quedar superpuestas.',
+                        messages_enabled,
+                    )
                     return redirect('cliente_carrito')
             citas_del_pedido.append((fecha, fecha_hora, fin))
+
+        if (
+            transbank_pago is None
+            and settings.TRANSBANK_ENVIRONMENT != 'SIMULATED'
+        ):
+            return _iniciar_pago_transbank(
+                request,
+                cliente,
+                carrito,
+                session_key,
+                total_pagar,
+            )
 
         pedido = Pedido.objects.create(
             cliente=cliente,
@@ -890,7 +1090,12 @@ def pagar_carrito(request):
                 ignorar_carrito_item_key=item.get('key', ''),
                 session_key=session_key,
             ):
-                messages.error(request, 'El horario de una cita acaba de ser ocupado. Revisa el carrito e intenta otra vez.')
+                _mensaje_checkout(
+                    request,
+                    messages.ERROR,
+                    'El horario de una cita acaba de ser ocupado. Revisa el carrito e intenta otra vez.',
+                    messages_enabled,
+                )
                 transaction.set_rollback(True)
                 return redirect('cliente_carrito')
             profesional = Usuario.objects.get(pk=profesional_id)
@@ -932,12 +1137,26 @@ def pagar_carrito(request):
                 cart_item_key=item.get('key', ''),
             ).delete()
 
-        transaccion_id = str(uuid4())
-        PagoSimulado.objects.create(
-            pedido=pedido,
-            monto=total_pagar,
-            transaccion_id=transaccion_id,
-        )
+        if transbank_pago is None:
+            transaccion_id = str(uuid4())
+            PagoSimulado.objects.create(
+                pedido=pedido,
+                monto=total_pagar,
+                transaccion_id=transaccion_id,
+            )
+            metodo_pago = 'Carrito cliente'
+        else:
+            transaccion_id = transbank_pago.buy_order
+            transbank_pago.pedido = pedido
+            transbank_pago.estado = 'aprobado'
+            transbank_pago.transaccion_id = transaccion_id
+            transbank_pago.save(update_fields=[
+                'pedido',
+                'estado',
+                'transaccion_id',
+                'actualizado_en',
+            ])
+            metodo_pago = 'Webpay Plus'
         venta = Venta.objects.create(
             cliente=cliente,
             total=total_productos + total_servicios,
@@ -966,39 +1185,255 @@ def pagar_carrito(request):
         Pago.objects.create(
             venta=venta,
             monto=total_pagar,
-            metodo_pago='Carrito cliente',
+            metodo_pago=metodo_pago,
             estado_pago='Aprobado',
             transaccion_id=transaccion_id,
         )
 
-    request.session.pop(CLAVE_CARRITO, None)
-    request.session.modified = True
+    _limpiar_carrito_checkout(request, session_key)
     try:
         _enviar_confirmacion_pedido(request, pedido)
     except (OSError, smtplib.SMTPException):
         logger.exception('No se pudo enviar el correo de confirmación del pedido %s.', pedido.pk)
-        messages.warning(
+        _mensaje_checkout(
             request,
+            messages.WARNING,
             'El pago y la cita se registraron, pero no se pudo enviar el correo. '
             'Puedes revisar los datos en Mis citas.',
+            messages_enabled,
         )
     else:
-        messages.success(
+        _mensaje_checkout(
             request,
+            messages.SUCCESS,
             'Pago y cita registrados correctamente. Enviamos la confirmación a tu correo; '
             'también puedes gestionar la cita desde Mis citas.',
+            messages_enabled,
         )
     return redirect('cliente_compra_resultado', pk=pedido.pk)
 
 
 @_cliente_view
+@require_POST
+def pagar_carrito(request):
+    return _procesar_pago_carrito(request)
+
+
+def _render_estado_transbank(request, titulo, mensaje):
+    return render(
+        request,
+        'usuarios/cliente_transbank_resultado.html',
+        {
+            'titulo': titulo,
+            'mensaje': mensaje,
+            'resumen_carrito': [],
+            'total_resumen_carrito': Decimal('0'),
+            'cantidad_articulos_carrito': 0,
+        },
+    )
+
+
+def _reembolsar_transbank(intento, gateway, monto):
+    intento.estado = 'reembolso_pendiente'
+    intento.save(update_fields=['estado', 'actualizado_en'])
+    try:
+        respuesta = refund_transaction(gateway, intento.token, int(monto))
+    except TransbankGatewayError:
+        logger.exception('No se pudo solicitar el reembolso del intento Transbank %s.', intento.pk)
+        return False
+    if (
+        not isinstance(respuesta, dict)
+        or str(respuesta.get('response_code')) != '0'
+        or respuesta.get('type') != 'REVERSED'
+    ):
+        logger.error(
+            'Transbank no confirmó el reembolso total del intento %s.',
+            intento.pk,
+        )
+        return False
+    intento.estado = 'reembolsado'
+    intento.save(update_fields=['estado', 'actualizado_en'])
+    return True
+
+
+def _url_resultado_transbank(intento):
+    referencia = _referencia_transbank(intento, 'carrito.transbank.result')
+    return (
+        f"{reverse('cliente_compra_resultado', args=[intento.pedido_id])}"
+        f"?{urlencode({'ref': referencia})}"
+    )
+
+
+@csrf_exempt
+@require_POST
+def retorno_transbank(request):
+    referencia = request.GET.get('ref', '')
+    try:
+        datos_referencia = signing.loads(
+            referencia,
+            salt='carrito.transbank.return',
+            max_age=60 * 60,
+        )
+    except signing.BadSignature:
+        return HttpResponseBadRequest('Referencia de pago inválida.')
+    intento = get_object_or_404(
+        TransbankPago.objects.select_related('cliente', 'pedido'),
+        pk=datos_referencia.get('attempt'),
+    )
+    token = request.POST.get('token_ws', '')
+    token_anulado = request.POST.get('TBK_TOKEN', '')
+
+    if intento.estado == 'aprobado' and intento.pedido_id:
+        return redirect(_url_resultado_transbank(intento))
+    if token_anulado:
+        if (
+            not intento.token
+            or not compare_digest(intento.token, token_anulado)
+            or request.POST.get('TBK_ORDEN_COMPRA') != intento.buy_order
+            or request.POST.get('TBK_ID_SESION') != intento.session_id
+        ):
+            return HttpResponseBadRequest('Referencia de pago inválida.')
+        intento.estado = 'anulado'
+        intento.save(update_fields=['estado', 'actualizado_en'])
+        return _render_estado_transbank(
+            request,
+            'Pago cancelado',
+            'No se realizó ningún cobro. Puedes volver al carrito e intentarlo nuevamente.',
+        )
+    if not token or not intento.token or not compare_digest(intento.token, token):
+        return HttpResponseBadRequest('Token de pago inválido.')
+    if intento.estado not in ('pendiente', 'autorizado'):
+        return _render_estado_transbank(
+            request,
+            'Pago no disponible',
+            'Este intento de pago ya no está vigente. Revisa tu carrito para iniciar otro.',
+        )
+
+    try:
+        gateway = get_transaction()
+        if intento.estado == 'autorizado':
+            respuesta = transaction_status(gateway, token)
+        else:
+            try:
+                respuesta = commit_transaction(gateway, token)
+            except TransbankGatewayError:
+                respuesta = transaction_status(gateway, token)
+    except (ImproperlyConfigured, TransbankGatewayError):
+        logger.exception('No se pudo confirmar el intento Transbank %s.', intento.pk)
+        return _render_estado_transbank(
+            request,
+            'No pudimos confirmar el pago',
+            'No vuelvas a pagar todavía. Revisa tu cuenta o comunícate con el salón para confirmar el estado.',
+        )
+
+    autorizado = (
+        respuesta.get('status') == 'AUTHORIZED'
+        and str(respuesta.get('response_code')) == '0'
+    )
+    if not autorizado:
+        intento.estado = 'rechazado'
+        intento.save(update_fields=['estado', 'actualizado_en'])
+        return _render_estado_transbank(
+            request,
+            'Pago no aprobado',
+            'Transbank no aprobó el pago. No se registró la compra; puedes volver al carrito.',
+        )
+
+    try:
+        monto_confirmado = Decimal(str(respuesta['amount']))
+    except (KeyError, TypeError, ValueError):
+        monto_confirmado = Decimal('-1')
+    respuesta_coincide = (
+        respuesta.get('buy_order') == intento.buy_order
+        and respuesta.get('session_id') == intento.session_id
+        and monto_confirmado == intento.monto
+    )
+    if not respuesta_coincide:
+        reembolsado = _reembolsar_transbank(intento, gateway, monto_confirmado if monto_confirmado > 0 else intento.monto)
+        mensaje = (
+            'La compra no se registró y Transbank confirmó la devolución.'
+            if reembolsado
+            else 'La compra no se registró. No vuelvas a pagar y comunícate con el salón para revisar el reembolso.'
+        )
+        return _render_estado_transbank(request, 'No pudimos validar la compra', mensaje)
+
+    with transaction.atomic():
+        intento = TransbankPago.objects.select_for_update().get(pk=intento.pk)
+        if intento.estado == 'aprobado' and intento.pedido_id:
+            return redirect(_url_resultado_transbank(intento))
+        if intento.estado not in ('pendiente', 'autorizado'):
+            return _render_estado_transbank(
+                request,
+                'Pago no disponible',
+                'Este intento de pago ya no está vigente. Revisa tu carrito para iniciar otro.',
+            )
+        intento.estado = 'autorizado'
+        intento.transaccion_id = intento.buy_order
+        intento.codigo_autorizacion = str(respuesta.get('authorization_code', ''))[:12]
+        intento.save(update_fields=[
+            'estado',
+            'transaccion_id',
+            'codigo_autorizacion',
+            'actualizado_en',
+        ])
+    request.user = intento.cliente
+    try:
+        _procesar_pago_carrito(
+            request,
+            carrito_override=intento.carrito,
+            session_key_override=intento.session_key,
+            transbank_pago=intento,
+        )
+    except DatabaseError:
+        logger.exception('No se pudo registrar la compra del intento Transbank %s.', intento.pk)
+        reembolsado = _reembolsar_transbank(intento, gateway, intento.monto)
+        mensaje = (
+            'La compra no se registró y Transbank confirmó la devolución.'
+            if reembolsado
+            else 'La compra no se registró. No vuelvas a pagar y comunícate con el salón para revisar el reembolso.'
+        )
+        return _render_estado_transbank(request, 'No pudimos completar la compra', mensaje)
+
+    intento.refresh_from_db()
+    if intento.pedido_id:
+        return redirect(_url_resultado_transbank(intento))
+
+    reembolsado = _reembolsar_transbank(intento, gateway, intento.monto)
+    mensaje = (
+        'El pago fue devuelto porque el stock o el horario cambió antes de completar la compra.'
+        if reembolsado
+        else 'No se completó la compra. No vuelvas a pagar y comunícate con el salón para revisar el reembolso.'
+    )
+    return _render_estado_transbank(request, 'Compra no completada', mensaje)
+
+
 def resultado_compra(request, pk):
+    if request.user.is_authenticated and request.user.pk:
+        pedidos = Pedido.objects.filter(cliente=request.user)
+    else:
+        pedidos = Pedido.objects.none()
+    pedido = pedidos.filter(pk=pk).first()
+    if pedido is None:
+        try:
+            datos = signing.loads(
+                request.GET.get('ref', ''),
+                salt='carrito.transbank.result',
+                max_age=60 * 15,
+            )
+        except signing.BadSignature:
+            return redirect('login')
+        pedido = get_object_or_404(
+            Pedido.objects.filter(
+                pk=pk,
+                pago_transbank__pk=datos.get('attempt'),
+                pago_transbank__estado='aprobado',
+            ),
+        )
     pedido = get_object_or_404(
-        Pedido.objects.filter(cliente=request.user).prefetch_related(
+        Pedido.objects.filter(pk=pedido.pk).select_related('pago_transbank').prefetch_related(
             'detalles__reserva',
             'pagos_simulados',
         ),
-        pk=pk,
     )
     resumen, total_resumen = resumen_carrito(request)
     return render(

@@ -32,6 +32,7 @@ urlpatterns = [
     path('cliente/carrito/actualizar/', carrito_views.actualizar_carrito, name='cliente_carrito_actualizar'),
     path('cliente/carrito/servicio/<str:key>/guardar-cita/', carrito_views.guardar_cita_carrito, name='cliente_carrito_guardar_cita'),
     path('cliente/carrito/pagar/', carrito_views.pagar_carrito, name='cliente_carrito_pagar'),
+    path('cliente/carrito/webpay/retorno/', carrito_views.retorno_transbank, name='cliente_webpay_retorno'),
     path('cliente/carrito/compra/<int:pk>/', carrito_views.resultado_compra, name='cliente_compra_resultado'),
     path('cliente/agendamiento/', views.cliente_agendamiento_view, name='cliente_agendamiento'),
     path(

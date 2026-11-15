@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+.git
+.venv
+venv
+venv_old
+**/__pycache__
+**/*.py[cod]
+db.sqlite3
+media/*
+!media/servicios/
+media/servicios/*
+!media/servicios/*.png
+staticfiles

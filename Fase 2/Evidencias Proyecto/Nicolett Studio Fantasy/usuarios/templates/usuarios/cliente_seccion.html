@@ -547,36 +547,14 @@
             {% for producto in productos %}
                 <article id="producto-{{ producto.pk }}" data-catalog-item data-categories="{{ producto.categoria.nombre }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#ead7bc] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#bd8c43] hover:bg-[#ffffff] focus-within:z-10 focus-within:border-[#bd8c43]">
                     {% if producto.imagen_url %}
-                        <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" class="h-40 w-full bg-[#fae9cf] object-cover">
+                        <a href="{{ producto.imagen_url.url }}" target="_blank" rel="noopener noreferrer" aria-label="Abrir imagen completa de {{ producto.nombre }}" class="block">
+                            <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" class="block h-40 w-full bg-[#fae9cf] object-contain p-2">
+                        </a>
                     {% else %}
                         <div class="flex h-40 items-center justify-center bg-[#fae9cf] text-4xl text-[#6b5643]" aria-hidden="true">
                             <i class="fa-solid fa-bottle-droplet"></i>
                         </div>
                     {% endif %}
-                    <div class="invisible absolute inset-x-3 top-3 z-20 translate-y-1 border border-[#ead7bc] bg-white p-3 opacity-0 shadow-xl transition-all duration-200 delay-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-                        {% if producto.imagen_url %}
-                            <div data-image-preview>
-                                <div class="mb-2 flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-1">
-                                        <button type="button" data-image-zoom-action="out" aria-label="Alejar imagen de {{ producto.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ead7bc] text-sm text-[#6b5643] transition hover:bg-[#fae9cf] disabled:cursor-not-allowed disabled:opacity-40">
-                                            <i class="fa-solid fa-minus" aria-hidden="true"></i>
-                                        </button>
-                                        <button type="button" data-image-zoom-action="in" aria-label="Acercar imagen de {{ producto.nombre }}" class="flex h-8 w-8 items-center justify-center border border-[#ead7bc] text-sm text-[#6b5643] transition hover:bg-[#fae9cf] disabled:cursor-not-allowed disabled:opacity-40">
-                                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                                        </button>
-                                        <button type="button" data-image-zoom-action="reset" class="border border-[#ead7bc] px-2 py-1.5 text-xs text-[#6b5643] transition hover:bg-[#fae9cf]">Restablecer</button>
-                                    </div>
-                                    <span data-image-zoom-level class="text-xs text-[#6b5643]" aria-live="polite">100%</span>
-                                </div>
-                                <div class="flex h-48 items-center justify-center overflow-hidden bg-[#fae9cf] p-1">
-                                    <img src="{{ producto.imagen_url.url }}" alt="Imagen completa de {{ producto.nombre }}" data-zoomable-image class="h-full w-full max-w-full object-contain transition-transform duration-200">
-                                </div>
-                            </div>
-                        {% else %}
-                            <div class="flex h-24 items-center justify-center bg-[#fae9cf] text-sm text-[#6b5643]">Sin imagen disponible</div>
-                        {% endif %}
-                        <p class="mt-3 text-sm leading-relaxed text-[#6b5643]">{{ producto.descripcion|default:"Descripción no disponible." }}</p>
-                    </div>
                     <div class="flex flex-1 flex-col p-5">
                         <p class="mb-2 text-xs uppercase tracking-widest text-[#6b5643]">{{ producto.categoria.nombre }}</p>
                         <div class="mb-2 flex items-center justify-between gap-2">
@@ -587,6 +565,7 @@
                                 </a>
                             {% endif %}
                         </div>
+                        <p class="mb-4 text-sm leading-relaxed text-[#6b5643]">{{ producto.descripcion|default:"Descripción no disponible." }}</p>
                         <div class="mt-auto flex items-center justify-between text-sm">
                             <span class="font-medium">{{ producto.precio|pesos }}</span>
                             <span class="text-[#6b5643]">{% if producto.stock > 0 %}{{ producto.stock }} disponibles{% else %}Agotado{% endif %}</span>
@@ -629,26 +608,6 @@
                 let hasUpdatedCatalog = false;
                 const itemLabel = noResults ? noResults.dataset.itemLabel : '';
                 const itemSingular = itemLabel === 'servicios' ? 'servicio' : 'producto';
-
-                document.addEventListener('click', event => {
-                    const button = event.target.closest('[data-image-zoom-action]');
-                    if (!button) return;
-
-                    const preview = button.closest('[data-image-preview]');
-                    const image = preview.querySelector('[data-zoomable-image]');
-                    const output = preview.querySelector('[data-image-zoom-level]');
-                    const currentScale = Number(image.dataset.zoomScale || 1);
-                    const action = button.dataset.imageZoomAction;
-                    const nextScale = action === 'reset'
-                        ? 1
-                        : Math.min(3, Math.max(0.5, currentScale + (action === 'in' ? 0.25 : -0.25)));
-
-                    image.dataset.zoomScale = String(nextScale);
-                    image.style.transform = `scale(${nextScale})`;
-                    output.textContent = `${Math.round(nextScale * 100)}%`;
-                    preview.querySelector('[data-image-zoom-action="out"]').disabled = nextScale <= 0.5;
-                    preview.querySelector('[data-image-zoom-action="in"]').disabled = nextScale >= 3;
-                });
 
                 const normalize = value => value
                     .normalize('NFD')

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Conectando con Webpay Plus</title>
+</head>
+<body>
+    <main>
+        <h1>Conectando con Webpay Plus</h1>
+        <p>Estamos abriendo el portal seguro de Transbank para completar tu pago.</p>
+        <form id="webpay-form" action="{{ webpay_url }}" method="post">
+            <input type="hidden" name="token_ws" value="{{ token }}">
+            <button type="submit">Continuar a Webpay</button>
+        </form>
+    </main>
+    <script>
+        document.getElementById('webpay-form').submit();
+    </script>
+</body>
+</html>

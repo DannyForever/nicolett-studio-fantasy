@@ -144,13 +144,17 @@ def import_catalog_workbook(uploaded_file, catalog_type, selected_category=None)
         header_cells = next(worksheet.iter_rows(min_row=1, max_row=1), ())
         if any(cell.data_type == 'f' for cell in header_cells):
             raise CatalogExcelError('Los encabezados del archivo deben ser texto, no fórmulas.')
-        normalized_headers = [_header_key(cell.value) for cell in header_cells]
+        header_aliases = {_header_key('Estado'): _header_key('Activo')}
+        normalized_headers = []
+        for cell in header_cells:
+            key = _header_key(cell.value)
+            normalized_headers.append(header_aliases.get(key, key))
         if len(normalized_headers) != len(set(filter(None, normalized_headers))):
             raise CatalogExcelError('El archivo contiene encabezados duplicados.')
         header_indexes = {
-            _header_key(cell.value): index
-            for index, cell in enumerate(header_cells)
-            if _header_key(cell.value)
+            key: index
+            for index, key in enumerate(normalized_headers)
+            if key
         }
         expected_headers = {
             _header_key(header)

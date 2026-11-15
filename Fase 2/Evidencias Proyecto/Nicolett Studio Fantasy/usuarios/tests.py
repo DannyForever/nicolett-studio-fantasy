@@ -1141,6 +1141,31 @@ class RoleAccessTests(TestCase):
         self.assertIn('Hola, soy CLIENTE PRUEBA PRUEBA.', mensaje_productos)
         self.assertIn('servicios y productos', mensaje_productos)
 
+    def test_product_descriptions_are_visible_without_covering_product_actions(self):
+        cliente = self.crear_cliente()
+        categoria = Categoria.objects.create(nombre='Cuidado capilar', tipo='Productos')
+        producto = Producto.objects.create(
+            nombre='Producto con foto',
+            descripcion='Producto de prueba.',
+            imagen_url='productos/prueba.png',
+            precio='9900',
+            stock=2,
+            activo=True,
+            categoria=categoria,
+        )
+        self.client.force_login(cliente)
+
+        response = self.client.get(reverse('cliente_productos'))
+        self.assertContains(response, 'Producto de prueba.')
+        self.assertNotContains(response, 'data-image-preview')
+        self.assertContains(
+            response,
+            'aria-label="Abrir imagen completa de Producto con foto"',
+        )
+        self.assertContains(response, 'object-contain p-2')
+        self.assertContains(response, 'Consultar por WhatsApp sobre Producto con foto')
+        self.assertContains(response, 'Añadir al carrito')
+
     def test_customer_home_opens_on_about_section_without_footer(self):
         self.client.force_login(self.crear_cliente())
 

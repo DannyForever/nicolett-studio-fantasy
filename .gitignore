@@ -17,3 +17,10 @@ db.sqlite3
 # Archivos multimedia subidos durante pruebas
 media/
 **/media/
+
+# Fotos seleccionadas del catálogo de servicios
+!**/media/
+**/media/*
+!**/media/servicios/
+**/media/servicios/*
+!**/media/servicios/*.png

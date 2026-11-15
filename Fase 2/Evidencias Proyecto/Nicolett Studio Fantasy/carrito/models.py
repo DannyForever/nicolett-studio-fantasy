@@ -80,6 +80,45 @@ class PagoSimulado(models.Model):
     creado_en = models.DateTimeField(auto_now_add=True)
 
 
+class TransbankPago(models.Model):
+    ESTADOS = [
+        ('iniciando', 'Iniciando'),
+        ('pendiente', 'Pendiente'),
+        ('autorizado', 'Autorizado'),
+        ('aprobado', 'Aprobado'),
+        ('rechazado', 'Rechazado'),
+        ('anulado', 'Anulado'),
+        ('reembolsado', 'Reembolsado'),
+        ('error', 'Error'),
+        ('reembolso_pendiente', 'Reembolso pendiente'),
+    ]
+
+    cliente = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='pagos_transbank',
+    )
+    pedido = models.OneToOneField(
+        Pedido,
+        on_delete=models.PROTECT,
+        related_name='pago_transbank',
+        null=True,
+        blank=True,
+    )
+    buy_order = models.CharField(max_length=26, unique=True)
+    session_id = models.CharField(max_length=61)
+    session_key = models.CharField(max_length=40)
+    carrito = models.JSONField(default=dict)
+    monto = models.DecimalField(max_digits=12, decimal_places=2)
+    token = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    webpay_url = models.URLField(max_length=255, blank=True)
+    estado = models.CharField(max_length=24, choices=ESTADOS, default='iniciando')
+    transaccion_id = models.CharField(max_length=150, blank=True)
+    codigo_autorizacion = models.CharField(max_length=12, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+
 class ReservaProductoCarrito(models.Model):
     session_key = models.CharField(max_length=40)
     producto_id = models.PositiveBigIntegerField()

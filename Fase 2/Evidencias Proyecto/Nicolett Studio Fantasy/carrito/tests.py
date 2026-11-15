@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.core import mail
-from django.test import TestCase, override_settings
+from django.core import signing
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -22,9 +24,11 @@ from .models import (
     PagoSimulado,
     Pedido,
     ReservaProductoCarrito,
+    TransbankPago,
 )
 
 
+@override_settings(TRANSBANK_ENVIRONMENT='SIMULATED')
 class CarritoTests(TestCase):
     def setUp(self):
         self.rol_cliente, _ = Rol.objects.get_or_create(nombre='Cliente')
@@ -501,3 +505,191 @@ class CarritoTests(TestCase):
         response = self.client.get(reverse('cliente_carrito'))
 
         self.assertNotEqual(response.status_code, 200)
+
+    @override_settings(TRANSBANK_ENVIRONMENT='INTEGRATION')
+    @patch('carrito.views.create_transaction')
+    @patch('carrito.views.get_transaction')
+    def test_transbank_checkout_creates_attempt_before_redirecting(self, mock_gateway, mock_create):
+        mock_create.return_value = {
+            'token': 'token-integracion',
+            'url': 'https://webpay3gint.transbank.cl/webpayserver/initTransaction',
+        }
+        self.client.post(
+            reverse('cliente_carrito_agregar_producto', args=[self.producto.pk]),
+            {'cantidad': 1},
+        )
+
+        response = self.client.post(reverse('cliente_carrito_pagar'))
+
+        intento = TransbankPago.objects.get(cliente=self.cliente)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'action="{mock_create.return_value["url"]}"')
+        self.assertContains(response, 'name="token_ws" value="token-integracion"')
+        self.assertEqual(intento.estado, 'pendiente')
+        self.assertEqual(intento.monto, Decimal('2500'))
+        self.assertEqual(intento.carrito['productos'], {str(self.producto.pk): 1})
+        self.assertFalse(Pedido.objects.exists())
+        mock_gateway.assert_called_once()
+        response_reintentado = self.client.post(reverse('cliente_carrito_pagar'))
+        self.assertEqual(response_reintentado.status_code, 200)
+        self.assertContains(response_reintentado, 'name="token_ws" value="token-integracion"')
+        mock_create.assert_called_once()
+
+    @override_settings(TRANSBANK_ENVIRONMENT='INTEGRATION')
+    @patch('carrito.views.commit_transaction')
+    @patch('carrito.views.get_transaction')
+    def test_transbank_callback_approves_and_records_order_once(self, mock_gateway, mock_commit):
+        self.client.post(
+            reverse('cliente_carrito_agregar_producto', args=[self.producto.pk]),
+            {'cantidad': 1},
+        )
+        session = self.client.session
+        intento = TransbankPago.objects.create(
+            cliente=self.cliente,
+            buy_order='orden-prueba-1',
+            session_id='sesion-prueba-1',
+            session_key=session.session_key,
+            carrito=session['carrito_compra'],
+            monto=Decimal('2500'),
+            token='token-integracion',
+            estado='pendiente',
+        )
+        referencia = signing.dumps(
+            {'attempt': intento.pk},
+            salt='carrito.transbank.return',
+            compress=True,
+        )
+        mock_commit.return_value = {
+            'status': 'AUTHORIZED',
+            'response_code': 0,
+            'buy_order': intento.buy_order,
+            'session_id': intento.session_id,
+            'amount': 2500,
+            'authorization_code': '123456',
+        }
+        client_sin_sesion = Client()
+
+        response = client_sin_sesion.post(
+            f"{reverse('cliente_webpay_retorno')}?ref={referencia}",
+            {'token_ws': intento.token},
+        )
+        respuesta_duplicada = client_sin_sesion.post(
+            f"{reverse('cliente_webpay_retorno')}?ref={referencia}",
+            {'token_ws': intento.token},
+        )
+
+        intento.refresh_from_db()
+        pedido = Pedido.objects.get(cliente=self.cliente)
+        pago = Pago.objects.get(venta__cliente=self.cliente)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('cliente_compra_resultado', args=[pedido.pk]), response['Location'])
+        self.assertEqual(intento.estado, 'aprobado')
+        self.assertEqual(intento.pedido_id, pedido.pk)
+        self.assertEqual(pago.metodo_pago, 'Webpay Plus')
+        self.assertEqual(pago.transaccion_id, intento.buy_order)
+        self.assertFalse(PagoSimulado.objects.exists())
+        self.assertEqual(respuesta_duplicada.status_code, 302)
+        self.assertEqual(Pedido.objects.filter(cliente=self.cliente).count(), 1)
+        mock_gateway.assert_called_once()
+        mock_commit.assert_called_once_with(mock_gateway.return_value, intento.token)
+
+    @override_settings(TRANSBANK_ENVIRONMENT='INTEGRATION')
+    @patch('carrito.views.refund_transaction')
+    @patch('carrito.views.commit_transaction')
+    @patch('carrito.views.get_transaction')
+    def test_transbank_callback_refunds_if_product_reservation_expired(
+        self,
+        mock_gateway,
+        mock_commit,
+        mock_refund,
+    ):
+        self.client.post(
+            reverse('cliente_carrito_agregar_producto', args=[self.producto.pk]),
+            {'cantidad': 1},
+        )
+        session = self.client.session
+        intento = TransbankPago.objects.create(
+            cliente=self.cliente,
+            buy_order='orden-prueba-3',
+            session_id='sesion-prueba-3',
+            session_key=session.session_key,
+            carrito=session['carrito_compra'],
+            monto=Decimal('2500'),
+            token='token-integracion-expirado',
+            estado='pendiente',
+        )
+        ReservaProductoCarrito.objects.filter(session_key=session.session_key).update(
+            vence_en=timezone.now() - timedelta(minutes=1),
+        )
+        referencia = signing.dumps(
+            {'attempt': intento.pk},
+            salt='carrito.transbank.return',
+            compress=True,
+        )
+        mock_commit.return_value = {
+            'status': 'AUTHORIZED',
+            'response_code': 0,
+            'buy_order': intento.buy_order,
+            'session_id': intento.session_id,
+            'amount': 2500,
+            'authorization_code': '123456',
+        }
+        mock_refund.return_value = {'type': 'REVERSED', 'response_code': 0}
+        client_sin_sesion = Client()
+
+        response = client_sin_sesion.post(
+            f"{reverse('cliente_webpay_retorno')}?ref={referencia}",
+            {'token_ws': intento.token},
+        )
+
+        intento.refresh_from_db()
+        self.producto.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(intento.estado, 'reembolsado')
+        self.assertFalse(Pedido.objects.exists())
+        self.assertEqual(self.producto.stock, 10)
+        mock_refund.assert_called_once_with(mock_gateway.return_value, intento.token, 2500)
+
+    @override_settings(TRANSBANK_ENVIRONMENT='INTEGRATION')
+    def test_transbank_cancel_callback_requires_matching_attempt_data(self):
+        intento = TransbankPago.objects.create(
+            cliente=self.cliente,
+            buy_order='orden-prueba-2',
+            session_id='sesion-prueba-2',
+            session_key='session-test-key',
+            carrito={},
+            monto=Decimal('2500'),
+            token='token-integracion-cancelado',
+            estado='pendiente',
+        )
+        referencia = signing.dumps(
+            {'attempt': intento.pk},
+            salt='carrito.transbank.return',
+            compress=True,
+        )
+        client_sin_sesion = Client()
+
+        respuesta_invalida = client_sin_sesion.post(
+            f"{reverse('cliente_webpay_retorno')}?ref={referencia}",
+            {
+                'TBK_TOKEN': intento.token,
+                'TBK_ORDEN_COMPRA': 'otra-orden',
+                'TBK_ID_SESION': intento.session_id,
+            },
+        )
+        self.assertEqual(respuesta_invalida.status_code, 400)
+        intento.refresh_from_db()
+        self.assertEqual(intento.estado, 'pendiente')
+
+        respuesta_cancelada = client_sin_sesion.post(
+            f"{reverse('cliente_webpay_retorno')}?ref={referencia}",
+            {
+                'TBK_TOKEN': intento.token,
+                'TBK_ORDEN_COMPRA': intento.buy_order,
+                'TBK_ID_SESION': intento.session_id,
+            },
+        )
+        intento.refresh_from_db()
+        self.assertEqual(respuesta_cancelada.status_code, 200)
+        self.assertEqual(intento.estado, 'anulado')
+        self.assertFalse(Pedido.objects.exists())

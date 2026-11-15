@@ -1076,6 +1076,25 @@ class ServiciosPageTests(TestCase):
         self.assertEqual(producto.stock, 5)
         self.assertFalse(producto.imagen_url)
 
+    def test_product_excel_import_accepts_estado_as_status_header(self):
+        upload = self.excel_file(
+            ('Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Estado'),
+            [('Sérum de brillo', '', 'Brillo capilar', 12000, 6, 'Activo')],
+        )
+
+        response = self.client.post(
+            f"{reverse('importar_productos_excel')}?categoria={self.categoria_producto.pk}",
+            {'archivo': upload},
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('admin_productos')}?categoria={self.categoria_producto.pk}",
+        )
+        producto = Producto.objects.get(nombre='Sérum de brillo')
+        self.assertEqual(producto.stock, 6)
+        self.assertTrue(producto.activo)
+
     def test_product_excel_import_rejects_all_rows_when_any_row_is_invalid(self):
         upload = self.excel_file(
             ('Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo'),

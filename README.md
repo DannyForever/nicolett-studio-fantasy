@@ -14,21 +14,39 @@ El sistema centraliza y gestiona las entregas de proyectos académicos, permitie
 3. Reduce la fricción en la _colaboración grupal_ mediante una estructura clara y automatizada.
 
 ## 2. Tecnologías utilizadas
--  **Lenguajes:** Por definir
--  **Frameworks:** Por definir
--  **Base de datos:** Por definir
+-  **Lenguaje:** Python
+-  **Framework:** Django
+-  **Base de datos:** SQLite por defecto; PostgreSQL puede configurarse mediante `DATABASE_URL`.
 
 ## 3. Instrucciones para ejecutar el proyecto localmente
-1. Clona este repositorio:
-   ```bash
-   git clone https://github.com/DannyForever/nicolett-studio-fantasy
+### Con Docker
+1. Instala y abre Docker Desktop.
+2. Desde la carpeta raíz del repositorio, entra al proyecto Django:
+   ```powershell
+   cd "Fase 2\Evidencias Proyecto\Nicolett Studio Fantasy"
+   ```
+3. Si todavía no tienes un archivo `.env`, créalo desde el ejemplo:
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+4. Construye la imagen e inicia la aplicación:
+   ```powershell
+   docker compose up --build
+   ```
+5. Abre http://localhost:8000. Para detenerla, presiona `Ctrl+C` y luego ejecuta:
+   ```powershell
+   docker compose down
+   ```
 
-2. Próximos pasos:
-   ```bash
-   Proximamente
-   
-> [!IMPORTANT]
-> Este apartado será _actualizado_ para el desarrollo de la solución en la **Fase 2**.
+Docker ejecuta las migraciones al iniciar y guarda la base de datos SQLite y los archivos subidos en volúmenes persistentes. Estos datos son independientes de la base de datos local y de la instancia desplegada en Render. No uses `docker compose down -v` si quieres conservarlos.
+
+### Pagos con Transbank
+Webpay Plus queda en modo de integración con `TRANSBANK_ENVIRONMENT=INTEGRATION` (valor predeterminado) y usa las credenciales de prueba del SDK oficial. Para producción, configura `TRANSBANK_ENVIRONMENT=PRODUCTION`, `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_API_KEY` y una `TRANSBANK_RETURN_URL` pública con HTTPS en el archivo `.env` o en las variables seguras del despliegue. Nunca guardes credenciales reales en el repositorio ni las compartas por el chat. La aplicación registra la compra solo después de confirmar el pago con Transbank; si no puede completar una compra ya autorizada, intenta solicitar la devolución y conserva el estado para revisión si Transbank no la confirma.
+
+### Sin Docker
+Entra a `Fase 2\Evidencias Proyecto\Nicolett Studio Fantasy`, instala las dependencias de `requirements.txt` en un entorno virtual y ejecuta `python manage.py migrate` seguido de `python manage.py runserver`.
+
+La configuración Docker descrita aquí es para desarrollo local; no modifica ni cambia el despliegue existente en Render.
 
 ## 4. Integrantes
 - **Nicolett Studio Fantasy:** Product Owner

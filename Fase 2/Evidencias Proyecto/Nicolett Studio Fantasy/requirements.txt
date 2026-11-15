@@ -20,6 +20,7 @@ requests==2.34.2
 spyne==2.14.0
 sqlparse==0.6.0
 suds==1.2.0
+transbank-sdk==6.1.0
 typing_extensions==4.16.0
 tzdata==2026.4
 urllib3==2.8.0

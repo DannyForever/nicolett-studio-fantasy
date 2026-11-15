@@ -1,0 +1,16 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: "sqlite:////data/db.sqlite3"
+    volumes:
+      - sqlite_data:/data
+      - media_data:/app/media
+
+volumes:
+  sqlite_data:
+  media_data:
