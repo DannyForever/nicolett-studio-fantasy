@@ -1,10 +1,12 @@
 from io import BytesIO
+from pathlib import PurePosixPath
 from unicodedata import combining, normalize as unicode_normalize
 from zipfile import BadZipFile
 from xml.etree.ElementTree import ParseError
 
 from django.db import transaction
 from openpyxl import Workbook, load_workbook
+from openpyxl.comments import Comment
 from openpyxl.utils import get_column_letter
 from openpyxl.utils.exceptions import InvalidFileException
 
@@ -21,14 +23,16 @@ CATALOGS = {
         'model': Servicio,
         'form': ServicioForm,
         'category_scope': 'servicio',
-        'headers': ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Duración (minutos)', 'Activo'),
+        'headers': ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Duración (minutos)', 'Activo', 'imagen_url'),
+        'image_directory': 'servicios',
         'filename': 'servicios',
     },
     'producto': {
         'model': Producto,
         'form': ProductoForm,
         'category_scope': 'producto',
-        'headers': ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo'),
+        'headers': ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo', 'imagen_url'),
+        'image_directory': 'productos',
         'filename': 'productos',
     },
 }
@@ -50,12 +54,38 @@ def _safe_excel_text(value):
     return text
 
 
-def build_catalog_workbook(catalog_type, records=()):
+def build_catalog_workbook(catalog_type, records=(), include_image_catalog=False):
     spec = CATALOGS[catalog_type]
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = spec['filename'].title()
     worksheet.append(spec['headers'])
+    image_directory = spec.get('image_directory')
+    if image_directory:
+        example_filename = (
+            'alisado_bioplastica.png'
+            if image_directory == 'servicios'
+            else 'nombre.png'
+        )
+        worksheet.cell(1, len(spec['headers'])).comment = Comment(
+            f'Ruta relativa desde media/. Ejemplo: {image_directory}/{example_filename}.',
+            'Nicolett Studio Fantasy',
+        )
+
+    if image_directory and include_image_catalog:
+        image_storage = spec['model']._meta.get_field('imagen_url').storage
+        _, image_files = image_storage.listdir(image_directory)
+        image_paths = [
+            f'{image_directory}/{filename}'
+            for filename in sorted(image_files)
+            if PurePosixPath(filename).suffix.lower() in {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
+        ]
+        image_worksheet = workbook.create_sheet('Imágenes disponibles')
+        image_worksheet.append(('imagen_url',))
+        for image_path in image_paths:
+            image_worksheet.append((image_path,))
+        image_worksheet.freeze_panes = 'A2'
+        image_worksheet.column_dimensions['A'].width = 48
 
     for record in records:
         values = [
@@ -70,6 +100,8 @@ def build_catalog_workbook(catalog_type, records=()):
         else:
             values.append(record.stock)
         values.append('Activo' if record.activo else 'Desactivado')
+        if spec.get('image_directory'):
+            values.append(record.imagen_url.name if record.imagen_url else '')
         worksheet.append([
             _safe_excel_text(value) if isinstance(value, str) else value
             for value in values
@@ -104,6 +136,35 @@ def _active_value(value):
     if normalized in {'false', '0', 'no', 'desactivado', 'inactivo', 'inactiva'}:
         return 'false'
     raise CatalogExcelError('La columna “Activo” solo acepta Sí/No o Activo/Desactivado.')
+
+
+def _validated_image_name(value, catalog_type):
+    image_directory = CATALOGS[catalog_type].get('image_directory')
+    if not image_directory:
+        return None
+
+    image_name = value.replace('\\', '/').strip()
+    if not image_name:
+        return ''
+
+    image_path = PurePosixPath(image_name)
+    if (
+        image_path.is_absolute()
+        or len(image_path.parts) != 2
+        or image_path.parts[0] != image_directory
+        or image_path.name in {'', '.', '..'}
+        or image_path.as_posix() != image_name
+    ):
+        raise CatalogExcelError(
+            f'La columna “imagen_url” debe contener una ruta relativa dentro de media/{image_directory}/.'
+        )
+
+    image_field = CATALOGS[catalog_type]['model']._meta.get_field('imagen_url')
+    if not image_field.storage.exists(image_name):
+        raise CatalogExcelError(
+            f'La imagen “{image_name}” no existe en media/{image_directory}/.'
+        )
+    return image_name
 
 
 def import_catalog_workbook(uploaded_file, catalog_type, selected_category=None):
@@ -156,10 +217,12 @@ def import_catalog_workbook(uploaded_file, catalog_type, selected_category=None)
             for index, key in enumerate(normalized_headers)
             if key
         }
+        image_header = 'imagen_url' if spec.get('image_directory') else None
+        image_header_key = _header_key(image_header) if image_header else None
         expected_headers = {
             _header_key(header)
             for header in spec['headers']
-            if header != 'ID (no editar)'
+            if header != 'ID (no editar)' and _header_key(header) != image_header_key
         }
         missing_headers = expected_headers - set(header_indexes)
         if missing_headers:
@@ -174,6 +237,7 @@ def import_catalog_workbook(uploaded_file, catalog_type, selected_category=None)
             )
 
         category_cache = {}
+        source_ids = set()
         categories = Categoria.objects.filter(
             tipo=category_type,
             activa=True,
@@ -200,16 +264,23 @@ def import_catalog_workbook(uploaded_file, catalog_type, selected_category=None)
                 except (TypeError, ValueError):
                     errors.append(f'Fila {row_number}: el ID debe ser un número entero o quedar vacío.')
                     continue
+                if record_id in source_ids:
+                    errors.append(f'Fila {row_number}: el archivo repite el ID {record_id}.')
+                    continue
+                source_ids.add(record_id)
                 record = spec['model'].objects.filter(
                     pk=record_id,
-                    categoria__tipo=category_type,
                 ).select_related('categoria').first()
-                if record is None:
+                if record is not None and record.categoria.tipo != category_type:
                     errors.append(f'Fila {row_number}: el ID {record_id} no corresponde a un registro de este catálogo.')
                     continue
-                if selected_category and record.categoria_id != selected_category.pk:
-                    errors.append(f'Fila {row_number}: el ID {record_id} no pertenece a la categoría seleccionada.')
-                    continue
+                if record is None:
+                    record_id = None
+            else:
+                record = None
+            if record is not None and selected_category and record.categoria_id != selected_category.pk:
+                errors.append(f'Fila {row_number}: el ID {record_id} no pertenece a la categoría seleccionada.')
+                continue
             if 'Nombre' not in row:
                 errors.append(f'Fila {row_number}: falta la columna “Nombre”.')
                 continue
@@ -254,6 +325,13 @@ def import_catalog_workbook(uploaded_file, catalog_type, selected_category=None)
             numeric_field = 'duracion_minutos' if catalog_type == 'servicio' else 'stock'
             source_field = 'Duración (minutos)' if catalog_type == 'servicio' else 'Stock'
             form_data[numeric_field] = row[source_field]
+            image_name = None
+            if image_header_key and image_header_key in header_indexes:
+                try:
+                    image_name = _validated_image_name(row.get(image_header, ''), catalog_type)
+                except CatalogExcelError as error:
+                    errors.append(f'Fila {row_number}: {error}')
+                    continue
             form = spec['form'](
                 data=form_data,
                 instance=record,
@@ -284,7 +362,7 @@ def import_catalog_workbook(uploaded_file, catalog_type, selected_category=None)
                 )
                 continue
             seen.add(duplicate_key)
-            forms.append((form, record_id or None))
+            forms.append((form, record_id or None, image_name))
             if len(forms) > MAX_DATA_ROWS:
                 raise CatalogExcelError(f'El archivo puede contener hasta {MAX_DATA_ROWS} registros.')
 
@@ -292,14 +370,14 @@ def import_catalog_workbook(uploaded_file, catalog_type, selected_category=None)
             raise CatalogExcelError(' '.join(errors[:20]))
         if not forms:
             raise CatalogExcelError('El archivo no contiene registros para importar.')
-        identifiers = [identifier for _, identifier in forms if identifier]
+        identifiers = [identifier for _, identifier, _ in forms if identifier]
         if len(identifiers) != len(set(identifiers)):
             raise CatalogExcelError('El archivo repite un ID en más de una fila.')
 
         updated_count = 0
         created_count = 0
         with transaction.atomic():
-            for form, identifier in forms:
+            for form, identifier, image_name in forms:
                 if identifier:
                     locked_record = spec['model'].objects.select_for_update().filter(
                         pk=identifier,
@@ -319,9 +397,15 @@ def import_catalog_workbook(uploaded_file, catalog_type, selected_category=None)
                     )
                     for field_name in update_fields:
                         setattr(locked_record, field_name, form.cleaned_data[field_name])
+                    if image_name is not None:
+                        locked_record.imagen_url = image_name
+                        update_fields += ('imagen_url',)
                     locked_record.save(update_fields=update_fields)
                 else:
-                    form.save()
+                    new_record = form.save(commit=False)
+                    if image_name is not None:
+                        new_record.imagen_url = image_name
+                    new_record.save()
                 if identifier:
                     updated_count += 1
                 else:
