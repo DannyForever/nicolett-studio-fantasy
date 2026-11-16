@@ -14,9 +14,7 @@ mkdir -p "$media_dir"
 for seed_file in "$seed_dir"/*.png; do
     [ -f "$seed_file" ] || continue
     media_file="$media_dir/${seed_file##*/}"
-    if [ ! -e "$media_file" ]; then
-        cp "$seed_file" "$media_file"
-    fi
+    cp -f "$seed_file" "$media_file"
 done
 
 exec "$@"

@@ -40,6 +40,12 @@ El sistema centraliza y gestiona las entregas de proyectos académicos, permitie
 
 Docker ejecuta las migraciones al iniciar y guarda la base de datos SQLite y los archivos subidos en volúmenes persistentes. Estos datos son independientes de la base de datos local y de la instancia desplegada en Render. No uses `docker compose down -v` si quieres conservarlos.
 
+Para recibir actualizaciones de las imágenes versionadas, desde la raíz del repositorio ejecuta `git pull origin main` y luego, desde la carpeta del proyecto Django, reconstruye e inicia el contenedor:
+```powershell
+docker compose up --build -d
+```
+Al iniciar, Docker sobrescribe en el volumen persistente solo los PNG versionados de `media/servicios`; los demás archivos y la base de datos se conservan.
+
 ### Pagos con Transbank
 Webpay Plus queda en modo de integración con `TRANSBANK_ENVIRONMENT=INTEGRATION` (valor predeterminado) y usa las credenciales de prueba del SDK oficial. Para producción, configura `TRANSBANK_ENVIRONMENT=PRODUCTION`, `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_API_KEY` y una `TRANSBANK_RETURN_URL` pública con HTTPS en el archivo `.env` o en las variables seguras del despliegue. Nunca guardes credenciales reales en el repositorio ni las compartas por el chat. La aplicación registra la compra solo después de confirmar el pago con Transbank; si no puede completar una compra ya autorizada, intenta solicitar la devolución y conserva el estado para revisión si Transbank no la confirma.
 
