@@ -84,6 +84,7 @@ class TransbankPago(models.Model):
     ESTADOS = [
         ('iniciando', 'Iniciando'),
         ('pendiente', 'Pendiente'),
+        ('webpay_abierto', 'Abierto en Webpay'),
         ('autorizado', 'Autorizado'),
         ('aprobado', 'Aprobado'),
         ('rechazado', 'Rechazado'),

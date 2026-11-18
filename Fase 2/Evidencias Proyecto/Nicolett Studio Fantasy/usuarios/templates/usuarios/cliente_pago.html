@@ -1,0 +1,84 @@
+{% extends 'usuarios/cliente_base.html' %}
+{% load moneda %}
+
+{% block title %}Pago seguro | Nicolett Studio Fantasy{% endblock %}
+
+{% block content %}
+    <section class="mx-auto max-w-3xl border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8" aria-label="Confirmar pago">
+        <p class="text-sm text-[#6b5643]"><a href="{% url 'cliente_carrito' %}" class="text-[#5a3e27] underline">Volver al carrito</a> · Paso 2 de 2</p>
+        <h1 class="mt-3 font-serif text-2xl">Revisa y paga tu compra</h1>
+
+        {% if not carrito_tiene_items %}
+            <p class="mt-5 border border-[#ead7bc] bg-[#fffaf5] p-4 text-sm">Tu carrito está vacío. Agrega productos o servicios antes de continuar.</p>
+            <a href="{% url 'cliente_productos' %}" class="mt-5 inline-block bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white no-underline">Ver productos</a>
+        {% else %}
+            <section class="mt-6 border-y border-[#ead7bc] py-5" aria-label="Detalle de la compra">
+                <h2 class="font-serif text-xl">Productos y servicios</h2>
+                <ul class="mt-3 divide-y divide-[#ead7bc]">
+                    {% for item in resumen_carrito %}
+                        <li class="flex flex-wrap justify-between gap-2 py-3 text-sm">
+                            <span>
+                                {{ item.nombre }}{% if item.tipo == 'producto' %} × {{ item.cantidad }}{% endif %}
+                                {% if item.tipo == 'servicio' %}
+                                    <span class="block text-[#6b5643]">
+                                        {{ item.fecha }} {{ item.hora }}{% if item.profesional %} · {{ item.profesional }}{% endif %}
+                                        · {% if item.pago == 'abono' %}Abono{% else %}Pago completo{% endif %}
+                                    </span>
+                                {% endif %}
+                            </span>
+                            <span>
+                                {% if item.tipo == 'servicio' and item.pago == 'abono' %}
+                                    {% if item.precio <= 5000 %}{{ item.precio|pesos }}{% else %}$5.000{% endif %}
+                                {% else %}
+                                    {{ item.subtotal|pesos }}
+                                {% endif %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <dl class="mt-4 space-y-3 border-t border-[#ead7bc] pt-4 text-sm">
+                    <div class="flex justify-between gap-4"><dt>Total de la compra</dt><dd>{{ total_pedido|pesos }}</dd></div>
+                    <div class="flex justify-between gap-4 font-semibold text-[#5a3e27]"><dt>Total a pagar ahora</dt><dd>{{ total_pagar|pesos }}</dd></div>
+                    {% if saldo_pendiente %}
+                        <div class="flex justify-between gap-4 text-[#6b5643]"><dt>Saldo pendiente de servicios</dt><dd>{{ saldo_pendiente|pesos }}</dd></div>
+                    {% endif %}
+                </dl>
+            </section>
+
+            <section class="mt-6" aria-label="Medio de pago">
+                <h2 class="font-serif text-xl">Medio de pago</h2>
+                {% if modo_simulado %}
+                    <div class="mt-3 border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                        El pago está en modo simulado. No se solicitará una tarjeta ni se realizará un cobro real.
+                    </div>
+                {% else %}
+                    <div class="mt-3 flex items-start gap-4 border border-[#ead7bc] p-4">
+                        <i class="fa-regular fa-credit-card mt-1 text-2xl" aria-hidden="true"></i>
+                        <div>
+                            <p class="font-medium">Tarjeta de débito o crédito</p>
+                            <p class="mt-1 text-sm text-[#6b5643]">El ingreso de los datos y la autorización del pago se realizan de forma segura en Webpay Plus.</p>
+                        </div>
+                    </div>
+                    {% if modo_integracion %}
+                        <p class="mt-3 border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                            Prueba de integración: Visa <strong>4051 8856 0044 6623</strong>, CVV <strong>123</strong> y cualquier fecha futura. Si Webpay solicita autenticación, usa RUT <strong>11.111.111-1</strong> y clave <strong>123</strong>. No uses una tarjeta real.
+                        </p>
+                    {% endif %}
+                {% endif %}
+            </section>
+
+            <div class="mt-6 flex flex-wrap gap-3">
+                <a href="{% url 'cliente_carrito' %}" class="border border-[#5a3e27] px-5 py-3 text-sm font-medium text-[#5a3e27] no-underline">Editar carrito</a>
+                <form method="post" action="{% url 'cliente_carrito_pagar' %}">
+                    {% csrf_token %}
+                    <button type="submit" {% if not puede_pagar %}disabled{% endif %} class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#4a3220] disabled:cursor-not-allowed disabled:opacity-50">
+                        {% if modo_simulado %}Confirmar pago de prueba{% else %}Continuar a Webpay{% endif %}
+                    </button>
+                </form>
+            </div>
+            {% if not puede_pagar %}
+                <p class="mt-3 text-sm text-red-700">Revisa el carrito: puede haber productos sin stock o una cita sin completar o vencida.</p>
+            {% endif %}
+        {% endif %}
+    </section>
+{% endblock %}

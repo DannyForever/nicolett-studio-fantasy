@@ -7,6 +7,7 @@
     <section id="cart-page" data-initial-products="{{ total_productos }}" data-initial-total="{{ total_pedido }}" data-initial-pay="{{ total_pagar }}" class="mx-auto max-w-4xl border border-[#ead7bc] bg-white shadow-sm" aria-label="Carrito de compra">
         <div class="p-6 sm:p-8">
             <h1 class="font-serif text-2xl">Carrito de compra</h1>
+            <p class="mt-2 text-sm text-[#6b5643]">Paso 1 de 2 · Revisa tus productos y servicios; puedes ajustar cantidades o seguir comprando antes de pagar.</p>
         </div>
         <div class="px-6 pb-6 sm:px-8 sm:pb-8">
         {% if messages %}
@@ -155,15 +156,17 @@
                         {% endfor %}
                     </ul>
                 {% endif %}
-                <form method="post" action="{% url 'cliente_carrito_pagar' %}" class="mt-5">
-                    {% csrf_token %}
-                    <button id="confirmar-pago-carrito" type="submit" {% if not puede_pagar %}disabled{% endif %} class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#5a3e27] disabled:cursor-not-allowed disabled:opacity-50">
-                        Pagar ahora
-                    </button>
+                <div class="mt-5 flex flex-wrap items-center gap-3">
+                    <a href="{% url 'cliente_productos' %}" class="border border-[#5a3e27] px-5 py-3 text-sm font-medium text-[#5a3e27] no-underline">Seguir comprando</a>
+                    <form method="get" action="{% url 'cliente_carrito_checkout' %}">
+                        <button id="confirmar-pago-carrito" type="submit" {% if not puede_pagar %}disabled{% endif %} class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#5a3e27] disabled:cursor-not-allowed disabled:opacity-50">
+                            Continuar al pago
+                        </button>
+                    </form>
                     {% if not puede_pagar %}
                         <p class="mt-2 text-sm text-red-700">Para pagar, corrige los productos sin stock y completa la agenda y modalidad de cada servicio.</p>
                     {% endif %}
-                </form>
+                </div>
             </section>
         {% endif %}
         </div>

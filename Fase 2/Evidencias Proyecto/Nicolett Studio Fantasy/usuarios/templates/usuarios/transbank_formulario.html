@@ -3,19 +3,35 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Conectando con Webpay Plus</title>
+    <title>Continuar con Webpay Plus</title>
 </head>
 <body>
     <main>
-        <h1>Conectando con Webpay Plus</h1>
-        <p>Estamos abriendo el portal seguro de Transbank para completar tu pago.</p>
-        <form id="webpay-form" action="{{ webpay_url }}" method="post">
-            <input type="hidden" name="token_ws" value="{{ token }}">
-            <button type="submit">Continuar a Webpay</button>
+        <h1>Continuar con Webpay Plus</h1>
+        <p>En Webpay podrás elegir crédito, débito o prepago. Cada intento se abre una sola vez en otra pestaña.</p>
+        {% if webpay_abierto %}
+            <p>Este intento ya fue enviado a Webpay. Para volver a intentarlo, primero regresa al carrito y verifica el estado del pago.</p>
+        {% else %}
+            <form name="webpay" data-webpay-launch action="{% url 'cliente_webpay_abrir' %}" method="post" target="_blank" rel="noopener">
+                {% csrf_token %}
+                <input type="hidden" name="ref" value="{{ referencia }}">
+                <button type="submit">Ir al formulario de tarjeta</button>
+            </form>
+        {% endif %}
+        <form action="{% url 'cliente_webpay_volver_carrito' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="ref" value="{{ referencia }}">
+            <button type="submit">Volver al carrito y modificar la compra</button>
         </form>
     </main>
-    <script>
-        document.getElementById('webpay-form').submit();
-    </script>
+    {% if not webpay_abierto %}
+        <script>
+            document.querySelector('[data-webpay-launch]').addEventListener('submit', function () {
+                const button = this.querySelector('button');
+                button.disabled = true;
+                button.textContent = 'Webpay se abrió en otra pestaña';
+            });
+        </script>
+    {% endif %}
 </body>
 </html>

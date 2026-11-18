@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ingresando a Webpay Plus</title>
+</head>
+<body>
+    <main>
+        <h1>Ingresando a Webpay Plus</h1>
+        <p>En Webpay podrás elegir crédito, débito o prepago.</p>
+        <form name="webpay" data-webpay-form action="{{ webpay_url }}" method="post">
+            <input type="hidden" name="token_ws" value="{{ token }}">
+            <button type="submit">Continuar a Webpay</button>
+        </form>
+    </main>
+    <script>
+        window.addEventListener('load', function () {
+            document.querySelector('[data-webpay-form]').submit();
+        });
+    </script>
+</body>
+</html>
