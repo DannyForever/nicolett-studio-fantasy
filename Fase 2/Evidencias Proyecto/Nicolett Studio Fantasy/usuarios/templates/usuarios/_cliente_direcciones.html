@@ -1,36 +1,212 @@
-    <div class="grid w-full gap-6">
-        <section id="direcciones-envio" class="border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8" aria-labelledby="shipping-address-title">
-            <h2 id="shipping-address-title" class="font-serif text-2xl">Direcciones de envío</h2>
-            <p class="mt-2 text-sm leading-relaxed text-[#6b5643]">Aquí aparecerán las direcciones que uses para tus pedidos.</p>
+<div class="grid w-full gap-6">
+    <section id="direcciones-envio" class="border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8" aria-labelledby="shipping-address-title">
+        <h2 id="shipping-address-title" class="font-serif text-2xl">Direcciones de envío</h2>
+        <p class="mt-2 text-sm leading-relaxed text-[#6b5643]">Guarda una o más direcciones para tus pedidos.</p>
+        {% if direcciones_envio %}
+            <div class="mt-6 space-y-3">
+                {% for direccion in direcciones_envio %}
+                    <article class="border border-[#ead7bc] bg-[#fffaf5] p-4">
+                        <div class="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <h3 class="font-medium">{{ direccion.nombre }}</h3>
+                                <address class="mt-2 text-sm not-italic leading-relaxed text-[#6b5643]">
+                                    {{ direccion.direccion }}{% if direccion.complemento %}, {{ direccion.complemento }}{% endif %}<br>
+                                    {{ direccion.region }}{% if direccion.provincia %}, {{ direccion.provincia }}{% endif %}, {{ direccion.comuna }}{% if direccion.ciudad %} · {{ direccion.ciudad }}{% endif %}{% if direccion.codigo_postal %} · {{ direccion.codigo_postal }}{% endif %}<br>
+                                    Teléfono: {{ direccion.telefono }}
+                                </address>
+                                {% if direccion.instrucciones %}<p class="mt-2 text-sm text-[#6b5643]">Indicaciones: {{ direccion.instrucciones }}</p>{% endif %}
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                {% if direccion.predeterminada %}
+                                    <span class="border border-[#bd8c43] px-3 py-2 text-xs font-medium text-[#5a3e27]">Predeterminada</span>
+                                {% else %}
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="accion" value="predeterminar_direccion">
+                                        <input type="hidden" name="direccion_id" value="{{ direccion.pk }}">
+                                        <button type="submit" class="border border-[#ead7bc] px-3 py-2 text-xs font-medium text-[#5a3e27] transition hover:bg-[#fae9cf]">Usar como predeterminada</button>
+                                    </form>
+                                {% endif %}
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="accion" value="eliminar_direccion">
+                                    <input type="hidden" name="direccion_id" value="{{ direccion.pk }}">
+                                    <button type="submit" class="border border-red-200 px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-50">Eliminar</button>
+                                </form>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
             <div class="mt-6 border border-dashed border-[#ead7bc] bg-[#fffaf5] px-5 py-7 text-center">
                 <i class="fa-solid fa-location-dot text-xl text-[#bd8c43]" aria-hidden="true"></i>
                 <p class="mt-3 text-sm text-[#6b5643]">Aún no tienes direcciones de envío guardadas.</p>
-                <button type="button" data-address-coming-soon class="mt-5 border border-[#5a3e27] px-5 py-3 text-xs font-medium uppercase tracking-wider text-[#5a3e27] transition hover:bg-[#5a3e27] hover:text-white">
-                    Agregar información de envío
-                </button>
-                <p class="mt-3 text-xs text-[#6b5643]" data-address-status role="status" aria-live="polite" hidden></p>
             </div>
-        </section>
+        {% endif %}
+        <details class="mt-5 border border-[#ead7bc] bg-[#fffaf5]" {% if direccion_envio_form.is_bound %}open{% endif %}>
+            <summary class="cursor-pointer list-none px-5 py-3 text-center text-xs font-medium uppercase tracking-wider text-[#5a3e27] hover:bg-[#fae9cf]">
+                Agregar información de envío
+            </summary>
+            <form method="post" class="space-y-4 border-t border-[#ead7bc] p-5" data-address-form>
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="direccion">
+                <input type="hidden" name="tipo" value="envio">
+                <div class="grid gap-4 sm:grid-cols-2">
+                    {% for field in direccion_envio_form %}
+                        <div class="{% if field.name == 'instrucciones' %}sm:col-span-2{% endif %}">
+                            <label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-medium">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}<div class="mt-1 text-sm text-red-700" role="alert">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#493120]">Guardar dirección de envío</button>
+                    <button type="button" data-cancel-address class="border border-[#ead7bc] px-5 py-3 text-sm font-medium text-[#5a3e27] transition hover:bg-[#fae9cf]">Cancelar</button>
+                </div>
+            </form>
+        </details>
+    </section>
 
-        <section id="direcciones-facturacion" class="border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8" aria-labelledby="billing-address-title">
-            <h2 id="billing-address-title" class="font-serif text-2xl">Direcciones de facturación</h2>
-            <p class="mt-2 text-sm leading-relaxed text-[#6b5643]">Aquí aparecerán tus datos de facturación cuando decidas agregarlos.</p>
+    <section id="direcciones-facturacion" class="border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8" aria-labelledby="billing-address-title">
+        <h2 id="billing-address-title" class="font-serif text-2xl">Direcciones de facturación</h2>
+        <p class="mt-2 text-sm leading-relaxed text-[#6b5643]">Guarda los datos de identificación y domicilio para tus documentos de compra.</p>
+        {% if direcciones_facturacion %}
+            <div class="mt-6 space-y-3">
+                {% for direccion in direcciones_facturacion %}
+                    <article class="border border-[#ead7bc] bg-[#fffaf5] p-4">
+                        <div class="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <h3 class="font-medium">{{ direccion.nombre }}</h3>
+                                <p class="mt-1 text-sm text-[#6b5643]">RUT: {{ direccion.rut }}{% if direccion.razon_social %} · {{ direccion.razon_social }}{% endif %}</p>
+                                {% if direccion.giro %}<p class="mt-1 text-sm text-[#6b5643]">Giro: {{ direccion.giro }}</p>{% endif %}
+                                <address class="mt-2 text-sm not-italic leading-relaxed text-[#6b5643]">
+                                    {{ direccion.direccion }}{% if direccion.complemento %}, {{ direccion.complemento }}{% endif %}<br>
+                                    {{ direccion.region }}{% if direccion.provincia %}, {{ direccion.provincia }}{% endif %}, {{ direccion.comuna }}{% if direccion.ciudad %} · {{ direccion.ciudad }}{% endif %}{% if direccion.codigo_postal %} · {{ direccion.codigo_postal }}{% endif %}<br>
+                                    Teléfono: {{ direccion.telefono }}
+                                </address>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                {% if direccion.predeterminada %}
+                                    <span class="border border-[#bd8c43] px-3 py-2 text-xs font-medium text-[#5a3e27]">Predeterminada</span>
+                                {% else %}
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="accion" value="predeterminar_direccion">
+                                        <input type="hidden" name="direccion_id" value="{{ direccion.pk }}">
+                                        <button type="submit" class="border border-[#ead7bc] px-3 py-2 text-xs font-medium text-[#5a3e27] transition hover:bg-[#fae9cf]">Usar como predeterminada</button>
+                                    </form>
+                                {% endif %}
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="accion" value="eliminar_direccion">
+                                    <input type="hidden" name="direccion_id" value="{{ direccion.pk }}">
+                                    <button type="submit" class="border border-red-200 px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-50">Eliminar</button>
+                                </form>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
             <div class="mt-6 border border-dashed border-[#ead7bc] bg-[#fffaf5] px-5 py-7 text-center">
                 <i class="fa-regular fa-file-lines text-xl text-[#bd8c43]" aria-hidden="true"></i>
                 <p class="mt-3 text-sm text-[#6b5643]">Aún no tienes información de facturación guardada.</p>
-                <button type="button" data-address-coming-soon class="mt-5 border border-[#5a3e27] px-5 py-3 text-xs font-medium uppercase tracking-wider text-[#5a3e27] transition hover:bg-[#5a3e27] hover:text-white">
-                    Agregar información de facturación
-                </button>
-                <p class="mt-3 text-xs text-[#6b5643]" data-address-status role="status" aria-live="polite" hidden></p>
             </div>
-        </section>
-    </div>
-    <script>
-        document.querySelectorAll('[data-address-coming-soon]').forEach(button => {
-            button.addEventListener('click', () => {
-                const status = button.parentElement.querySelector('[data-address-status]');
-                status.textContent = 'Esta opción estará disponible próximamente.';
-                status.hidden = false;
+        {% endif %}
+        <details class="mt-5 border border-[#ead7bc] bg-[#fffaf5]" {% if direccion_facturacion_form.is_bound %}open{% endif %}>
+            <summary class="cursor-pointer list-none px-5 py-3 text-center text-xs font-medium uppercase tracking-wider text-[#5a3e27] hover:bg-[#fae9cf]">
+                Agregar información de facturación
+            </summary>
+            <form method="post" class="space-y-4 border-t border-[#ead7bc] p-5" data-address-form>
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="direccion">
+                <input type="hidden" name="tipo" value="facturacion">
+                <div class="grid gap-4 sm:grid-cols-2">
+                    {% for field in direccion_facturacion_form %}
+                        <div>
+                            <label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-medium">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}<div class="mt-1 text-sm text-red-700" role="alert">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#493120]">Guardar información de facturación</button>
+                    <button type="button" data-cancel-address class="border border-[#ead7bc] px-5 py-3 text-sm font-medium text-[#5a3e27] transition hover:bg-[#fae9cf]">Cancelar</button>
+                </div>
+            </form>
+        </details>
+    </section>
+</div>
+{{ chile_dpa|json_script:"chile-dpa" }}
+<script>
+    (() => {
+        const dataElement = document.getElementById('chile-dpa');
+        const chileDpa = JSON.parse(dataElement.textContent);
+        const setOptions = (select, values, placeholder, selected) => {
+            select.replaceChildren(new Option(placeholder, ''));
+            values.forEach(value => select.add(new Option(value, value)));
+            select.value = values.includes(selected) ? selected : '';
+            select.disabled = values.length === 0;
+        };
+
+        document.querySelectorAll('[data-address-form]').forEach(form => {
+            const region = form.querySelector('[data-address-region]');
+            const provincia = form.querySelector('[data-address-province]');
+            const comuna = form.querySelector('[data-address-commune]');
+            const selectedProvincia = provincia.value;
+            const regionData = chileDpa[region.value];
+            const provincias = regionData ? Object.keys(regionData.provincias) : [];
+            setOptions(
+                provincia,
+                provincias,
+                regionData ? 'Selecciona una provincia' : 'Primero selecciona una región',
+                selectedProvincia,
+            );
+
+            const provinciaData = regionData && regionData.provincias[provincia.value];
+            setOptions(
+                comuna,
+                provinciaData ? provinciaData.comunas : [],
+                provinciaData ? 'Selecciona una comuna' : 'Primero selecciona una provincia',
+                comuna.value,
+            );
+
+            region.addEventListener('change', () => {
+                const selectedRegionData = chileDpa[region.value];
+                setOptions(
+                    provincia,
+                    selectedRegionData ? Object.keys(selectedRegionData.provincias) : [],
+                    selectedRegionData ? 'Selecciona una provincia' : 'Primero selecciona una región',
+                    '',
+                );
+                setOptions(comuna, [], 'Primero selecciona una provincia', '');
+            });
+
+            provincia.addEventListener('change', () => {
+                const selectedRegionData = chileDpa[region.value];
+                const selectedProvinciaData = selectedRegionData
+                    && selectedRegionData.provincias[provincia.value];
+                setOptions(
+                    comuna,
+                    selectedProvinciaData ? selectedProvinciaData.comunas : [],
+                    selectedProvinciaData ? 'Selecciona una comuna' : 'Primero selecciona una provincia',
+                    '',
+                );
+            });
+
+            form.querySelector('[data-cancel-address]').addEventListener('click', () => {
+                form.reset();
+                region.selectedIndex = 0;
+                setOptions(provincia, [], 'Primero selecciona una región', '');
+                setOptions(comuna, [], 'Primero selecciona una provincia', '');
+                form.closest('details').open = false;
             });
         });
-    </script>
+
+        const invalidAddressDetails = document.querySelector('details[open] form');
+        if (invalidAddressDetails) invalidAddressDetails.scrollIntoView({block: 'center'});
+    })();
+</script>

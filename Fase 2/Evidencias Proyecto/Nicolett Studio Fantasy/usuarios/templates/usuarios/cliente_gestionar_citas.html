@@ -13,9 +13,7 @@
                 <h1 class="font-serif text-2xl">Mis citas</h1>
                 <p class="mt-2 text-sm leading-relaxed text-[#6b5643]">Administra tus próximas citas o consulta todos sus registros e historial.</p>
             </div>
-            {% if reservas_gestionables or active_tab == 'historial' %}
-                <a href="{% url 'cliente_ficha_tecnica_pdf' %}" target="_blank" rel="noopener" class="client-bookings-download px-4 py-2 text-sm font-medium no-underline">Descargar ficha técnica (PDF)</a>
-            {% endif %}
+            <a href="{% url 'cliente_ficha_tecnica_pdf' %}" target="_blank" rel="noopener" class="client-bookings-download px-4 py-2 text-sm font-medium no-underline">Descargar ficha técnica (PDF)</a>
         </div>
 
         {% if messages %}
@@ -106,9 +104,6 @@
                         <p class="mt-2 text-sm text-[#6b5643]">Las citas confirmadas aparecerán aquí. Su gestión en línea se cierra 48 horas antes de la atención.</p>
                         <div class="relative mt-5 flex flex-wrap items-center justify-center gap-3">
                             <a href="{% url 'cliente_agendamiento' %}" class="client-bookings-cta inline-block px-6 py-3 text-sm font-medium no-underline">Agendar una cita</a>
-                            {% if not reservas_gestionables %}
-                                <a href="{% url 'cliente_ficha_tecnica_pdf' %}" target="_blank" rel="noopener" class="client-bookings-download px-4 py-2 text-sm font-medium no-underline sm:absolute sm:right-0">Descargar ficha técnica (PDF)</a>
-                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}

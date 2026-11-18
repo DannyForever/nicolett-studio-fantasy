@@ -1078,7 +1078,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="{% static 'css/client-dashboard.css' %}?v=20261102-10">
+    <link rel="stylesheet" href="{% static 'css/client-dashboard.css' %}?v=20261118-12">
     <script>
         tailwind.config = {
             theme: {
@@ -1116,7 +1116,7 @@
         </button>
         <div class="absolute right-3 top-full z-40 hidden w-[min(92vw,380px)] md:relative md:right-auto md:top-auto md:z-auto md:block md:w-[min(32vw,320px)]" data-client-search data-search-url="{% url 'cliente_busqueda' %}">
             <label class="sr-only" for="client-smart-search">Buscar servicios y productos</label>
-            <div class="flex items-center border border-[#ead7bc]/60 bg-white/10 px-3 text-white transition focus-within:border-[#e0bd7c]">
+            <div class="flex items-center rounded-full border border-[#ead7bc]/60 bg-white/10 px-3 text-white transition focus-within:border-[#e0bd7c]">
                 <i class="fa-solid fa-magnifying-glass text-xs text-[#e0bd7c]" aria-hidden="true"></i>
                 <input id="client-smart-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="client-search-results" placeholder="Buscar servicios, productos..." autocomplete="off" class="w-full border-0 bg-transparent px-2 py-2 text-xs text-white outline-none placeholder:text-white/60">
             </div>

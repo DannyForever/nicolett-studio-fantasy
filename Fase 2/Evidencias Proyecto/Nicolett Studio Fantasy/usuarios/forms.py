@@ -1,6 +1,9 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
+from .chile_geography import REGIONES, REGION_ORDER
+from .models import DireccionCliente
+
 
 class ClienteConfiguracionForm(forms.Form):
     nombre = forms.CharField(max_length=100, label='Nombres')
@@ -54,7 +57,10 @@ class ClienteConfiguracionForm(forms.Form):
 
 class ClienteCambiarContrasenaForm(forms.Form):
     password_actual = forms.CharField(
-        widget=forms.PasswordInput,
+        widget=forms.PasswordInput(attrs={
+            'autocomplete': 'current-password',
+            'placeholder': '****',
+        }),
         label='Contraseña actual',
     )
     password_nueva = forms.CharField(
@@ -70,9 +76,13 @@ class ClienteCambiarContrasenaForm(forms.Form):
     def __init__(self, *args, usuario, **kwargs):
         self.usuario = usuario
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
+        for name, field in self.fields.items():
+            extra_padding = ' pr-12' if name == 'password_actual' else ''
             field.widget.attrs.update({
-                'class': 'w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm',
+                'class': (
+                    'w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm'
+                    f'{extra_padding}'
+                ),
             })
 
     def clean_password_actual(self):
@@ -91,3 +101,108 @@ class ClienteCambiarContrasenaForm(forms.Form):
         self.usuario.set_password(self.cleaned_data['password_nueva'])
         self.usuario.save(update_fields=['password'])
         return self.usuario
+
+
+class ClienteDireccionForm(forms.ModelForm):
+    region = forms.ChoiceField(
+        choices=[('', 'Selecciona una región')] + [
+            (region, region) for region in REGION_ORDER
+        ],
+        label='Región',
+    )
+    provincia = forms.ChoiceField(
+        choices=[('', 'Primero selecciona una región')],
+        label='Provincia',
+        disabled=True,
+    )
+    comuna = forms.ChoiceField(
+        choices=[('', 'Primero selecciona una provincia')],
+        label='Comuna',
+        disabled=True,
+    )
+
+    class Meta:
+        model = DireccionCliente
+        fields = [
+            'nombre',
+            'rut',
+            'razon_social',
+            'giro',
+            'direccion',
+            'complemento',
+            'region',
+            'provincia',
+            'comuna',
+            'codigo_postal',
+            'telefono',
+            'instrucciones',
+        ]
+        labels = {
+            'nombre': 'Nombre completo / contacto',
+            'rut': 'RUT',
+            'razon_social': 'Razón social (opcional)',
+            'giro': 'Giro (opcional)',
+            'direccion': 'Calle y número',
+            'complemento': 'Depto., casa u otra referencia (opcional)',
+            'region': 'Región',
+            'provincia': 'Provincia',
+            'comuna': 'Comuna',
+            'codigo_postal': 'Código postal (opcional)',
+            'telefono': 'Teléfono de contacto',
+            'instrucciones': 'Indicaciones de entrega (opcional)',
+        }
+        widgets = {
+            'instrucciones': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, usuario, tipo, **kwargs):
+        if tipo not in dict(DireccionCliente.TIPOS):
+            raise ValueError('El tipo de dirección no es válido.')
+        self.usuario = usuario
+        self.tipo = tipo
+        kwargs.setdefault('prefix', tipo)
+        super().__init__(*args, **kwargs)
+
+        selected_region = self.data.get(self.add_prefix('region')) if self.is_bound else ''
+        if selected_region in REGIONES:
+            provincias = REGIONES[selected_region]
+            self.fields['provincia'].choices = [
+                ('', 'Selecciona una provincia'),
+                *[(provincia, provincia) for provincia in provincias],
+            ]
+            self.fields['provincia'].disabled = False
+            selected_provincia = self.data.get(self.add_prefix('provincia'))
+            if selected_provincia in provincias:
+                comunas = provincias[selected_provincia]['comunas']
+                self.fields['comuna'].choices = [
+                    ('', 'Selecciona una comuna'),
+                    *[(comuna, comuna) for comuna in comunas],
+                ]
+                self.fields['comuna'].disabled = False
+
+        if tipo == DireccionCliente.TIPO_ENVIO:
+            for name in ('rut', 'razon_social', 'giro'):
+                self.fields.pop(name)
+            self.fields['nombre'].label = 'Nombre de quien recibe'
+            self.fields['instrucciones'].widget.attrs.update({
+                'autocomplete': 'off',
+            })
+        else:
+            self.fields.pop('instrucciones')
+            self.fields['rut'].required = True
+
+        for field in self.fields.values():
+            field.widget.attrs.update({
+                'class': 'w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm',
+            })
+        self.fields['region'].widget.attrs['data-address-region'] = ''
+        self.fields['provincia'].widget.attrs['data-address-province'] = ''
+        self.fields['comuna'].widget.attrs['data-address-commune'] = ''
+
+    def save(self, commit=True):
+        direccion = super().save(commit=False)
+        direccion.usuario = self.usuario
+        direccion.tipo = self.tipo
+        if commit:
+            direccion.save()
+        return direccion

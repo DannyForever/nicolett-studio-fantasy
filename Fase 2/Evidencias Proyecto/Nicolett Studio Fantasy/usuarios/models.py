@@ -2,7 +2,8 @@ from django.db import models
 
 # Create your models here.
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.db import models
+from django.db import models, transaction
+from django.db.models import Q
 
 
 class Rol(models.Model):
@@ -70,3 +71,61 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class DireccionCliente(models.Model):
+    TIPO_ENVIO = 'envio'
+    TIPO_FACTURACION = 'facturacion'
+    TIPOS = [
+        (TIPO_ENVIO, 'Envío'),
+        (TIPO_FACTURACION, 'Facturación'),
+    ]
+
+    usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name='direcciones',
+    )
+    tipo = models.CharField(max_length=12, choices=TIPOS)
+    nombre = models.CharField(max_length=150)
+    rut = models.CharField(max_length=12, blank=True)
+    razon_social = models.CharField(max_length=150, blank=True)
+    giro = models.CharField(max_length=150, blank=True)
+    direccion = models.CharField(max_length=200)
+    complemento = models.CharField(max_length=120, blank=True)
+    comuna = models.CharField(max_length=100)
+    provincia = models.CharField(max_length=100, blank=True)
+    ciudad = models.CharField(max_length=100, blank=True)
+    region = models.CharField(max_length=100)
+    codigo_postal = models.CharField(max_length=12, blank=True)
+    telefono = models.CharField(max_length=20)
+    instrucciones = models.TextField(blank=True)
+    predeterminada = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'direccion_cliente'
+        ordering = ['-created_at', 'pk']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['usuario', 'tipo'],
+                condition=Q(predeterminada=True),
+                name='uniq_default_address_per_type',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.get_tipo_display()}: {self.nombre} - {self.direccion}'
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            direcciones = type(self).objects.filter(
+                usuario_id=self.usuario_id,
+                tipo=self.tipo,
+            ).exclude(pk=self.pk)
+            if self.predeterminada:
+                direcciones.filter(predeterminada=True).update(predeterminada=False)
+            elif not direcciones.filter(predeterminada=True).exists():
+                self.predeterminada = True
+            super().save(*args, **kwargs)

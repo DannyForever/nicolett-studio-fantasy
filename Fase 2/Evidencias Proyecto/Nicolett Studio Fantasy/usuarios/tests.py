@@ -21,7 +21,7 @@ from agenda.models import (
 from carrito.models import DetallePedido, PagoSimulado, Pedido
 from panel_admin.models import Categoria, Producto, Servicio
 
-from .models import Rol, Usuario
+from .models import DireccionCliente, Rol, Usuario
 
 
 class RoleAccessTests(TestCase):
@@ -1366,6 +1366,220 @@ class RoleAccessTests(TestCase):
         self.assertContains(response, 'background: linear-gradient(145deg, #f5dfa0, #e8c66e) !important')
         self.assertContains(response, 'background-color: #fff1c7 !important')
 
+    def test_customer_can_save_and_delete_own_shipping_and_billing_addresses(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        settings_url = reverse('cliente_configuracion')
+
+        shipping_response = self.client.post(
+            settings_url,
+            {
+                'accion': 'direccion',
+                'tipo': 'envio',
+                'envio-nombre': 'Valentina Pérez',
+                'envio-direccion': 'Av. Los Aromos 123',
+                'envio-complemento': 'Casa 4',
+                'envio-region': 'Región Metropolitana de Santiago',
+                'envio-provincia': 'Maipo',
+                'envio-comuna': 'Buin',
+                'envio-codigo_postal': '9500000',
+                'envio-telefono': '+56987654321',
+                'envio-instrucciones': 'Tocar el timbre',
+            },
+        )
+        self.assertRedirects(shipping_response, f'{settings_url}#direcciones-envio')
+
+        billing_response = self.client.post(
+            settings_url,
+            {
+                'accion': 'direccion',
+                'tipo': 'facturacion',
+                'facturacion-nombre': 'Valentina Pérez',
+                'facturacion-rut': '12345678-5',
+                'facturacion-razon_social': 'Nicolett Studio',
+                'facturacion-giro': 'Servicios de belleza',
+                'facturacion-direccion': 'Av. Los Aromos 123',
+                'facturacion-region': 'Región Metropolitana de Santiago',
+                'facturacion-provincia': 'Maipo',
+                'facturacion-comuna': 'Buin',
+                'facturacion-telefono': '+56987654321',
+            },
+        )
+        self.assertRedirects(billing_response, f'{settings_url}#direcciones-facturacion')
+
+        shipping = DireccionCliente.objects.get(
+            usuario=cliente,
+            tipo=DireccionCliente.TIPO_ENVIO,
+        )
+        billing = DireccionCliente.objects.get(
+            usuario=cliente,
+            tipo=DireccionCliente.TIPO_FACTURACION,
+        )
+        page = self.client.get(settings_url)
+        self.assertContains(page, 'Av. Los Aromos 123')
+        self.assertContains(page, 'Tocar el timbre')
+        self.assertContains(page, 'RUT: 12345678-5')
+        self.assertContains(page, 'Nicolett Studio')
+        self.assertTrue(shipping.predeterminada)
+        self.assertTrue(billing.predeterminada)
+
+        delete_response = self.client.post(
+            settings_url,
+            {'accion': 'eliminar_direccion', 'direccion_id': shipping.pk},
+        )
+        self.assertRedirects(delete_response, f'{settings_url}#direcciones-envio')
+        self.assertFalse(DireccionCliente.objects.filter(pk=shipping.pk).exists())
+        self.assertTrue(DireccionCliente.objects.filter(pk=billing.pk).exists())
+
+    def test_billing_address_requires_rut_and_addresses_are_private(self):
+        cliente = self.crear_cliente()
+        otro_cliente = Usuario.objects.create_user(
+            email='otra.cliente@example.com',
+            password='Cliente123!Test',
+            nombre='Otra',
+            apellido_paterno='Persona',
+            apellido_materno='Prueba',
+            telefono='+56987654322',
+            rol=self.client_role,
+        )
+        self.client.force_login(cliente)
+
+        invalid_response = self.client.post(
+            reverse('cliente_configuracion'),
+            {
+                'accion': 'direccion',
+                'tipo': 'facturacion',
+                'facturacion-nombre': 'Valentina Pérez',
+                'facturacion-direccion': 'Av. Los Aromos 123',
+                'facturacion-region': 'Región Metropolitana de Santiago',
+                'facturacion-provincia': 'Maipo',
+                'facturacion-comuna': 'Buin',
+                'facturacion-telefono': '+56987654321',
+            },
+        )
+        self.assertEqual(invalid_response.status_code, 200)
+        self.assertContains(invalid_response, 'Este campo es obligatorio.')
+        self.assertFalse(DireccionCliente.objects.exists())
+
+        direccion = DireccionCliente.objects.create(
+            usuario=cliente,
+            tipo=DireccionCliente.TIPO_ENVIO,
+            nombre='Valentina Pérez',
+            direccion='Av. Los Aromos 123',
+            comuna='Buin',
+            provincia='Maipo',
+            region='Región Metropolitana de Santiago',
+            telefono='+56987654321',
+        )
+        self.client.force_login(otro_cliente)
+        response = self.client.post(
+            reverse('cliente_configuracion'),
+            {'accion': 'eliminar_direccion', 'direccion_id': direccion.pk},
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(DireccionCliente.objects.filter(pk=direccion.pk).exists())
+
+    def test_address_selects_require_a_valid_region_province_commune_hierarchy(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+
+        page = self.client.get(reverse('cliente_configuracion'))
+        self.assertContains(page, 'name="envio-region"')
+        self.assertContains(page, 'name="envio-provincia"')
+        self.assertContains(page, 'name="envio-comuna"')
+        self.assertContains(page, 'name="facturacion-region"')
+        self.assertContains(page, 'data-cancel-address')
+        self.assertContains(page, 'id="chile-dpa"')
+
+        response = self.client.post(
+            reverse('cliente_configuracion'),
+            {
+                'accion': 'direccion',
+                'tipo': 'envio',
+                'envio-nombre': 'Cliente de prueba',
+                'envio-direccion': 'Av. Los Aromos 123',
+                'envio-region': 'Región de Tarapacá',
+                'envio-provincia': 'Maipo',
+                'envio-comuna': 'Buin',
+                'envio-telefono': '+56987654321',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Selecciona una provincia')
+        self.assertFalse(DireccionCliente.objects.exists())
+
+    def test_customer_can_change_default_address_and_deletion_promotes_another(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        first = DireccionCliente.objects.create(
+            usuario=cliente,
+            tipo=DireccionCliente.TIPO_ENVIO,
+            nombre='Primera dirección',
+            direccion='Calle 1',
+            comuna='Buin',
+            provincia='Maipo',
+            region='Región Metropolitana de Santiago',
+            telefono='+56987654321',
+        )
+        second = DireccionCliente.objects.create(
+            usuario=cliente,
+            tipo=DireccionCliente.TIPO_ENVIO,
+            nombre='Segunda dirección',
+            direccion='Calle 2',
+            comuna='Buin',
+            provincia='Maipo',
+            region='Región Metropolitana de Santiago',
+            telefono='+56987654321',
+        )
+        self.assertTrue(first.predeterminada)
+        self.assertFalse(second.predeterminada)
+
+        response = self.client.post(
+            reverse('cliente_configuracion'),
+            {
+                'accion': 'predeterminar_direccion',
+                'direccion_id': second.pk,
+            },
+        )
+        self.assertRedirects(
+            response,
+            f'{reverse("cliente_configuracion")}#direcciones-envio',
+        )
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertFalse(first.predeterminada)
+        self.assertTrue(second.predeterminada)
+
+        response = self.client.post(
+            reverse('cliente_configuracion'),
+            {
+                'accion': 'eliminar_direccion',
+                'direccion_id': second.pk,
+            },
+        )
+        self.assertRedirects(
+            response,
+            f'{reverse("cliente_configuracion")}#direcciones-envio',
+        )
+        first.refresh_from_db()
+        self.assertTrue(first.predeterminada)
+
+    def test_password_eye_and_download_link_are_visible_in_their_headers(self):
+        self.client.force_login(self.crear_cliente())
+
+        settings = self.client.get(reverse('cliente_configuracion'))
+        self.assertContains(settings, 'placeholder="****"')
+        self.assertContains(settings, 'data-password-toggle')
+        self.assertContains(settings, 'Ocultar contraseña actual')
+
+        bookings = self.client.get(reverse('cliente_gestionar_citas'))
+        content = bookings.content.decode()
+        self.assertEqual(content.count('Descargar ficha técnica (PDF)'), 1)
+        self.assertLess(
+            content.index('Descargar ficha técnica (PDF)'),
+            content.index('class="client-bookings-tabs'),
+        )
+
     def test_customer_history_lists_only_their_database_appointments(self):
         cliente = self.crear_cliente()
         otra_cliente = Usuario.objects.create_user(
@@ -1641,6 +1855,15 @@ class RoleAccessTests(TestCase):
 
     def test_customer_account_deletion_anonymizes_history_cancels_bookings_and_releases_email(self):
         cliente = self.crear_cliente()
+        direccion = DireccionCliente.objects.create(
+            usuario=cliente,
+            tipo=DireccionCliente.TIPO_ENVIO,
+            nombre='Cliente Prueba',
+            direccion='Av. Los Aromos 123',
+            comuna='Buin',
+            region='Metropolitana de Santiago',
+            telefono=cliente.telefono,
+        )
         categoria = Categoria.objects.create(nombre='Cuidado', tipo='Cuidado')
         servicio = Servicio.objects.create(
             nombre='Servicio reservado',
@@ -1688,6 +1911,7 @@ class RoleAccessTests(TestCase):
         self.assertEqual(reserva.estado, 'cancelada')
         self.assertEqual(reserva.cliente_email, '')
         self.assertEqual(reserva.cliente_nombre, 'Cliente anonimizado')
+        self.assertFalse(DireccionCliente.objects.filter(pk=direccion.pk).exists())
         self.assertTrue(HistorialReserva.objects.filter(
             reserva=reserva,
             evento='cancelada',

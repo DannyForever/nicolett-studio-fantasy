@@ -17,7 +17,7 @@ from django.db import IntegrityError
 from django.db.models import QuerySet
 from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
@@ -31,8 +31,9 @@ from agenda.views import servicios_con_horarios_disponibles
 from carrito.models import ReservaProductoCarrito
 from panel_admin.models import Categoria, Producto, Servicio
 
-from .forms import ClienteCambiarContrasenaForm, ClienteConfiguracionForm
-from .models import Rol, Usuario
+from .forms import ClienteCambiarContrasenaForm, ClienteConfiguracionForm, ClienteDireccionForm
+from .chile_geography import CHILE_DPA
+from .models import DireccionCliente, Rol, Usuario
 from .permissions import es_administrador, es_cliente, es_colaborador
 
 logger = logging.getLogger(__name__)
@@ -1152,6 +1153,8 @@ def cliente_configuracion_view(request):
         return redirect('login')
     if not request.user.is_active or not es_cliente(request.user):
         return render(request, 'usuarios/acceso_denegado.html', status=403)
+    accion = request.POST.get('accion') if request.method == 'POST' else None
+    tipo_direccion = request.POST.get('tipo') if accion == 'direccion' else None
     datos_cliente = {
         'nombre': request.user.nombre,
         'segundo_nombre': request.user.segundo_nombre,
@@ -1169,8 +1172,17 @@ def cliente_configuracion_view(request):
         request.POST if request.method == 'POST' and request.POST.get('accion') == 'contrasena' else None,
         usuario=request.user,
     )
+    direccion_envio_form = ClienteDireccionForm(
+        request.POST if accion == 'direccion' and tipo_direccion == DireccionCliente.TIPO_ENVIO else None,
+        usuario=request.user,
+        tipo=DireccionCliente.TIPO_ENVIO,
+    )
+    direccion_facturacion_form = ClienteDireccionForm(
+        request.POST if accion == 'direccion' and tipo_direccion == DireccionCliente.TIPO_FACTURACION else None,
+        usuario=request.user,
+        tipo=DireccionCliente.TIPO_FACTURACION,
+    )
     if request.method == 'POST':
-        accion = request.POST.get('accion')
         if accion == 'perfil' and perfil_form.is_valid():
             perfil_form.save()
             messages.success(request, 'Tus datos personales se actualizaron correctamente.')
@@ -1180,7 +1192,61 @@ def cliente_configuracion_view(request):
             update_session_auth_hash(request, request.user)
             messages.success(request, 'La contraseña se actualizó correctamente.')
             return redirect('cliente_configuracion')
-        if accion not in ('perfil', 'contrasena'):
+        if accion == 'direccion':
+            form = {
+                DireccionCliente.TIPO_ENVIO: direccion_envio_form,
+                DireccionCliente.TIPO_FACTURACION: direccion_facturacion_form,
+            }.get(tipo_direccion)
+            if form is None:
+                messages.error(request, 'Selecciona si la dirección es de envío o de facturación.')
+            elif form.is_valid():
+                form.save()
+                messages.success(request, 'La dirección se guardó correctamente.')
+                return redirect(
+                    f"{reverse('cliente_configuracion')}#direcciones-{tipo_direccion}"
+                )
+        elif accion == 'predeterminar_direccion':
+            direccion = get_object_or_404(
+                DireccionCliente,
+                pk=request.POST.get('direccion_id'),
+                usuario=request.user,
+            )
+            tipo_direccion = direccion.tipo
+            with transaction.atomic():
+                DireccionCliente.objects.filter(
+                    usuario=request.user,
+                    tipo=tipo_direccion,
+                    predeterminada=True,
+                ).exclude(pk=direccion.pk).update(predeterminada=False)
+                direccion.predeterminada = True
+                direccion.save(update_fields=['predeterminada'])
+            messages.success(request, 'La dirección predeterminada se actualizó correctamente.')
+            return redirect(
+                f"{reverse('cliente_configuracion')}#direcciones-{tipo_direccion}"
+            )
+        elif accion == 'eliminar_direccion':
+            direccion = get_object_or_404(
+                DireccionCliente,
+                pk=request.POST.get('direccion_id'),
+                usuario=request.user,
+            )
+            tipo_direccion = direccion.tipo
+            era_predeterminada = direccion.predeterminada
+            with transaction.atomic():
+                direccion.delete()
+                if era_predeterminada:
+                    siguiente = DireccionCliente.objects.filter(
+                        usuario=request.user,
+                        tipo=tipo_direccion,
+                    ).first()
+                    if siguiente:
+                        siguiente.predeterminada = True
+                        siguiente.save(update_fields=['predeterminada'])
+            messages.success(request, 'La dirección se eliminó correctamente.')
+            return redirect(
+                f"{reverse('cliente_configuracion')}#direcciones-{tipo_direccion}"
+            )
+        elif accion not in ('perfil', 'contrasena'):
             messages.error(request, 'Selecciona qué información deseas actualizar.')
     return _vista_cliente(
         request,
@@ -1188,6 +1254,15 @@ def cliente_configuracion_view(request):
         {
             'perfil_form': perfil_form,
             'password_form': password_form,
+            'direccion_envio_form': direccion_envio_form,
+            'direccion_facturacion_form': direccion_facturacion_form,
+            'chile_dpa': CHILE_DPA,
+            'direcciones_envio': request.user.direcciones.filter(
+                tipo=DireccionCliente.TIPO_ENVIO,
+            ),
+            'direcciones_facturacion': request.user.direcciones.filter(
+                tipo=DireccionCliente.TIPO_FACTURACION,
+            ),
         },
     )
 
@@ -1246,6 +1321,7 @@ def cliente_eliminar_cuenta_view(request):
             cliente_email='',
             cliente_telefono='',
         )
+        DireccionCliente.objects.filter(usuario=usuario).delete()
         if session_key:
             for reserva_producto in ReservaProductoCarrito.objects.select_for_update().filter(
                 session_key=session_key,

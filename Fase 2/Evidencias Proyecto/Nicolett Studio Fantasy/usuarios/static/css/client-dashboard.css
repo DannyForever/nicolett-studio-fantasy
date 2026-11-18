@@ -1855,3 +1855,89 @@ body.client-platform.client-bookings-page #clientSidebar .client-sidebar-brand-i
         padding: 5px 10px;
     }
 }
+
+body.client-platform .client-topbar [data-client-search] > #client-search-results {
+    min-height: 0;
+    border-radius: 0;
+}
+
+body.client-platform #clientSidebar .client-products-toggle {
+    box-sizing: border-box;
+    display: flex;
+    width: 100%;
+    min-height: 46px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    margin: 0;
+    border-radius: 11px;
+    padding: 11px 12px;
+    color: #f8efdc !important;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.35;
+    text-indent: 0;
+}
+
+body.client-platform #clientSidebar .client-products-toggle:hover,
+body.client-platform #clientSidebar .client-products-toggle[aria-current="page"] {
+    border-color: transparent !important;
+    background: linear-gradient(105deg, #d6b36d, #f0d99f) !important;
+    box-shadow: 0 5px 14px rgb(20 13 9 / 18%);
+    color: #38251b !important;
+    transform: translateX(2px);
+}
+
+body.client-platform #clientSidebar .client-products-toggle:hover .client-sidebar-label,
+body.client-platform #clientSidebar .client-products-toggle[aria-current="page"] .client-sidebar-label {
+    color: #38251b !important;
+}
+
+body.client-platform #clientSidebar .client-products-toggle:hover > i,
+body.client-platform #clientSidebar .client-products-toggle[aria-current="page"] > i {
+    color: inherit !important;
+}
+
+@media (min-width: 1024px) {
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-products-toggle {
+        width: 52px;
+        max-width: 52px;
+        min-height: 46px;
+        flex: 0 0 46px;
+        justify-content: center;
+        margin-inline: auto;
+        gap: 0;
+        padding: 0 !important;
+        text-align: center;
+    }
+
+    body.client-platform[data-client-sidebar-collapsed="true"] #clientSidebar .client-products-toggle .client-sidebar-chevron {
+        display: none;
+    }
+}
+
+body.client-platform #clientSidebar .client-sidebar-home-row {
+    margin-bottom: 0 !important;
+}
+
+body.client-platform #clientSidebar .client-products-toggle > i:first-child {
+    color: #e0bd7c !important;
+}
+
+body.client-platform #clientSidebar .client-products-toggle:hover > i:first-child,
+body.client-platform #clientSidebar .client-products-toggle[aria-current="page"] > i:first-child {
+    color: #38251b !important;
+}
+
+body.client-platform .client-topbar [data-client-search] > div:focus-within {
+    border-radius: 999px;
+    outline: 2px solid rgb(224 189 124 / 55%);
+    outline-offset: 2px;
+}
+
+body.client-platform .client-topbar #client-smart-search:focus-visible {
+    outline: none !important;
+    outline-offset: 0;
+    box-shadow: none;
+}

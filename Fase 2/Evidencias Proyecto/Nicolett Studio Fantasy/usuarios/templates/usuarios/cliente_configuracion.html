@@ -3,17 +3,17 @@
 {% block title %}Configuración | Nicolett Studio Fantasy{% endblock %}
 
 {% block content %}
+    {% if messages %}
+        <div class="mx-auto mb-6 max-w-7xl space-y-2" aria-live="polite">
+            {% for message in messages %}
+                <p class="border p-3 text-sm {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %}" role="status">{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
     <div class="mx-auto grid max-w-7xl grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
         <div class="space-y-6">
         <section id="datos-contacto" class="border border-[#ead7bc] bg-white p-6 shadow-sm sm:p-8">
             <h1 class="font-serif text-2xl">Datos de contacto</h1>
-            {% if messages %}
-                <div class="mt-5 space-y-2" aria-live="polite">
-                    {% for message in messages %}
-                        <p class="border p-3 text-sm {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %}" role="status">{{ message }}</p>
-                    {% endfor %}
-                </div>
-            {% endif %}
             <form id="client-profile-form" method="post" class="mt-6 space-y-5">
                 {% csrf_token %}
                 <input type="hidden" name="accion" value="perfil">
@@ -44,7 +44,16 @@
                 {% for field in password_form %}
                     <div>
                         <label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-medium">{{ field.label }}</label>
-                        {{ field }}
+                        {% if field.name == 'password_actual' %}
+                            <div class="relative">
+                                {{ field }}
+                                <button type="button" data-password-toggle aria-controls="{{ field.id_for_label }}" aria-label="Mostrar contraseña actual" aria-pressed="false" class="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center text-[#6b5643] hover:text-[#281b14]">
+                                    <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
                         {% if field.errors %}<div class="mt-1 text-sm text-red-700" role="alert">{{ field.errors|join:" " }}</div>{% endif %}
                     </div>
                 {% endfor %}
@@ -117,6 +126,22 @@
                 saveButton.disabled = true;
                 modifyButton.hidden = false;
                 cancelButton.hidden = true;
+            });
+
+            document.querySelectorAll('[data-password-toggle]').forEach(button => {
+                const password = document.getElementById(button.getAttribute('aria-controls'));
+                const icon = button.querySelector('i');
+                button.addEventListener('click', () => {
+                    const showPassword = password.type === 'password';
+                    password.type = showPassword ? 'text' : 'password';
+                    button.setAttribute('aria-pressed', String(showPassword));
+                    button.setAttribute(
+                        'aria-label',
+                        showPassword ? 'Ocultar contraseña actual' : 'Mostrar contraseña actual',
+                    );
+                    icon.classList.toggle('fa-eye', !showPassword);
+                    icon.classList.toggle('fa-eye-slash', showPassword);
+                });
             });
 
             const dialog = document.getElementById('delete-account-dialog');
