@@ -293,7 +293,6 @@ def eliminar_servicio(request, servicio_id):
             f'Hay {citas_pendientes} cita(s) futura(s) de este servicio. Confirma nuevamente para cancelarlas, notificar a los clientes y eliminarlo.',
         )
         return redirect('listar_servicios')
-    imagen = servicio.imagen_url.name
     citas_canceladas, correos, sin_correo, fallidos = desactivar_servicio_y_cancelar_citas(
         servicio.pk,
         'El servicio será eliminado del catálogo.',
@@ -303,16 +302,8 @@ def eliminar_servicio(request, servicio_id):
     from agenda.models import ProfesionalServicio
     ProfesionalServicio.objects.filter(servicio_id=servicio.pk).delete()
     ServicioDesactivadoPorPersonal.objects.filter(servicio_id=servicio.pk).delete()
+    # Keep the media file so an exported catalog row can restore the service later.
     servicio.delete()
-    if imagen:
-        try:
-            _delete_unused_service_image(imagen)
-        except OSError:
-            logger.exception('No se pudo eliminar la imagen del servicio %s.', servicio_id)
-            messages.warning(
-                request,
-                'El servicio se eliminó, pero no se pudo borrar su imagen del almacenamiento.',
-            )
     if citas_canceladas:
         messages.warning(
             request,
@@ -555,6 +546,7 @@ def _catalog_excel_download(request, catalog_type, template=False):
     workbook_data = build_catalog_workbook(
         catalog_type,
         () if template else records,
+        include_image_catalog=template,
     )
     filename = 'plantilla' if template else (
         slugify(selected_category.nombre) if selected_category else 'todos'
@@ -664,7 +656,6 @@ def _delete_catalog_records(request, catalog_type):
         return redirect(redirect_url)
 
     deleted_count = 0
-    image_cleanup_failed = False
     cancelled_appointments = 0
 
     if catalog_type == SERVICE_CATEGORY_SCOPE:
@@ -681,7 +672,6 @@ def _delete_catalog_records(request, catalog_type):
                 return redirect(redirect_url)
 
         for servicio in records:
-            image_name = servicio.imagen_url.name
             cancelled, _, _, _ = desactivar_servicio_y_cancelar_citas(
                 servicio.pk,
                 'El servicio será eliminado del catálogo.',
@@ -690,31 +680,14 @@ def _delete_catalog_records(request, catalog_type):
             Reserva.objects.filter(servicio_id=servicio.pk).update(servicio=None)
             ProfesionalServicio.objects.filter(servicio_id=servicio.pk).delete()
             ServicioDesactivadoPorPersonal.objects.filter(servicio_id=servicio.pk).delete()
+            # Keep the media file so an exported catalog row can restore the service later.
             servicio.delete()
-            if image_name:
-                try:
-                    _delete_unused_service_image(image_name)
-                except OSError:
-                    image_cleanup_failed = True
-                    logger.exception(
-                        'No se pudo eliminar la imagen del servicio %s durante una eliminación múltiple.',
-                        servicio.pk,
-                    )
             deleted_count += 1
         noun = 'servicio'
     else:
         for producto in records:
-            image_name = producto.imagen_url.name
+            # Keep the media file so an exported catalog row can restore the product later.
             producto.delete()
-            if image_name:
-                try:
-                    _delete_unused_product_image(image_name)
-                except OSError:
-                    image_cleanup_failed = True
-                    logger.exception(
-                        'No se pudo eliminar la imagen del producto %s durante una eliminación múltiple.',
-                        producto.pk,
-                    )
             deleted_count += 1
         noun = 'producto'
 
@@ -727,11 +700,6 @@ def _delete_catalog_records(request, catalog_type):
         messages.warning(
             request,
             f'También se cancelaron {cancelled_appointments} cita(s) futura(s) asociada(s) a los servicios.',
-        )
-    if image_cleanup_failed:
-        messages.warning(
-            request,
-            'Algunos registros se eliminaron, pero no se pudieron borrar todas las imágenes del almacenamiento.',
         )
     return redirect(redirect_url)
 
@@ -938,17 +906,7 @@ def editar_producto(request, pk):
 @require_POST
 def eliminar_producto(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
-    imagen = producto.imagen_url.name
     producto.delete()
-    if imagen:
-        try:
-            _delete_unused_product_image(imagen)
-        except OSError:
-            logger.exception('No se pudo eliminar la imagen del producto %s.', pk)
-            messages.warning(
-                request,
-                'El producto se eliminó, pero no se pudo borrar su imagen del almacenamiento.',
-            )
     messages.success(request, 'El producto se eliminó correctamente.')
     return redirect('admin_productos')
 

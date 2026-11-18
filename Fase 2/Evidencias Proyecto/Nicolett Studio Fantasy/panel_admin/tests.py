@@ -246,6 +246,8 @@ class ServiciosPageTests(TestCase):
 
     def test_service_excel_export_is_limited_to_selected_category(self):
         servicio = self.crear_servicio()
+        servicio.imagen_url = self.imagen_png('alisado_bioplastica.png')
+        servicio.save()
         otra_categoria = Categoria.objects.create(nombre='Depilación', tipo='servicio')
         Servicio.objects.create(
             nombre='Depilación facial',
@@ -264,11 +266,35 @@ class ServiciosPageTests(TestCase):
         rows = list(worksheet.values)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(rows[0], ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Duración (minutos)', 'Activo'))
+        self.assertEqual(
+            rows[0],
+            ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Duración (minutos)', 'Activo', 'imagen_url'),
+        )
         self.assertEqual(rows[1][1], 'Manicure clásica')
         self.assertEqual(rows[1][0], servicio.pk)
+        self.assertEqual(rows[1][-1], 'servicios/alisado_bioplastica.png')
         self.assertEqual(len(rows), 2)
         exported.close()
+
+    def test_service_excel_template_includes_image_path_column(self):
+        image_storage = Servicio._meta.get_field('imagen_url').storage
+        image_storage.save(
+            'servicios/alisado_bioplastica.png',
+            self.imagen_png('alisado_bioplastica.png'),
+        )
+        response = self.client.get(reverse('plantilla_servicios_excel'))
+        workbook = load_workbook(BytesIO(response.content), read_only=False)
+        worksheet = workbook.active
+        image_worksheet = workbook['Imágenes disponibles']
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(worksheet.cell(1, 8).value, 'imagen_url')
+        self.assertIn('servicios/alisado_bioplastica.png', worksheet.cell(1, 8).comment.text)
+        self.assertEqual(
+            list(image_worksheet.values),
+            [('imagen_url',), ('servicios/alisado_bioplastica.png',)],
+        )
+        workbook.close()
 
     def test_service_excel_import_uses_selected_category(self):
         upload = self.excel_file(
@@ -315,6 +341,56 @@ class ServiciosPageTests(TestCase):
         self.assertFalse(existing.activo)
         self.assertTrue(Servicio.objects.filter(nombre='Manicure spa').exists())
         self.assertTrue(Servicio.objects.filter(nombre='Manicure express').exists())
+
+    def test_service_excel_import_restores_image_and_recreates_deleted_record(self):
+        existing = self.crear_servicio()
+        existing.imagen_url = self.imagen_png('alisado_bioplastica.png')
+        existing.save()
+        image_name = existing.imagen_url.name
+        image_storage = existing.imagen_url.storage
+        export_response = self.client.get(
+            reverse('exportar_servicios_excel'),
+            {'categoria': self.categoria.pk},
+        )
+
+        with patch('agenda.services.desactivar_servicio_y_cancelar_citas', return_value=(0, 0, 0, 0)):
+            self.client.post(
+                f"{reverse('eliminar_servicios_seleccionados')}?categoria={self.categoria.pk}",
+                {'ids': [existing.pk]},
+            )
+
+        self.assertFalse(Servicio.objects.filter(pk=existing.pk).exists())
+        self.assertTrue(image_storage.exists(image_name))
+        upload = SimpleUploadedFile(
+            'servicios.xlsx',
+            export_response.content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response = self.client.post(
+            f"{reverse('importar_servicios_excel')}?categoria={self.categoria.pk}",
+            {'archivo': upload},
+            follow=True,
+        )
+
+        self.assertContains(response, 'Importación completada')
+        restored = Servicio.objects.get(nombre=existing.nombre)
+        self.assertEqual(restored.imagen_url.name, image_name)
+        self.assertTrue(restored.imagen_url.storage.exists(image_name))
+
+    def test_service_excel_import_rejects_missing_image_file(self):
+        upload = self.excel_file(
+            ('Nombre', 'Categoría', 'Descripción', 'Precio', 'Duración (minutos)', 'Activo', 'imagen_url'),
+            [('Manicure spa', self.categoria.nombre, 'Tratamiento spa', 15000, 60, 'Activo', 'servicios/no-existe.png')],
+        )
+
+        response = self.client.post(
+            f"{reverse('importar_servicios_excel')}?categoria={self.categoria.pk}",
+            {'archivo': upload},
+            follow=True,
+        )
+
+        self.assertContains(response, 'no existe en media/servicios')
+        self.assertFalse(Servicio.objects.filter(nombre='Manicure spa').exists())
 
     def test_service_import_rejects_duplicate_name_description_price_even_if_duration_differs(self):
         existing = self.crear_servicio()
@@ -622,7 +698,7 @@ class ServiciosPageTests(TestCase):
         self.assertEqual(detalle.item_nombre, servicio.nombre)
         self.assertEqual(detalle.precio_unitario, Decimal(servicio.precio))
 
-    def test_delete_service_also_removes_its_image_from_media_storage(self):
+    def test_delete_service_preserves_its_image_for_excel_restore(self):
         response = self.client.post(
             reverse('crear_servicio'),
             {**self.servicio_data(), 'imagen_url': self.imagen_png()},
@@ -634,7 +710,7 @@ class ServiciosPageTests(TestCase):
         self.client.post(reverse('eliminar_servicio', args=[servicio.pk]))
 
         self.assertFalse(Servicio.objects.filter(pk=servicio.pk).exists())
-        self.assertFalse(servicio.imagen_url.storage.exists(servicio.imagen_url.name))
+        self.assertTrue(servicio.imagen_url.storage.exists(servicio.imagen_url.name))
 
     def test_replacing_service_image_removes_the_old_file(self):
         servicio = self.crear_servicio()
@@ -1033,7 +1109,9 @@ class ServiciosPageTests(TestCase):
         self.assertContains(response, reverse('plantilla_productos_excel'))
 
     def test_product_excel_export_is_limited_to_selected_category(self):
-        self.crear_producto()
+        producto = self.crear_producto()
+        producto.imagen_url = self.imagen_png('aceite.png')
+        producto.save()
         otra_categoria = Categoria.objects.create(nombre='Cabello', tipo='producto')
         Producto.objects.create(
             nombre='Mascarilla capilar',
@@ -1051,10 +1129,34 @@ class ServiciosPageTests(TestCase):
         rows = list(exported.active.values)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(rows[0], ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo'))
+        self.assertEqual(
+            rows[0],
+            ('ID (no editar)', 'Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo', 'imagen_url'),
+        )
         self.assertEqual(rows[1][1], 'Aceite nutritivo')
+        self.assertEqual(rows[1][-1], 'productos/aceite.png')
         self.assertEqual(len(rows), 2)
         exported.close()
+
+    def test_product_excel_template_lists_available_image_paths(self):
+        image_storage = Producto._meta.get_field('imagen_url').storage
+        image_storage.save(
+            'productos/aceite.png',
+            self.imagen_png('aceite.png'),
+        )
+        response = self.client.get(reverse('plantilla_productos_excel'))
+        workbook = load_workbook(BytesIO(response.content), read_only=False)
+        worksheet = workbook.active
+        image_worksheet = workbook['Imágenes disponibles']
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(worksheet.cell(1, 8).value, 'imagen_url')
+        self.assertIn('productos/nombre.png', worksheet.cell(1, 8).comment.text)
+        self.assertEqual(
+            list(image_worksheet.values),
+            [('imagen_url',), ('productos/aceite.png',)],
+        )
+        workbook.close()
 
     def test_product_excel_import_accepts_rows_without_images(self):
         upload = self.excel_file(
@@ -1138,6 +1240,52 @@ class ServiciosPageTests(TestCase):
         self.assertFalse(existing.activo)
         self.assertTrue(Producto.objects.filter(nombre='Crema nutritiva').exists())
 
+    def test_product_excel_import_restores_image_and_recreates_deleted_record(self):
+        existing = self.crear_producto()
+        existing.imagen_url = self.imagen_png('aceite.png')
+        existing.save()
+        image_name = existing.imagen_url.name
+        image_storage = existing.imagen_url.storage
+        export_response = self.client.get(
+            reverse('exportar_productos_excel'),
+            {'categoria': self.categoria_producto.pk},
+        )
+
+        self.client.post(reverse('eliminar_producto', args=[existing.pk]))
+
+        self.assertFalse(Producto.objects.filter(pk=existing.pk).exists())
+        self.assertTrue(image_storage.exists(image_name))
+        upload = SimpleUploadedFile(
+            'productos.xlsx',
+            export_response.content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response = self.client.post(
+            f"{reverse('importar_productos_excel')}?categoria={self.categoria_producto.pk}",
+            {'archivo': upload},
+            follow=True,
+        )
+
+        self.assertContains(response, 'Importación completada')
+        restored = Producto.objects.get(nombre=existing.nombre)
+        self.assertEqual(restored.imagen_url.name, image_name)
+        self.assertTrue(restored.imagen_url.storage.exists(image_name))
+
+    def test_product_excel_import_rejects_missing_image_file(self):
+        upload = self.excel_file(
+            ('Nombre', 'Categoría', 'Descripción', 'Precio', 'Stock', 'Activo', 'imagen_url'),
+            [('Aceite de argán', '', 'Nutrición capilar', 9900, 5, 'Activo', 'productos/no-existe.png')],
+        )
+
+        response = self.client.post(
+            f"{reverse('importar_productos_excel')}?categoria={self.categoria_producto.pk}",
+            {'archivo': upload},
+            follow=True,
+        )
+
+        self.assertContains(response, 'no existe en media/productos')
+        self.assertFalse(Producto.objects.filter(nombre='Aceite de argán').exists())
+
     def test_product_excel_import_rejects_duplicate_even_if_stock_and_status_differ(self):
         existing = self.crear_producto()
         upload = self.excel_file(
@@ -1156,6 +1304,10 @@ class ServiciosPageTests(TestCase):
 
     def test_bulk_delete_products_deletes_only_selected_ids(self):
         first = self.crear_producto()
+        first.imagen_url = self.imagen_png('aceite.png')
+        first.save()
+        image_name = first.imagen_url.name
+        image_storage = first.imagen_url.storage
         second = Producto.objects.create(
             nombre='Aceite hidratante',
             categoria=self.categoria_producto,
@@ -1175,6 +1327,7 @@ class ServiciosPageTests(TestCase):
         )
         self.assertFalse(Producto.objects.filter(pk=first.pk).exists())
         self.assertTrue(Producto.objects.filter(pk=second.pk).exists())
+        self.assertTrue(image_storage.exists(image_name))
 
     def test_bulk_product_status_actions_update_selected_category_and_show_success(self):
         first = self.crear_producto(activo='false')
@@ -1319,7 +1472,7 @@ class ServiciosPageTests(TestCase):
         producto.refresh_from_db()
         self.assertTrue(producto.activo)
 
-    def test_delete_product_removes_database_record_and_image(self):
+    def test_delete_product_removes_database_record_but_preserves_image(self):
         from ventas.models import DetalleVenta, Venta
 
         producto = self.crear_producto()
@@ -1341,7 +1494,7 @@ class ServiciosPageTests(TestCase):
         self.client.post(reverse('eliminar_producto', args=[producto.pk]))
 
         self.assertFalse(Producto.objects.filter(pk=producto.pk).exists())
-        self.assertFalse(storage.exists(image_name))
+        self.assertTrue(storage.exists(image_name))
         detalle.refresh_from_db()
         self.assertIsNone(detalle.producto_id)
         self.assertEqual(detalle.item_nombre, producto.nombre)
