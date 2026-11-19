@@ -24,7 +24,7 @@
             background-position: center;
             background-size: cover;
             isolation: isolate;
-            min-height: 0;
+            min-height: 12rem;
         }
         .service-category-banner::before {
             position: absolute;
@@ -47,31 +47,27 @@
     {% endif %}
     {% if titulo == 'Servicios' %}
         <section id="servicios-semana" class="mx-auto w-full scroll-mt-20" aria-label="Servicios">
-            {% if categoria_seleccionada.nombre|lower == 'colorimetría' %}
-                <header class="service-category-banner relative mb-3 flex items-center overflow-hidden rounded-xl border border-[#ead7bc] px-6 py-3 shadow-sm sm:px-10" style="background-image: url('{% static 'img/catalogo/servicios/colorimetria.jpg' %}');">
+            {% if categoria_seleccionada %}
+                <header class="service-category-banner relative mb-3 flex items-center overflow-hidden rounded-xl border border-[#ead7bc] px-6 py-5 shadow-sm sm:px-10" style="background-image: url('{% static 'img/pag_principal/inicio/salon_portada.jpg' %}');">
                     <div class="max-w-2xl">
                         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[#8b6735]">Nicolett Studio Fantasy</p>
-                        <h1 class="mt-1 font-serif text-4xl font-bold text-[#281b14] sm:text-5xl">Colorimetría</h1>
-                        <p class="mt-2 max-w-xl text-sm leading-6 text-[#4c392c]">Técnicas de color, iluminación y renovación como tintes, babylights y balayage, adaptadas a tu estilo y a las características de tu cabello.</p>
-                        <ul class="mt-3 flex flex-wrap gap-4 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5b4938]" aria-label="Compromiso en colorimetría">
+                        <h1 class="mt-1 font-serif text-4xl font-bold text-[#281b14] sm:text-5xl">{{ categoria_seleccionada.nombre }}</h1>
+                        <p class="mt-2 max-w-xl text-sm leading-6 text-[#4c392c]">{{ service_banner_description }}</p>
+                        <ul class="mt-3 flex flex-wrap gap-4 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5b4938]" aria-label="Beneficios de la categoría">
                             <li class="flex items-center gap-2">
                                 <svg class="h-7 w-7 shrink-0 text-[#9b7240]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3 19 6v5c0 4.5-2.9 8-7 10-4.1-2-7-5.5-7-10V6l7-3Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2 2 4-4"/></svg>
-                                <span>Productos profesionales seleccionados</span>
+                                <span>{{ service_banner_features.0 }}</span>
                             </li>
                             <li class="flex items-center gap-2">
                                 <svg class="h-7 w-7 shrink-0 text-[#9b7240]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3 14.5 8.5 20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5L12 3Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m19 16 .8 1.7L21.5 18l-1.7.8L19 20.5l-.8-1.7-1.7-.8 1.7-.3L19 16Z"/></svg>
-                                <span>Evaluación personalizada</span>
+                                <span>{{ service_banner_features.1 }}</span>
                             </li>
                             <li class="flex items-center gap-2">
                                 <svg class="h-7 w-7 shrink-0 text-[#9b7240]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.8 8.8c0 5.2-8.8 11-8.8 11s-8.8-5.8-8.8-11A4.8 4.8 0 0 1 12 6.2a4.8 4.8 0 0 1 8.8 2.6Z"/></svg>
-                                <span>Cuidado capilar</span>
+                                <span>{{ service_banner_features.2 }}</span>
                             </li>
                         </ul>
                     </div>
-                </header>
-            {% elif categoria_seleccionada %}
-                <header class="mb-4">
-                    <h1 class="font-serif text-3xl font-bold text-[#281b14]">{{ categoria_seleccionada.nombre }}</h1>
                 </header>
             {% else %}
                 <header class="mb-4">
@@ -204,6 +200,7 @@
                     const hour = document.getElementById('serviceBookingHour');
                     const submit = document.getElementById('serviceBookingSubmit');
                     const categoryId = '{{ categoria_seleccionada_id|default:"" }}';
+                    const initialServiceId = '{{ servicio_inicial_id|default:"" }}';
                     const today = '{{ hoy }}';
                     const professionalsUrl = JSON.parse(document.getElementById('service-professionals-url').textContent);
                     const hoursUrl = JSON.parse(document.getElementById('service-hours-url').textContent);
@@ -262,6 +259,28 @@
                             previousPage.disabled = page === 0;
                             nextPage.disabled = page + 1 >= pages;
                         }
+                    }
+                    function renderCurrentCalendar() {
+                        renderCalendar(Array.from(days.values()).reduce((weeks, day, index) => {
+                            const weekIndex = Math.floor(index / 7);
+                            (weeks[weekIndex] ||= []).push(day);
+                            return weeks;
+                        }, []));
+                    }
+                    function clearServiceSelection() {
+                        selectedServiceId = '';
+                        selectedServiceInput.value = '';
+                        resetSelect(professional, 'Elige un servicio y día...');
+                        resetSelect(hour, 'Selecciona un horario...');
+                    }
+                    function focusServiceCard(serviceId) {
+                        const index = serviceCards.findIndex(card => card.dataset.serviceId === serviceId);
+                        if (index < 0) return;
+                        page = Math.floor(index / pageSize);
+                        updateServiceCards();
+                        const card = serviceCards[index];
+                        card.querySelector('[data-select-service]').focus({preventScroll: true});
+                        card.scrollIntoView({behavior: 'smooth', block: 'center'});
                     }
                     function renderCalendar(weeks) {
                         calendar.replaceChildren();
@@ -417,22 +436,35 @@
                         }
                     }
                     function selectDate(date) {
+                        if (selectedDateInput.value === date) {
+                            selectedDateInput.value = '';
+                            clearServiceSelection();
+                            updateServiceCards();
+                            renderCurrentCalendar();
+                            status.textContent = 'Día deseleccionado. Se muestran nuevamente todos los horarios disponibles.';
+                            updateSubmit();
+                            return;
+                        }
                         selectedDateInput.value = date;
                         if (
                             selectedServiceId
                             && !days.get(date)?.available_service_ids.includes(Number(selectedServiceId))
                         ) {
-                            selectedServiceId = '';
-                            selectedServiceInput.value = '';
-                            resetSelect(professional, 'Elige un servicio y día...');
-                            resetSelect(hour, 'Selecciona un horario...');
+                            clearServiceSelection();
+                        }
+                        const availableServiceIds = days.get(date)?.available_service_ids || [];
+                        if (!selectedServiceId && availableServiceIds.length) {
+                            const firstAvailable = serviceCards.find(card =>
+                                availableServiceIds.includes(Number(card.dataset.serviceId)),
+                            );
+                            if (firstAvailable) {
+                                selectedServiceId = firstAvailable.dataset.serviceId;
+                                selectedServiceInput.value = selectedServiceId;
+                            }
                         }
                         updateServiceCards();
-                        renderCalendar(Array.from(days.values()).reduce((weeks, day, index) => {
-                            const weekIndex = Math.floor(index / 7);
-                            (weeks[weekIndex] ||= []).push(day);
-                            return weeks;
-                        }, []));
+                        renderCurrentCalendar();
+                        if (selectedServiceId) focusServiceCard(selectedServiceId);
                         loadProfessionals().catch(error => {
                             status.textContent = error.message || 'No se pudo consultar la disponibilidad.';
                         });
@@ -446,22 +478,14 @@
                                 resetSelect(hour, 'Selecciona un horario...');
                                 status.textContent = 'Servicio deseleccionado. Elige otro servicio para consultar sus horas.';
                                 updateServiceCards();
-                                renderCalendar(Array.from(days.values()).reduce((weeks, day, index) => {
-                                    const weekIndex = Math.floor(index / 7);
-                                    (weeks[weekIndex] ||= []).push(day);
-                                    return weeks;
-                                }, []));
+                                renderCurrentCalendar();
                                 updateSubmit();
                                 return;
                             }
                             selectedServiceId = card.dataset.serviceId;
                             selectedServiceInput.value = selectedServiceId;
                             updateServiceCards();
-                            renderCalendar(Array.from(days.values()).reduce((weeks, day, index) => {
-                                const weekIndex = Math.floor(index / 7);
-                                (weeks[weekIndex] ||= []).push(day);
-                                return weeks;
-                            }, []));
+                            renderCurrentCalendar();
                             loadProfessionals().catch(error => {
                                 status.textContent = error.message || 'No se pudo consultar la disponibilidad.';
                             });
@@ -483,8 +507,8 @@
                         month = addMonth(month, -1);
                         if (selectedDateInput.value.slice(0, 7) !== month) {
                             selectedDateInput.value = '';
-                            resetSelect(professional, 'Elige un día...');
-                            resetSelect(hour, 'Selecciona un horario...');
+                            clearServiceSelection();
+                            updateServiceCards();
                             updateSubmit();
                         }
                         loadCalendar();
@@ -493,8 +517,8 @@
                         month = addMonth(month, 1);
                         if (selectedDateInput.value.slice(0, 7) !== month) {
                             selectedDateInput.value = '';
-                            resetSelect(professional, 'Elige un día...');
-                            resetSelect(hour, 'Selecciona un horario...');
+                            clearServiceSelection();
+                            updateServiceCards();
                             updateSubmit();
                         }
                         loadCalendar();
@@ -505,6 +529,11 @@
                             status.textContent = 'Selecciona un servicio, un día, una profesional y una hora.';
                         }
                     });
+                    if (serviceCards.some(card => card.dataset.serviceId === initialServiceId)) {
+                        selectedServiceId = initialServiceId;
+                        selectedServiceInput.value = initialServiceId;
+                        focusServiceCard(initialServiceId);
+                    }
                     updateServiceCards();
                     loadCalendar();
                 })();
@@ -512,16 +541,19 @@
         {% endif %}
     {% endif %}
     {% if titulo == 'Productos' %}
-        <section class="mx-auto max-w-6xl overflow-hidden border border-[#ead7bc] bg-white shadow-sm" aria-label="{{ titulo }}">
+        <section class="mx-auto w-full max-w-[1600px] overflow-hidden border border-[#ead7bc] bg-white shadow-sm" aria-label="{{ titulo }}">
             {% if titulo == 'Productos' %}
             <div class="p-4 sm:p-5">
                 <label for="catalog-search" class="mb-2 block text-xs font-medium uppercase tracking-widest text-[#6b5643]">Buscar {{ titulo|lower }}</label>
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
                     <div class="relative w-full lg:max-w-sm">
                         <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6b5643]" aria-hidden="true"></i>
-                        <input id="catalog-search" type="search" placeholder="Escribe un nombre o categoría..." autocomplete="off" class="w-full border border-[#ead7bc] bg-[#fffaf5] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[#5a3e27] focus:ring-2 focus:ring-[#5a3e27]/15">
+                        <input id="catalog-search" type="search" placeholder="Escribe un nombre..." autocomplete="off" class="w-full border border-[#ead7bc] bg-[#fffaf5] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[#5a3e27] focus:ring-2 focus:ring-[#5a3e27]/15">
                     </div>
                     <form method="get" class="w-full lg:w-auto">
+                        {% if categoria_seleccionada %}
+                            <input type="hidden" name="categoria" value="{{ categoria_seleccionada.pk }}">
+                        {% endif %}
                         <label for="catalog-sort" class="sr-only">Ordenar {{ titulo|lower }}</label>
                         <select id="catalog-sort" name="orden" onchange="this.form.submit()" class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm text-[#6b5643] lg:min-w-56">
                             <option value="nombre_asc" {% if orden_catalogo == 'nombre_asc' %}selected{% endif %}>Nombre: A-Z</option>
@@ -530,26 +562,18 @@
                             <option value="precio_desc" {% if orden_catalogo == 'precio_desc' %}selected{% endif %}>Precio: mayor a menor</option>
                         </select>
                     </form>
-                    {% if titulo == 'Productos' %}
-                        <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoría">
-                            <button type="button" data-category-filter="" aria-pressed="true" class="catalog-filter rounded-full border border-[#5a3e27] bg-[#5a3e27] px-4 py-2 text-xs font-medium text-white transition">Todo</button>
-                            {% for filtro in filtros_categoria %}
-                                <button type="button" data-category-filter="{{ filtro }}" aria-pressed="false" class="catalog-filter rounded-full border border-[#ead7bc] bg-white px-4 py-2 text-xs font-medium text-[#6b5643] transition hover:border-[#5a3e27] hover:bg-[#fae9cf]">{{ filtro }}</button>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
                 </div>
             </div>
             {% endif %}
 
     {% if titulo == 'Productos' %}
-        <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-3" aria-label="Productos disponibles">
+        <div id="catalog-grid" class="grid items-stretch gap-5 px-5 pb-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-4" aria-label="Productos disponibles">
             {% for producto in productos %}
-                <article id="producto-{{ producto.pk }}" data-catalog-item data-categories="{{ producto.categoria.nombre }}" data-search="{{ producto.nombre }} {{ producto.categoria.nombre }} {{ producto.descripcion|default:'' }}" class="group relative z-0 flex h-full flex-col border border-[#ead7bc] bg-white transition duration-200 hover:z-10 hover:scale-[1.01] hover:border-[#bd8c43] hover:bg-[#ffffff] focus-within:z-10 focus-within:border-[#bd8c43]">
+                <article id="producto-{{ producto.pk }}" data-catalog-item data-search="{{ producto.nombre }}" class="flex h-full flex-col overflow-hidden rounded-2xl border border-[#ead7bc] bg-white">
                     {% if producto.imagen_url %}
-                        <a href="{{ producto.imagen_url.url }}" target="_blank" rel="noopener noreferrer" aria-label="Abrir imagen completa de {{ producto.nombre }}" class="block">
-                            <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" class="block h-40 w-full bg-[#fae9cf] object-contain p-2">
-                        </a>
+                        <div class="flex h-40 items-center justify-center bg-[#fae9cf]">
+                            <img src="{{ producto.imagen_url.url }}" alt="{{ producto.nombre }}" class="block h-full w-full object-contain p-2">
+                        </div>
                     {% else %}
                         <div class="flex h-40 items-center justify-center bg-[#fae9cf] text-4xl text-[#6b5643]" aria-hidden="true">
                             <i class="fa-solid fa-bottle-droplet"></i>
@@ -559,11 +583,6 @@
                         <p class="mb-2 text-xs uppercase tracking-widest text-[#6b5643]">{{ producto.categoria.nombre }}</p>
                         <div class="mb-2 flex items-center justify-between gap-2">
                             <h2 class="font-serif text-xl">{{ producto.nombre }}</h2>
-                            {% if not vista_previa_admin %}
-                                <a href="{{ producto.whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp sobre {{ producto.nombre }}" title="Consultar por WhatsApp sobre {{ producto.nombre }}" class="shrink-0 text-xl text-[#25D366]">
-                                    <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
-                                </a>
-                            {% endif %}
                         </div>
                         <p class="mb-4 text-sm leading-relaxed text-[#6b5643]">{{ producto.descripcion|default:"Descripción no disponible." }}</p>
                         <div class="mt-auto flex items-center justify-between text-sm">
@@ -573,6 +592,7 @@
                         {% if not vista_previa_admin %}
                             <form method="post" action="{% url 'cliente_carrito_agregar_producto' producto.pk %}" class="mt-4 flex items-center gap-3">
                                 {% csrf_token %}
+                                <input type="hidden" name="return_to" value="{{ request.get_full_path }}">
                                 <label for="cantidad-{{ producto.pk }}" class="sr-only">Cantidad de {{ producto.nombre }}</label>
                                 <input id="cantidad-{{ producto.pk }}" name="cantidad" type="number" min="1" max="{{ producto.stock }}" value="1" required {% if producto.stock < 1 %}disabled{% endif %} class="w-20 border border-[#ead7bc] px-3 py-3 text-sm">
                                 <button type="submit" {% if producto.stock < 1 %}disabled{% endif %} class="flex-1 bg-[#5a3e27] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#5a3e27] disabled:cursor-not-allowed disabled:opacity-50">
@@ -595,19 +615,17 @@
             <p class="text-sm leading-relaxed text-[#6b5643]">{{ descripcion }}</p>
         </section>
     {% endif %}
-    {% if titulo == 'Servicios' or titulo == 'Productos' %}
+    {% if titulo == 'Productos' %}
         <script>
             (() => {
                 const search = document.getElementById('catalog-search');
-                const filters = Array.from(document.querySelectorAll('[data-category-filter]'));
                 const cards = Array.from(document.querySelectorAll('[data-catalog-item]'));
                 const noResults = document.getElementById('catalog-no-results');
                 const results = document.getElementById('catalog-results');
                 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                let selectedCategories = [];
                 let hasUpdatedCatalog = false;
                 const itemLabel = noResults ? noResults.dataset.itemLabel : '';
-                const itemSingular = itemLabel === 'servicios' ? 'servicio' : 'producto';
+                const itemSingular = 'producto';
 
                 const normalize = value => value
                     .normalize('NFD')
@@ -621,11 +639,7 @@
                     const term = search ? normalize(search.value) : '';
                     let visibleCount = 0;
                     for (const card of cards) {
-                        const matchesText = normalize(card.dataset.search).includes(term);
-                        const searchableContent = normalize(`${card.dataset.categories} ${card.dataset.search}`);
-                        const matchesCategory = selectedCategories.length === 0
-                            || selectedCategories.some(category => searchableContent.includes(category));
-                        const visible = matchesText && matchesCategory;
+                        const visible = normalize(card.dataset.search).includes(term);
                         card.style.display = visible ? '' : 'none';
                         if (visible) {
                             visibleCount += 1;
@@ -642,12 +656,12 @@
                     }
                     const showNoResults = visibleCount === 0 && cards.length > 0;
                     if (noResults) {
-                        noResults.style.display = showNoResults ? '' : 'none';
+                        noResults.hidden = !showNoResults;
                     }
                     if (noResults && showNoResults) {
                         noResults.textContent = term
                             ? `No existe ningún ${itemSingular} llamado "${search.value.trim()}" en el sistema.`
-                            : `No hay ${itemLabel} que coincidan con la categoría seleccionada.`;
+                            : `No hay ${itemLabel} disponibles.`;
                     }
                     if (results) {
                         results.textContent = `${visibleCount} resultado${visibleCount === 1 ? '' : 's'}`;
@@ -663,25 +677,6 @@
 
                 if (search) {
                     search.addEventListener('input', updateCatalog);
-                }
-                for (const filter of filters) {
-                    filter.addEventListener('click', () => {
-                        selectedCategories = filter.dataset.categoryFilter
-                            .split('|')
-                            .map(normalize)
-                            .filter(Boolean);
-                        for (const button of filters) {
-                            const active = button === filter;
-                            button.setAttribute('aria-pressed', String(active));
-                            button.classList.toggle('border-[#5a3e27]', active);
-                            button.classList.toggle('bg-[#5a3e27]', active);
-                            button.classList.toggle('text-white', active);
-                            button.classList.toggle('border-[#ead7bc]', !active);
-                            button.classList.toggle('bg-white', !active);
-                            button.classList.toggle('text-[#6b5643]', !active);
-                        }
-                        updateCatalog();
-                    });
                 }
                 updateCatalog();
             })();

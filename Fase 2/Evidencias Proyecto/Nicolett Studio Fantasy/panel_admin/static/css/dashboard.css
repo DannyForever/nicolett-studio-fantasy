@@ -5,6 +5,25 @@
     --main-bg: #fffaf5;
 }
 
+* {
+    scrollbar-color: #ead7bc transparent;
+    scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: #ead7bc;
+}
+
 body {
     background-color: var(--main-bg);
     font-family: 'Plus Jakarta Sans', sans-serif;

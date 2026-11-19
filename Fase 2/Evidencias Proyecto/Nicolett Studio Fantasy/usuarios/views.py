@@ -656,12 +656,6 @@ def _vista_cliente(request, template, context=None):
             for indice, servicio in enumerate(servicios_galeria):
                 if servicio.pk in servicios_por_id:
                     servicios_galeria[indice] = servicios_por_id[servicio.pk]
-    if 'productos' in contexto:
-        for producto in contexto['productos']:
-            producto.whatsapp_url = _url_whatsapp(
-                '56982108409',
-                _mensaje_consulta_cliente(request.user, producto.nombre),
-            )
     return render(request, template, contexto)
 
 
@@ -816,7 +810,20 @@ def cliente_servicios_view(request):
     servicios = Servicio.objects.filter(
         activo=True,
     ).select_related('categoria').order_by(*ordenes[orden])
+    servicio_inicial_id = request.GET.get('servicio', '').strip()
+    servicio_inicial = (
+        Servicio.objects.filter(pk=servicio_inicial_id, activo=True).first()
+        if servicio_inicial_id.isdecimal()
+        else None
+    )
     categoria_solicitada = request.GET.get('categoria', '').strip()
+    if not categoria_solicitada and servicio_inicial and servicio_inicial.categoria_id:
+        categoria_inicial = _resolver_categoria_cliente(
+            str(servicio_inicial.categoria_id),
+            'servicio',
+        )
+        if categoria_inicial:
+            categoria_solicitada = str(categoria_inicial.pk)
     categoria_seleccionada = _resolver_categoria_cliente(
         categoria_solicitada,
         'servicio',
@@ -826,6 +833,12 @@ def cliente_servicios_view(request):
             servicios = servicios.filter(categoria_id=categoria_seleccionada.pk)
         else:
             servicios = servicios.none()
+    if (
+        servicio_inicial
+        and categoria_seleccionada
+        and servicio_inicial.categoria_id != categoria_seleccionada.pk
+    ):
+        servicio_inicial = None
     return _vista_cliente(
         request,
         'usuarios/cliente_seccion.html',
@@ -837,11 +850,13 @@ def cliente_servicios_view(request):
             'categoria_seleccionada_id': (
                 categoria_seleccionada.pk if categoria_seleccionada else None
             ),
+            'servicio_inicial_id': servicio_inicial.pk if servicio_inicial else None,
             'orden_catalogo': orden,
             'hoy': timezone.localdate().isoformat(),
             'cliente_profesionales_url': reverse('cliente_profesionales_disponibles'),
             'cliente_horas_url': reverse('cliente_horas_disponibles'),
             'cliente_calendario_url': reverse('cliente_calendario_disponibilidad'),
+            **_contexto_banner_categoria_servicio(categoria_seleccionada),
         },
     )
 
@@ -873,12 +888,6 @@ def cliente_productos_view(request):
             )
         else:
             productos_disponibles = productos_disponibles.none()
-    filtros_categoria = list(
-        Categoria.objects.filter(tipo='producto', activa=True)
-        .exclude(nombre__iexact='Sin categoría')
-        .order_by('nombre')
-        .values_list('nombre', flat=True)
-    )
     productos = productos_disponibles.order_by(*ordenes[orden])
     return _vista_cliente(
         request,
@@ -887,7 +896,6 @@ def cliente_productos_view(request):
             'titulo': 'Productos',
             'descripcion': 'Aquí podrás revisar los productos del estudio.',
             'productos': productos,
-            'filtros_categoria': filtros_categoria,
             'categoria_seleccionada': categoria_seleccionada,
             'categoria_seleccionada_id': (
                 categoria_seleccionada.pk if categoria_seleccionada else None
@@ -907,6 +915,74 @@ def _resolver_categoria_cliente(valor: str, tipo: str) -> Categoria | None:
     if valor:
         return categorias.filter(nombre__iexact=valor).first()
     return None
+
+
+def _contexto_banner_categoria_servicio(categoria):
+    if categoria is None:
+        return {}
+
+    nombre_normalizado = unicodedata.normalize(
+        'NFKD',
+        categoria.nombre,
+    )
+    nombre_normalizado = ''.join(
+        caracter
+        for caracter in nombre_normalizado
+        if not unicodedata.combining(caracter)
+    ).casefold()
+    descripciones = {
+        'colorimetria': (
+            'Técnicas de color, iluminación y renovación como tintes, babylights y balayage, '
+            'adaptadas a tu estilo y a las características de tu cabello.'
+        ),
+        'cortes & estilos': (
+            'Cortes y estilos pensados para resaltar tus facciones y adaptarse a la textura '
+            'de tu cabello y a tu rutina.'
+        ),
+        'depilacion': (
+            'Opciones de depilación para distintas zonas, realizadas con cuidado y atención '
+            'personalizada.'
+        ),
+        'lash & brow': (
+            'Realza tu mirada con servicios de pestañas y cejas, diseñados para destacar '
+            'tu estilo natural.'
+        ),
+        'maquillaje': (
+            'Maquillaje profesional para ocasiones especiales o para disfrutar de un look '
+            'fresco y personalizado.'
+        ),
+        'nail care & beauty': (
+            'Manicure y cuidado de uñas con técnicas y acabados para expresar tu estilo '
+            'y mantener tus manos cuidadas.'
+        ),
+        'pedicure': (
+            'Dedica un momento al cuidado de tus pies con servicios de limpieza, esmaltado '
+            'y opciones de spa.'
+        ),
+        'peinados': (
+            'Peinados, ondas y estilos para tus eventos o para darle un toque especial '
+            'a cualquier ocasión.'
+        ),
+        'podologia': (
+            'Atención podológica enfocada en el cuidado y bienestar de tus pies.'
+        ),
+        'tratamientos capilares': (
+            'Tratamientos de hidratación, nutrición, reconstrucción y alisado adaptados '
+            'a las necesidades de tu cabello.'
+        ),
+    }
+    return {
+        'service_banner_description': descripciones.get(
+            nombre_normalizado,
+            f'Descubre nuestros servicios de {categoria.nombre.lower()}, '
+            'con atención personalizada y especialistas dedicados a tu bienestar.',
+        ),
+        'service_banner_features': (
+            'Profesionales especializados',
+            'Evaluación personalizada',
+            'Reserva tu hora en línea',
+        ),
+    }
 
 
 def _agrupar_servicios_galeria(servicios: QuerySet) -> dict[str, list[Servicio]]:
@@ -1037,20 +1113,18 @@ def _agrupar_servicios_galeria(servicios: QuerySet) -> dict[str, list[Servicio]]
 
 @never_cache
 def cliente_agendamiento_view(request):
-    return _vista_cliente(
-        request,
-        'usuarios/cliente_agendamiento.html',
-        {
-            'servicios': Servicio.objects.filter(
-                activo=True,
-                pk__in=servicios_con_horarios_disponibles(),
-            ).select_related('categoria').order_by('nombre'),
-            'hoy': timezone.localdate().isoformat(),
-            'cliente_profesionales_url': reverse('cliente_profesionales_disponibles'),
-            'cliente_horas_url': reverse('cliente_horas_disponibles'),
-            'cliente_calendario_url': reverse('cliente_calendario_disponibilidad'),
-        },
+    servicio_id = request.GET.get('servicio', '').strip()
+    servicio = (
+        Servicio.objects.filter(pk=servicio_id, activo=True).first()
+        if servicio_id.isdecimal()
+        else None
     )
+    destino = reverse('cliente_servicios')
+    if servicio:
+        destino = f'{destino}?servicio={servicio.pk}#servicios-semana'
+    else:
+        destino = f'{destino}#servicios-semana'
+    return redirect(destino)
 
 
 @never_cache
@@ -1182,6 +1256,26 @@ def cliente_configuracion_view(request):
         usuario=request.user,
         tipo=DireccionCliente.TIPO_FACTURACION,
     )
+    direccion_edicion = None
+    direccion_edicion_form = None
+    if accion == 'editar_direccion':
+        direccion_edicion_id = request.POST.get('direccion_id')
+    elif request.method == 'GET':
+        direccion_edicion_id = request.GET.get('editar_direccion')
+    else:
+        direccion_edicion_id = None
+    if direccion_edicion_id:
+        direccion_edicion = get_object_or_404(
+            DireccionCliente,
+            pk=direccion_edicion_id,
+            usuario=request.user,
+        )
+        direccion_edicion_form = ClienteDireccionForm(
+            request.POST if accion == 'editar_direccion' else None,
+            usuario=request.user,
+            tipo=direccion_edicion.tipo,
+            instance=direccion_edicion,
+        )
     if request.method == 'POST':
         if accion == 'perfil' and perfil_form.is_valid():
             perfil_form.save()
@@ -1246,8 +1340,24 @@ def cliente_configuracion_view(request):
             return redirect(
                 f"{reverse('cliente_configuracion')}#direcciones-{tipo_direccion}"
             )
+        elif accion == 'editar_direccion':
+            tipo_direccion = direccion_edicion.tipo
+            if direccion_edicion_form.is_valid():
+                direccion_edicion_form.save()
+                messages.success(request, 'La dirección se actualizó correctamente.')
+                return redirect(
+                    f"{reverse('cliente_configuracion')}#direcciones-{tipo_direccion}"
+                )
         elif accion not in ('perfil', 'contrasena'):
             messages.error(request, 'Selecciona qué información deseas actualizar.')
+    direcciones_envio = list(request.user.direcciones.filter(
+        tipo=DireccionCliente.TIPO_ENVIO,
+    ))
+    direcciones_facturacion = list(request.user.direcciones.filter(
+        tipo=DireccionCliente.TIPO_FACTURACION,
+    ))
+    for indice, direccion in enumerate(direcciones_envio + direcciones_facturacion):
+        direccion.color_hue = round((indice * 137.508) % 360, 3)
     return _vista_cliente(
         request,
         'usuarios/cliente_configuracion.html',
@@ -1256,13 +1366,11 @@ def cliente_configuracion_view(request):
             'password_form': password_form,
             'direccion_envio_form': direccion_envio_form,
             'direccion_facturacion_form': direccion_facturacion_form,
+            'direccion_edicion': direccion_edicion,
+            'direccion_edicion_form': direccion_edicion_form,
             'chile_dpa': CHILE_DPA,
-            'direcciones_envio': request.user.direcciones.filter(
-                tipo=DireccionCliente.TIPO_ENVIO,
-            ),
-            'direcciones_facturacion': request.user.direcciones.filter(
-                tipo=DireccionCliente.TIPO_FACTURACION,
-            ),
+            'direcciones_envio': direcciones_envio,
+            'direcciones_facturacion': direcciones_facturacion,
         },
     )
 

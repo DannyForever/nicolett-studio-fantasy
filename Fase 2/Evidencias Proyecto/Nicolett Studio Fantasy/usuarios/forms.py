@@ -162,8 +162,18 @@ class ClienteDireccionForm(forms.ModelForm):
         self.tipo = tipo
         kwargs.setdefault('prefix', tipo)
         super().__init__(*args, **kwargs)
+        if not self.is_bound and self.instance.pk:
+            self.initial.update({
+                'region': '',
+                'provincia': '',
+                'comuna': '',
+            })
 
-        selected_region = self.data.get(self.add_prefix('region')) if self.is_bound else ''
+        selected_region = (
+            self.data.get(self.add_prefix('region'))
+            if self.is_bound
+            else self.initial.get('region', '')
+        )
         if selected_region in REGIONES:
             provincias = REGIONES[selected_region]
             self.fields['provincia'].choices = [
@@ -171,7 +181,11 @@ class ClienteDireccionForm(forms.ModelForm):
                 *[(provincia, provincia) for provincia in provincias],
             ]
             self.fields['provincia'].disabled = False
-            selected_provincia = self.data.get(self.add_prefix('provincia'))
+            selected_provincia = (
+                self.data.get(self.add_prefix('provincia'))
+                if self.is_bound
+                else self.initial.get('provincia', '')
+            )
             if selected_provincia in provincias:
                 comunas = provincias[selected_provincia]['comunas']
                 self.fields['comuna'].choices = [
@@ -179,6 +193,13 @@ class ClienteDireccionForm(forms.ModelForm):
                     *[(comuna, comuna) for comuna in comunas],
                 ]
                 self.fields['comuna'].disabled = False
+                selected_comuna = (
+                    self.data.get(self.add_prefix('comuna'))
+                    if self.is_bound
+                    else self.initial.get('comuna', '')
+                )
+                if selected_comuna in comunas:
+                    self.initial['comuna'] = selected_comuna
 
         if tipo == DireccionCliente.TIPO_ENVIO:
             for name in ('rut', 'razon_social', 'giro'):

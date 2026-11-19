@@ -6,7 +6,10 @@
     {% if messages %}
         <div class="mx-auto mb-6 max-w-7xl space-y-2" aria-live="polite">
             {% for message in messages %}
-                <p class="border p-3 text-sm {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %}" role="status">{{ message }}</p>
+                <div class="flex items-center justify-between gap-4 border p-3 text-sm {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %}" role="status">
+                    <span>{{ message }}</span>
+                    <button type="button" data-dismiss-message aria-label="Cerrar mensaje" class="flex h-7 w-7 shrink-0 items-center justify-center text-lg leading-none opacity-70 transition hover:opacity-100">&times;</button>
+                </div>
             {% endfor %}
         </div>
     {% endif %}
@@ -101,6 +104,10 @@
     </dialog>
     <script>
         (() => {
+            document.querySelectorAll('[data-dismiss-message]').forEach(button => {
+                button.addEventListener('click', () => button.closest('[role="status"]').remove());
+            });
+
             const profileForm = document.getElementById('client-profile-form');
             const profileFields = [...profileForm.querySelectorAll('input:not([type="hidden"]), select, textarea')];
             const modifyButton = document.getElementById('edit-client-profile');

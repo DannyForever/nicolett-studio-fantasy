@@ -71,9 +71,6 @@
                                     {% if item.disponible %}
                                         <p class="mt-1 text-sm text-[#6b5643]">{{ item.precio|pesos }} · {{ item.duracion }} min</p>
                                         <p class="mt-1 text-sm text-[#6b5643]">{% if item.viene_con_acompanante %}Asistirás con acompañante{% else %}Asistirás sin acompañante{% endif %}</p>
-                                        {% if item.cita_completa and not item.reserva_vigente %}
-                                            <p class="mt-2 text-sm text-red-700">La reserva temporal de este horario venció o ya no es válida. Selecciona y guarda nuevamente un horario disponible.</p>
-                                        {% endif %}
                                     {% else %}
                                         <p class="mt-1 text-sm text-red-700">Este servicio ya no está activo. Elimínalo para continuar.</p>
                                     {% endif %}
@@ -90,49 +87,52 @@
                             </div>
 
                             {% if item.disponible %}
-                                <form method="post" action="{% url 'cliente_carrito_guardar_cita' item.key %}" class="js-cart-service mt-5 space-y-4 border-t border-[#ead7bc] pt-5"
-                                      data-service="{{ item.id }}" data-cart-item="{{ item.key }}" data-profesional-original="{{ item.profesional_id }}"
-                                      data-fecha-original="{{ item.fecha }}" data-hora-original="{{ item.hora }}">
-                                    {% csrf_token %}
-                                    <div class="grid gap-4 sm:grid-cols-3">
-                                        <div>
-                                            <label for="date-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Día de atención</label>
-                                            <input id="date-{{ forloop.counter }}" name="fecha" type="date" min="{{ hoy }}" value="{{ item.fecha }}" required class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm">
+                                {% if item.cita_completa and item.reserva_vigente %}
+                                    <form method="post" action="{% url 'cliente_carrito_guardar_cita' item.key %}" class="js-cart-service mt-5 space-y-4 border-t border-[#ead7bc] pt-5">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="fecha" value="{{ item.fecha }}">
+                                        <input type="hidden" name="profesional" value="{{ item.profesional_id }}">
+                                        <input type="hidden" name="hora" value="{{ item.hora }}">
+                                        <div class="grid gap-4 sm:grid-cols-3">
+                                            <div>
+                                                <p class="mb-2 text-sm font-medium">Día de atención</p>
+                                                <p class="border border-[#ead7bc] bg-[#f7f3ed] px-3 py-3 text-sm" aria-label="Día de atención bloqueado">{{ item.fecha_display }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="mb-2 text-sm font-medium">Profesional</p>
+                                                <p class="border border-[#ead7bc] bg-[#f7f3ed] px-3 py-3 text-sm" aria-label="Profesional bloqueado">{{ item.profesional_nombre }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="mb-2 text-sm font-medium">Hora</p>
+                                                <p class="border border-[#ead7bc] bg-[#f7f3ed] px-3 py-3 text-sm" aria-label="Hora bloqueada">{{ item.hora }}</p>
+                                            </div>
                                         </div>
+                                        <p class="text-xs text-[#6b5643]">Para cambiar los datos de la cita, elimina este servicio y selecciónalo nuevamente desde Servicios.</p>
                                         <div>
-                                            <label for="professional-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Profesional</label>
-                                            <select id="professional-{{ forloop.counter }}" name="profesional" required disabled class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm disabled:bg-[#fae9cf]">
-                                                <option value="">Consultando disponibilidad...</option>
+                                            <label for="payment-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Pago del servicio</label>
+                                            <select id="payment-{{ forloop.counter }}" name="pago" required class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm">
+                                                <option value="">Selecciona pago completo o abono...</option>
+                                                <option value="completo" {% if item.pago == 'completo' %}selected{% endif %}>Pagar completo · {{ item.precio|pesos }}</option>
+                                                <option value="abono" {% if item.pago == 'abono' %}selected{% endif %}>Abono $5.000{% if item.precio <= 5000 %} · pago completo por ser menor o igual al abono{% endif %}</option>
                                             </select>
                                         </div>
-                                        <div>
-                                            <label for="hour-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Hora</label>
-                                            <select id="hour-{{ forloop.counter }}" name="hora" required disabled class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm disabled:bg-[#fae9cf]">
-                                                <option value="">Selecciona profesional...</option>
-                                            </select>
-                                        </div>
+                                        <p class="text-sm text-[#6b5643]" aria-live="polite">
+                                            Cita reservada por 30 minutos · pagar ahora {{ item.monto_pagar|pesos }}{% if item.saldo %} · saldo pendiente {{ item.saldo|pesos }}{% endif %}
+                                        </p>
+                                    </form>
+                                {% else %}
+                                    <div class="mt-5 border-t border-[#ead7bc] pt-5 text-sm">
+                                        <p class="text-red-700">
+                                            {% if item.cita_completa %}
+                                                La reserva temporal venció o ya no es válida.
+                                            {% else %}
+                                                Este servicio aún no tiene un horario reservado.
+                                            {% endif %}
+                                            Selecciona un horario nuevamente desde Servicios.
+                                        </p>
+                                        <a href="{% url 'cliente_servicios' %}?servicio={{ item.id }}#servicios-semana" class="mt-2 inline-block text-[#5a3e27] underline">Volver a seleccionar horario</a>
                                     </div>
-                                    <div>
-                                        <label for="payment-{{ forloop.counter }}" class="mb-2 block text-sm font-medium">Pago del servicio</label>
-                                        <select id="payment-{{ forloop.counter }}" name="pago" required class="w-full border border-[#ead7bc] bg-white px-3 py-3 text-sm">
-                                            <option value="">Selecciona pago completo o abono...</option>
-                                            <option value="completo" {% if item.pago == 'completo' %}selected{% endif %}>Pagar completo · {{ item.precio|pesos }}</option>
-                                            <option value="abono" {% if item.pago == 'abono' %}selected{% endif %}>Abono $5.000{% if item.precio <= 5000 %} · pago completo por ser menor o igual al abono{% endif %}</option>
-                                        </select>
-                                    </div>
-                                    <label for="companion-{{ forloop.counter }}" class="flex cursor-pointer items-center gap-3 border border-[#ead7bc] bg-[#fffaf5] p-4 text-sm">
-                                        <input id="companion-{{ forloop.counter }}" name="viene_con_acompanante" type="checkbox" value="si" {% if item.viene_con_acompanante %}checked{% endif %} class="h-4 w-4 accent-[#5a3e27]">
-                                        <span>Asistiré con acompañante</span>
-                                    </label>
-                                    <p class="js-cart-status text-sm text-[#6b5643]" aria-live="polite">
-                                        {% if item.cita_completa %}
-                                            {% if item.reserva_vigente %}Cita reservada por 30 minutos{% else %}Horario sin reserva activa{% endif %} · pagar ahora {{ item.monto_pagar|pesos }}{% if item.saldo %} · saldo pendiente {{ item.saldo|pesos }}{% endif %}
-                                        {% else %}
-                                            Selecciona día, profesional, hora y modalidad de pago; luego guarda la cita.
-                                        {% endif %}
-                                    </p>
-                                    <button type="submit" class="border border-[#5a3e27] px-4 py-2 text-sm font-medium text-[#5a3e27] transition hover:bg-[#fae9cf]">Guardar cita</button>
-                                </form>
+                                {% endif %}
                             {% endif %}
                         </article>
                     {% endfor %}
@@ -172,8 +172,6 @@
         </div>
     </section>
 
-    {{ profesionales_url|json_script:"cart-professionals-url" }}
-    {{ horas_url|json_script:"cart-hours-url" }}
     <script>
         (() => {
             for (const product of document.querySelectorAll('[data-cart-product]')) {
@@ -210,112 +208,10 @@
                 }
             }
 
-            const professionalsUrl = JSON.parse(document.getElementById('cart-professionals-url').textContent);
-            const hoursUrl = JSON.parse(document.getElementById('cart-hours-url').textContent);
-            const checkoutButton = document.getElementById('confirmar-pago-carrito');
-
-            function reset(select, placeholder) {
-                select.replaceChildren(new Option(placeholder, ''));
-                select.disabled = true;
-            }
-
             for (const form of document.querySelectorAll('.js-cart-service')) {
-                const date = form.querySelector('[name="fecha"]');
-                const professional = form.querySelector('[name="profesional"]');
-                const hour = form.querySelector('[name="hora"]');
                 const payment = form.querySelector('[name="pago"]');
-                const status = form.querySelector('.js-cart-status');
-                const serviceId = form.dataset.service;
-
-                function markUnsaved() {
-                    form.dataset.dirty = 'true';
-                    if (checkoutButton) {
-                        checkoutButton.disabled = true;
-                    }
-                    status.textContent = 'Tienes cambios sin guardar. Guarda el servicio y la cita antes de pagar.';
-                }
-
-                async function loadHours() {
-                    reset(hour, 'Consultando horas...');
-                    if (!date.value || !professional.value) {
-                        return;
-                    }
-                    const params = new URLSearchParams({
-                        servicio: serviceId,
-                        fecha: date.value,
-                        profesional: professional.value,
-                        cart_item_key: form.dataset.cartItem,
-                    });
-                    const response = await fetch(`${hoursUrl}?${params}`);
-                    const data = await response.json();
-                    if (!response.ok) {
-                        throw new Error(data.error || 'No se pudieron consultar las horas.');
-                    }
-                    reset(hour, data.hours.length ? 'Selecciona una hora...' : 'No hay horas disponibles.');
-                    for (const value of data.hours) {
-                        hour.add(new Option(value, value));
-                    }
-                    hour.disabled = !data.hours.length;
-                    if (
-                        date.value === form.dataset.fechaOriginal
-                        && professional.value === form.dataset.profesionalOriginal
-                        && data.hours.includes(form.dataset.horaOriginal)
-                    ) {
-                        hour.value = form.dataset.horaOriginal;
-                    }
-                }
-
-                async function loadProfessionals() {
-                    reset(professional, 'Buscando profesionales...');
-                    reset(hour, 'Selecciona profesional...');
-                    if (!date.value) {
-                        status.textContent = 'Selecciona un día para consultar los profesionales y horarios.';
-                        return;
-                    }
-                    const params = new URLSearchParams({
-                        servicio: serviceId,
-                        fecha: date.value,
-                        cart_item_key: form.dataset.cartItem,
-                    });
-                    const response = await fetch(`${professionalsUrl}?${params}`);
-                    const data = await response.json();
-                    if (!response.ok) {
-                        throw new Error(data.error || 'No se pudieron consultar los profesionales.');
-                    }
-                    reset(professional, data.professionals.length ? 'Selecciona profesional...' : 'Sin profesionales disponibles.');
-                    for (const item of data.professionals) {
-                        professional.add(new Option(item.name, item.id));
-                    }
-                    professional.disabled = !data.professionals.length;
-                    if (data.professionals.some(item => String(item.id) === form.dataset.profesionalOriginal)) {
-                        professional.value = form.dataset.profesionalOriginal;
-                        await loadHours();
-                    }
-                    if (form.dataset.dirty !== 'true') {
-                        status.textContent = data.professionals.length
-                            ? 'Selecciona día, profesional, hora y forma de pago.'
-                            : 'No hay profesionales con horas disponibles para ese día.';
-                    }
-                }
-
-                date.addEventListener('change', () => {
-                    markUnsaved();
-                    loadProfessionals().catch(() => {
-                    status.textContent = 'No se pudo consultar disponibilidad. Intenta nuevamente.';
-                    });
-                });
-                professional.addEventListener('change', () => {
-                    markUnsaved();
-                    loadHours().catch(() => {
-                    status.textContent = 'No se pudieron consultar las horas. Intenta nuevamente.';
-                    });
-                });
-                hour.addEventListener('change', markUnsaved);
                 payment.addEventListener('change', () => {
-                    markUnsaved();
-                });
-                loadProfessionals().catch(() => {
-                    status.textContent = 'No se pudo consultar disponibilidad. Intenta nuevamente.';
+                    if (payment.value) form.requestSubmit();
                 });
             }
         })();

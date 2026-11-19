@@ -69,7 +69,7 @@
 
             <div class="mt-6 flex flex-wrap gap-3">
                 <a href="{% url 'cliente_carrito' %}" class="border border-[#5a3e27] px-5 py-3 text-sm font-medium text-[#5a3e27] no-underline">Editar carrito</a>
-                <form method="post" action="{% url 'cliente_carrito_pagar' %}">
+                <form method="post" action="{% url 'cliente_carrito_pagar' %}"{% if not modo_simulado %} data-webpay-checkout-form{% endif %}>
                     {% csrf_token %}
                     <button type="submit" {% if not puede_pagar %}disabled{% endif %} class="bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#4a3220] disabled:cursor-not-allowed disabled:opacity-50">
                         {% if modo_simulado %}Confirmar pago de prueba{% else %}Continuar a Webpay{% endif %}
@@ -81,4 +81,93 @@
             {% endif %}
         {% endif %}
     </section>
+
+    {% if not modo_simulado %}
+        <dialog data-webpay-dialog class="m-auto w-[min(92vw,34rem)] border-0 bg-transparent p-0 shadow-2xl backdrop:bg-black/50">
+            <section class="border border-[#ead7bc] bg-white p-6 sm:p-8">
+                <div class="flex items-start justify-between gap-4">
+                    <h2 class="font-serif text-2xl">Continuar con Webpay Plus</h2>
+                    <button type="button" data-webpay-close class="flex h-9 w-9 shrink-0 items-center justify-center border border-[#ead7bc] text-[#5a3e27]" aria-label="Cerrar mensaje">×</button>
+                </div>
+                <p data-webpay-message class="mt-4 text-sm text-[#6b5643]">En Webpay podrás elegir crédito, débito o prepago. Cada intento se abre una sola vez en otra pestaña.</p>
+                <p data-webpay-already-open hidden class="mt-3 border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Este intento ya fue enviado a Webpay. Para volver a intentarlo, primero regresa al carrito y verifica el estado del pago.</p>
+                <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <form data-webpay-launch action="{% url 'cliente_webpay_abrir' %}" method="post" target="_blank" rel="noopener">
+                        {% csrf_token %}
+                        <input type="hidden" name="ref" data-webpay-reference>
+                        <button type="submit" class="w-full bg-[#5a3e27] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#4a3220]">Ir al formulario de tarjeta</button>
+                    </form>
+                    <form action="{% url 'cliente_webpay_volver_carrito' %}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="ref" data-webpay-reference>
+                        <button type="submit" class="w-full border border-[#5a3e27] px-5 py-3 text-sm font-medium text-[#5a3e27] transition hover:bg-[#fffaf5]">Volver al carrito y modificar la compra</button>
+                    </form>
+                </div>
+            </section>
+        </dialog>
+        <p data-webpay-error role="alert" class="mx-auto mt-3 hidden max-w-3xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"></p>
+        <script>
+            (function () {
+                const form = document.querySelector('[data-webpay-checkout-form]');
+                const dialog = document.querySelector('[data-webpay-dialog]');
+                if (!form || !dialog) return;
+
+                const errorMessage = document.querySelector('[data-webpay-error]');
+                const launchForm = dialog.querySelector('[data-webpay-launch]');
+                const alreadyOpenMessage = dialog.querySelector('[data-webpay-already-open]');
+                const checkoutButton = form.querySelector('button[type="submit"]');
+
+                form.addEventListener('submit', async function (event) {
+                    event.preventDefault();
+                    errorMessage.hidden = true;
+                    checkoutButton.disabled = true;
+                    const originalText = checkoutButton.textContent;
+                    checkoutButton.textContent = 'Conectando con Webpay...';
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            credentials: 'same-origin',
+                            headers: {'X-Requested-With': 'XMLHttpRequest'},
+                        });
+                        if (response.redirected) {
+                            window.location.assign(response.url);
+                            return;
+                        }
+                        if (!response.ok) {
+                            throw new Error('No fue posible iniciar Webpay (error ' + response.status + ').');
+                        }
+                        const contentType = response.headers.get('content-type') || '';
+                        if (!contentType.includes('application/json')) {
+                            throw new Error('El servidor no pudo preparar el formulario de Webpay. No se realizó ningún cobro; vuelve a intentarlo.');
+                        }
+
+                        const data = await response.json();
+                        dialog.querySelectorAll('[data-webpay-reference]').forEach(function (input) {
+                            input.value = data.referencia;
+                        });
+                        launchForm.hidden = data.webpay_abierto;
+                        alreadyOpenMessage.hidden = !data.webpay_abierto;
+                        dialog.showModal();
+                    } catch (error) {
+                        errorMessage.textContent = error.message || 'No se pudo conectar con Webpay. No se realizó ningún cobro; vuelve a intentarlo.';
+                        errorMessage.hidden = false;
+                    } finally {
+                        checkoutButton.disabled = false;
+                        checkoutButton.textContent = originalText;
+                    }
+                });
+
+                dialog.querySelector('[data-webpay-close]').addEventListener('click', function () {
+                    dialog.close();
+                });
+                launchForm.addEventListener('submit', function () {
+                    const button = launchForm.querySelector('button');
+                    button.disabled = true;
+                    button.textContent = 'Webpay se abrió en otra pestaña';
+                });
+            })();
+        </script>
+    {% endif %}
 {% endblock %}

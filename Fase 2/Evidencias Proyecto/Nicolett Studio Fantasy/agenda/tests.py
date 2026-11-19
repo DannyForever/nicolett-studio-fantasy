@@ -4,6 +4,7 @@ from datetime import datetime, time, timedelta
 from urllib.parse import urlparse
 
 from django.core import mail
+from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -142,6 +143,107 @@ class AgendaTests(TestCase):
         self.assertNotContains(response, 'Ver ficha técnica')
         self.assertNotContains(response, 'No hay citas para mostrar.')
         self.assertNotContains(response, 'Agendar cita presencial')
+
+    def test_demo_availability_populates_customer_calendar_idempotently(self):
+        categoria = Categoria.objects.create(
+            nombre='Categoría de agenda demo',
+            tipo='servicio',
+            activa=True,
+        )
+        servicios = [
+            Servicio.objects.create(
+                nombre=f'Servicio demo {indice}',
+                categoria=categoria,
+                duracion_minutos=60,
+                precio=12000,
+                activo=True,
+            )
+            for indice in range(2)
+        ]
+        categoria_sin_especialista = Categoria.objects.create(
+            nombre='Categoría sin especialista demo',
+            tipo='servicio',
+            activa=True,
+        )
+        servicio_sin_especialista = Servicio.objects.create(
+            nombre='Servicio con especialista demo nuevo',
+            categoria=categoria_sin_especialista,
+            duracion_minutos=60,
+            precio=16000,
+            activo=True,
+        )
+        segundo_profesional = Usuario(
+            nombre='Andrea',
+            apellido_paterno='Demo',
+            apellido_materno='Agenda',
+            telefono='+56912345679',
+            email='andrea.demo.agenda@example.com',
+            rol=self.profesional.rol,
+        )
+        segundo_profesional.set_unusable_password()
+        segundo_profesional.save()
+        for profesional in (self.profesional, segundo_profesional):
+            ProfesionalCategoria.objects.create(
+                profesional=profesional,
+                categoria_id=categoria.pk,
+            )
+
+        call_command('cargar_disponibilidad_demo', verbosity=0)
+
+        hoy = timezone.localdate()
+        fechas = [
+            hoy + timedelta(days=adelante)
+            for adelante in range(1, 31)
+            if (hoy + timedelta(days=adelante)).weekday() != 6
+        ]
+        bloques = Disponibilidad.objects.filter(
+            servicio_id__in=[servicio.pk for servicio in servicios],
+            fecha_especifica__in=fechas,
+            activo=True,
+        )
+        cantidad_bloques = bloques.count()
+        self.assertGreaterEqual(cantidad_bloques, 100)
+        self.assertEqual(
+            set(bloques.values_list('profesional_id', flat=True)),
+            {self.profesional.pk, segundo_profesional.pk},
+        )
+        self.assertGreaterEqual(
+            len(set(bloques.values_list('servicio_id', flat=True))),
+            2,
+        )
+        especialista_demo = ProfesionalCategoria.objects.get(
+            categoria_id=categoria_sin_especialista.pk,
+        ).profesional
+        self.assertIn('Demo', especialista_demo.nombre)
+        self.assertTrue(
+            Disponibilidad.objects.filter(
+                servicio_id=servicio_sin_especialista.pk,
+                profesional=especialista_demo,
+                activo=True,
+            ).exists(),
+        )
+
+        call_command('cargar_disponibilidad_demo', verbosity=0)
+        self.assertEqual(bloques.count(), cantidad_bloques)
+
+        fecha_disponible = fechas[0]
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        calendario = self.client.get(
+            reverse('cliente_calendario_disponibilidad'),
+            {
+                'servicio': servicios[0].pk,
+                'mes': fecha_disponible.strftime('%Y-%m'),
+            },
+        )
+        self.assertEqual(calendario.status_code, 200)
+        dia = next(
+            dia
+            for semana in calendario.json()['weeks']
+            for dia in semana
+            if dia['date'] == fecha_disponible.isoformat()
+        )
+        self.assertTrue(dia['available'])
 
     def test_admin_calendar_explains_enabled_services_and_closed_day_reason(self):
         self.crear_bloque('09:00')
@@ -394,7 +496,10 @@ class AgendaTests(TestCase):
         cliente = self.crear_cliente()
         self.client.force_login(cliente)
 
-        page = self.client.get(reverse('cliente_agendamiento'))
+        page = self.client.get(
+            reverse('cliente_servicios'),
+            {'servicio': self.servicio.pk},
+        )
         professionals = self.client.get(
             reverse('cliente_profesionales_disponibles'),
             {'servicio': self.servicio.pk, 'fecha': self.fecha.isoformat()},
@@ -409,9 +514,10 @@ class AgendaTests(TestCase):
         )
 
         self.assertEqual(page.status_code, 200)
-        self.assertContains(page, 'Agendar una cita')
+        self.assertContains(page, 'Selecciona fecha y hora')
         self.assertContains(page, 'Manicure')
         self.assertContains(page, 'Asistiré con acompañante')
+        self.assertContains(page, f"const initialServiceId = '{self.servicio.pk}'")
         self.assertEqual(professionals.status_code, 200)
         self.assertEqual(
             [item['id'] for item in professionals.json()['professionals']],
@@ -432,7 +538,7 @@ class AgendaTests(TestCase):
 
         self.assertRedirects(
             response,
-            f"{reverse('cliente_agendamiento')}?abrir_carrito=1",
+            f"{reverse('cliente_servicios')}?servicio={self.servicio.pk}#servicios-semana",
         )
         self.assertFalse(Reserva.objects.filter(cliente=cliente).exists())
         cita_carrito = self.client.session['carrito_compra']['servicios'][0]
@@ -448,14 +554,19 @@ class AgendaTests(TestCase):
                 vence_en__gt=timezone.now(),
             ).exists()
         )
-        agendamiento = self.client.get(response['Location'])
-        self.assertContains(agendamiento, 'Resumen de compra')
-        self.assertContains(agendamiento, 'abrir_carrito')
-        self.assertContains(agendamiento, 'Manicure')
-        self.assertContains(agendamiento, self.fecha.isoformat())
-        self.assertContains(agendamiento, 'Juan Pérez')
+        catalogo = self.client.get(response['Location'])
+        self.assertContains(catalogo, 'id="serviceBookingCalendar"')
+        self.assertContains(catalogo, 'Manicure')
+        self.assertNotContains(catalogo, 'abrir_carrito=1')
+        self.assertNotContains(catalogo, 'La cita quedó preparada')
+        self.assertEqual(catalogo.context['cantidad_articulos_carrito'], 1)
+        self.assertContains(catalogo, 'id="cart-summary-panel" hidden')
         carrito = self.client.get(reverse('cliente_carrito'))
         self.assertContains(carrito, 'Manicure')
+        self.assertContains(carrito, self.fecha.strftime('%d/%m/%Y'))
+        self.assertContains(carrito, 'Juan Pérez')
+        self.assertContains(carrito, '09:00')
+        self.assertNotContains(carrito, 'Guardar cita')
         self.assertContains(carrito, 'Asistirás con acompañante')
         self.assertContains(carrito, self.fecha.isoformat())
         self.assertContains(carrito, 'Juan Pérez')
@@ -580,7 +691,11 @@ class AgendaTests(TestCase):
             for day in week
         }
         self.assertTrue(days[self.fecha.isoformat()]['available'])
-        self.assertContains(self.client.get(reverse('cliente_agendamiento')), 'id="bookingCalendar"')
+        response = self.client.get(reverse('cliente_agendamiento'))
+        self.assertRedirects(
+            response,
+            f"{reverse('cliente_servicios')}#servicios-semana",
+        )
 
     def test_client_cannot_book_unavailable_or_overlapping_appointment(self):
         self.crear_bloque('09:00')

@@ -84,6 +84,39 @@ class CarritoTests(TestCase):
         )
         self.client.force_login(self.cliente)
 
+    def crear_cita_en_carrito(
+        self,
+        pago='completo',
+        profesional=None,
+        hora='10:00',
+        fecha=None,
+        viene_con_acompanante=False,
+    ):
+        profesional = profesional or self.profesional
+        fecha = fecha or self.fecha
+        response = self.client.post(
+            reverse('cliente_crear_reserva'),
+            {
+                'servicio': self.servicio.pk,
+                'profesional': profesional.pk,
+                'fecha': fecha.isoformat(),
+                'hora': hora,
+                'viene_con_acompanante': 'si' if viene_con_acompanante else '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        item = self.client.session['carrito_compra']['servicios'][-1]
+        self.client.post(
+            reverse('cliente_carrito_guardar_cita', args=[item['key']]),
+            {
+                'fecha': fecha.isoformat(),
+                'profesional': str(profesional.pk),
+                'hora': hora,
+                'pago': pago,
+            },
+        )
+        return item['key']
+
     def test_product_quantities_recalculate_and_checkout_updates_stock(self):
         add_url = reverse('cliente_carrito_agregar_producto', args=[self.producto.pk])
         self.client.post(add_url, {'cantidad': 1})
@@ -151,6 +184,56 @@ class CarritoTests(TestCase):
         self.assertEqual(self.producto.stock, 10)
         self.assertFalse(ReservaProductoCarrito.objects.exists())
 
+    def test_product_add_and_remove_keep_selected_category_without_success_notices(self):
+        categoria = Categoria.objects.create(nombre='Tratamientos capilares', tipo='producto')
+        otra_categoria = Categoria.objects.create(nombre='Cuidado facial', tipo='producto')
+        producto = Producto.objects.create(
+            nombre='Tratamiento de prueba',
+            categoria=categoria,
+            precio=Decimal('5000'),
+            stock=5,
+            activo=True,
+        )
+        otro_producto = Producto.objects.create(
+            nombre='Producto de otra categoría',
+            categoria=otra_categoria,
+            precio=Decimal('6000'),
+            stock=5,
+            activo=True,
+        )
+        catalog_url = f'{reverse("cliente_productos")}?categoria={categoria.pk}'
+
+        add_response = self.client.post(
+            reverse('cliente_carrito_agregar_producto', args=[producto.pk]),
+            {'cantidad': 1, 'return_to': catalog_url},
+        )
+        self.assertEqual(add_response.status_code, 302)
+        self.assertEqual(add_response['Location'], catalog_url)
+
+        catalog = self.client.get(catalog_url)
+        self.assertContains(catalog, producto.nombre)
+        self.assertNotContains(catalog, otro_producto.nombre)
+        self.assertContains(catalog, f'value="{catalog_url}"')
+        self.assertNotContains(catalog, 'se añadió y quedó reservado')
+
+        remove_response = self.client.post(
+            reverse('cliente_carrito_actualizar'),
+            {
+                'tipo': 'producto',
+                'clave': producto.pk,
+                'cantidad': 0,
+                'return_to': catalog_url,
+            },
+        )
+        self.assertEqual(remove_response.status_code, 302)
+        self.assertEqual(remove_response['Location'], catalog_url)
+
+        catalog_after_remove = self.client.get(catalog_url)
+        self.assertContains(catalog_after_remove, producto.nombre)
+        self.assertNotContains(catalog_after_remove, otro_producto.nombre)
+        self.assertNotContains(catalog_after_remove, 'Producto eliminado y stock devuelto.')
+        self.assertFalse(ReservaProductoCarrito.objects.filter(producto_id=producto.pk).exists())
+
     def test_cart_summary_and_quantity_controls_update_and_return_to_previous_page(self):
         self.client.post(
             reverse('cliente_carrito_agregar_producto', args=[self.producto.pk]),
@@ -187,30 +270,64 @@ class CarritoTests(TestCase):
         self.assertContains(cart_page, 'Eliminar Esmalte carrito')
         self.assertNotContains(cart_page, 'Actualizar')
 
-    def test_service_summary_can_add_and_remove_a_service_appointment(self):
+    def test_legacy_add_service_route_redirects_to_booking_without_adding_incomplete_item(self):
         response = self.client.post(
             reverse('cliente_carrito_agregar_servicio', args=[self.servicio.pk]),
         )
-        self.assertRedirects(response, reverse('cliente_servicios'))
+        self.assertRedirects(
+            response,
+            f"{reverse('cliente_servicios')}?servicio={self.servicio.pk}#servicios-semana",
+        )
 
         catalog = self.client.get(reverse('cliente_servicios'))
         self.assertContains(catalog, 'Manicure carrito')
-        self.assertContains(catalog, 'Aumentar citas de Manicure carrito')
-        self.assertContains(catalog, 'Eliminar Manicure carrito')
-        service_key = self.client.session['carrito_compra']['servicios'][0]['key']
+        self.assertEqual(
+            self.client.session.get('carrito_compra', {}).get('servicios', []),
+            [],
+        )
+        self.assertFalse(ReservaCitaTemporal.objects.exists())
+
+    def test_removing_reserved_service_releases_its_available_slot(self):
+        key = self.crear_cita_en_carrito()
 
         response = self.client.post(
             reverse('cliente_carrito_actualizar'),
+            {'tipo': 'servicio', 'clave': key},
+        )
+
+        self.assertRedirects(response, reverse('cliente_carrito'))
+        self.assertFalse(ReservaCitaTemporal.objects.exists())
+        self.assertEqual(self.client.session['carrito_compra']['servicios'], [])
+        hours = self.client.get(
+            reverse('cliente_horas_disponibles'),
             {
-                'tipo': 'servicio',
-                'clave': service_key,
-                'return_to': reverse('cliente_servicios'),
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+            },
+        )
+        self.assertEqual(hours.json()['hours'], ['10:00'])
+
+    def test_cart_payment_update_cannot_change_reserved_appointment_details(self):
+        key = self.crear_cita_en_carrito()
+        another_date = self.fecha + timedelta(days=1)
+
+        response = self.client.post(
+            reverse('cliente_carrito_guardar_cita', args=[key]),
+            {
+                'fecha': another_date.isoformat(),
+                'profesional': str(self.profesional.pk),
+                'hora': '10:00',
+                'pago': 'abono',
             },
         )
 
-        self.assertRedirects(response, reverse('cliente_servicios'))
-        self.assertEqual(self.client.session['carrito_compra']['servicios'], [])
-        self.assertFalse(ReservaCitaTemporal.objects.exists())
+        self.assertRedirects(response, reverse('cliente_carrito'))
+        item = self.client.session['carrito_compra']['servicios'][0]
+        self.assertEqual(item['fecha'], self.fecha.isoformat())
+        self.assertEqual(item['pago'], 'completo')
+        hold = ReservaCitaTemporal.objects.get(cart_item_key=key)
+        self.assertEqual(hold.fecha, self.fecha)
 
     def test_service_without_future_availability_cannot_be_added_to_cart(self):
         servicio = Servicio.objects.create(
@@ -223,29 +340,19 @@ class CarritoTests(TestCase):
 
         response = self.client.post(
             reverse('cliente_carrito_agregar_servicio', args=[servicio.pk]),
-            follow=True,
         )
 
-        self.assertContains(response, 'no tiene horarios disponibles')
+        self.assertEqual(
+            response['Location'],
+            f"{reverse('cliente_servicios')}?servicio={servicio.pk}#servicios-semana",
+        )
         self.assertEqual(
             self.client.session.get('carrito_compra', {}).get('servicios', []),
             [],
         )
 
     def test_expired_appointment_reservation_releases_the_slot_and_removes_cart_item(self):
-        self.client.post(
-            reverse('cliente_carrito_agregar_servicio', args=[self.servicio.pk]),
-        )
-        key = self.client.session['carrito_compra']['servicios'][0]['key']
-        self.client.post(
-            reverse('cliente_carrito_guardar_cita', args=[key]),
-            {
-                'fecha': self.fecha.isoformat(),
-                'profesional': self.profesional.pk,
-                'hora': '10:00',
-                'pago': 'completo',
-            },
-        )
+        key = self.crear_cita_en_carrito()
         reserva_temporal = ReservaCitaTemporal.objects.get(cart_item_key=key)
         self.assertEqual(reserva_temporal.duracion_minutos, self.servicio.duracion_minutos)
         ReservaCitaTemporal.objects.filter(pk=reserva_temporal.pk).update(
@@ -297,18 +404,7 @@ class CarritoTests(TestCase):
         self.client.post(reverse('cliente_carrito_pagar'))
         self.assertFalse(Pedido.objects.exists())
 
-        carrito = self.client.session['carrito_compra']
-        key = carrito['servicios'][0]['key']
-        response = self.client.post(
-            reverse('cliente_carrito_guardar_cita', args=[key]),
-            {
-                'fecha': self.fecha.isoformat(),
-                'profesional': self.profesional.pk,
-                'hora': '10:00',
-                'pago': 'abono',
-            },
-        )
-        self.assertRedirects(response, reverse('cliente_carrito'))
+        key = self.crear_cita_en_carrito(pago='abono')
 
         horas_reservadas = self.client.get(
             reverse('cliente_horas_disponibles'),
@@ -338,7 +434,10 @@ class CarritoTests(TestCase):
         self.assertContains(cart, 'Servicios (pago completo)')
         self.assertContains(cart, 'Servicios (abono)')
         self.assertContains(cart, 'Saldos pendientes')
-        self.assertContains(cart, 'Guardar cita')
+        self.assertContains(cart, 'Día de atención bloqueado')
+        self.assertContains(cart, 'Profesional bloqueado')
+        self.assertContains(cart, 'Hora bloqueada')
+        self.assertNotContains(cart, 'Guardar cita')
         self.assertNotContains(cart, 'ficticio')
         self.assertNotContains(cart, 'saldo $7000 en el salón')
 
@@ -371,19 +470,9 @@ class CarritoTests(TestCase):
 
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
     def test_service_can_be_paid_in_full_and_emails_confirmation(self):
-        self.client.post(
-            reverse('cliente_carrito_agregar_servicio', args=[self.servicio.pk]),
-        )
-        key = self.client.session['carrito_compra']['servicios'][0]['key']
-        self.client.post(
-            reverse('cliente_carrito_guardar_cita', args=[key]),
-            {
-                'fecha': self.fecha.isoformat(),
-                'profesional': self.profesional.pk,
-                'hora': '10:00',
-                'pago': 'completo',
-                'viene_con_acompanante': 'si',
-            },
+        self.crear_cita_en_carrito(
+            pago='completo',
+            viene_con_acompanante=True,
         )
 
         cart = self.client.get(reverse('cliente_carrito'))
@@ -440,19 +529,7 @@ class CarritoTests(TestCase):
             reverse('cliente_carrito_agregar_producto', args=[self.producto.pk]),
             {'cantidad': 2},
         )
-        self.client.post(
-            reverse('cliente_carrito_agregar_servicio', args=[self.servicio.pk]),
-        )
-        key = self.client.session['carrito_compra']['servicios'][0]['key']
-        self.client.post(
-            reverse('cliente_carrito_guardar_cita', args=[key]),
-            {
-                'fecha': self.fecha.isoformat(),
-                'profesional': self.profesional.pk,
-                'hora': '10:00',
-                'pago': 'abono',
-            },
-        )
+        self.crear_cita_en_carrito(pago='abono')
 
         response = self.client.post(reverse('cliente_carrito_pagar'))
 
@@ -501,26 +578,35 @@ class CarritoTests(TestCase):
             profesional=segundo_profesional,
             servicio_id=self.servicio.pk,
         )
-        self.client.post(
-            reverse('cliente_carrito_agregar_servicio', args=[self.servicio.pk]),
+        key = self.crear_cita_en_carrito()
+        second_key = 'overlapping-service-key'
+        session = self.client.session
+        carrito = session['carrito_compra']
+        carrito['servicios'].append({
+            'key': second_key,
+            'id': self.servicio.pk,
+            'fecha': self.fecha.isoformat(),
+            'profesional': str(segundo_profesional.pk),
+            'hora': '10:00',
+            'pago': 'completo',
+            'viene_con_acompanante': False,
+        })
+        session['carrito_compra'] = carrito
+        session.save()
+        ReservaCitaTemporal.objects.create(
+            session_key=session.session_key,
+            cart_item_key=second_key,
+            servicio_id=self.servicio.pk,
+            profesional=segundo_profesional,
+            fecha=self.fecha,
+            hora=datetime.strptime('10:00', '%H:%M').time(),
+            duracion_minutos=self.servicio.duracion_minutos,
+            vence_en=timezone.now() + timedelta(minutes=30),
         )
-        self.client.post(
-            reverse('cliente_carrito_agregar_servicio', args=[self.servicio.pk]),
+        self.assertIn(
+            key,
+            [item['key'] for item in self.client.session['carrito_compra']['servicios']],
         )
-        servicios = self.client.session['carrito_compra']['servicios']
-        for linea, profesional in zip(
-            servicios,
-            (self.profesional, segundo_profesional),
-        ):
-            self.client.post(
-                reverse('cliente_carrito_guardar_cita', args=[linea['key']]),
-                {
-                    'fecha': self.fecha.isoformat(),
-                    'profesional': profesional.pk,
-                    'hora': '10:00',
-                    'pago': 'completo',
-                },
-            )
 
         self.client.post(reverse('cliente_carrito_pagar'))
 
@@ -602,6 +688,35 @@ class CarritoTests(TestCase):
         self.assertEqual(response_reintentado.status_code, 200)
         self.assertNotContains(response_reintentado, 'name="token_ws"')
         self.assertContains(response_reintentado, 'Este intento ya fue enviado a Webpay')
+        mock_create.assert_called_once()
+
+    @override_settings(TRANSBANK_ENVIRONMENT='INTEGRATION')
+    @patch('carrito.views.create_transaction')
+    @patch('carrito.views.get_transaction')
+    def test_ajax_transbank_checkout_returns_modal_data(self, mock_gateway, mock_create):
+        mock_create.return_value = {
+            'token': 'token-integracion',
+            'url': 'https://webpay3gint.transbank.cl/webpayserver/initTransaction',
+        }
+        self.client.post(
+            reverse('cliente_carrito_agregar_producto', args=[self.producto.pk]),
+            {'cantidad': 1},
+        )
+
+        response = self.client.post(
+            reverse('cliente_carrito_pagar'),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['webpay_abierto'], False)
+        self.assertTrue(response.json()['referencia'])
+        self.assertTrue(TransbankPago.objects.filter(cliente=self.cliente, estado='pendiente').exists())
+        checkout = self.client.get(reverse('cliente_carrito_checkout'))
+        self.assertContains(checkout, 'data-webpay-dialog')
+        self.assertContains(checkout, 'Ir al formulario de tarjeta')
+        self.assertContains(checkout, 'Volver al carrito y modificar la compra')
+        mock_gateway.assert_called_once()
         mock_create.assert_called_once()
 
     @override_settings(TRANSBANK_ENVIRONMENT='INTEGRATION')
@@ -733,6 +848,7 @@ class CarritoTests(TestCase):
             reverse('cliente_carrito_agregar_producto', args=[self.producto.pk]),
             {'cantidad': 1},
         )
+        self.crear_cita_en_carrito()
         session = self.client.session
         intento = TransbankPago.objects.create(
             cliente=self.cliente,
@@ -766,6 +882,19 @@ class CarritoTests(TestCase):
         self.assertRedirects(response, reverse('cliente_carrito'))
         self.assertEqual(intento.estado, 'rechazado')
         self.assertEqual(self.client.session['carrito_compra']['productos'], {str(self.producto.pk): 1})
+        self.assertEqual(self.client.session['carrito_compra']['servicios'], [])
+        self.assertFalse(ReservaCitaTemporal.objects.filter(
+            session_key=session.session_key,
+        ).exists())
+        hours = self.client.get(
+            reverse('cliente_horas_disponibles'),
+            {
+                'servicio': self.servicio.pk,
+                'profesional': self.profesional.pk,
+                'fecha': self.fecha.isoformat(),
+            },
+        )
+        self.assertEqual(hours.json()['hours'], ['10:00'])
         mock_status.assert_called_once_with(mock_gateway.return_value, intento.token)
 
     @override_settings(TRANSBANK_ENVIRONMENT='INTEGRATION')
@@ -938,12 +1067,14 @@ class CarritoTests(TestCase):
 
     @override_settings(TRANSBANK_ENVIRONMENT='INTEGRATION')
     def test_transbank_cancel_callback_requires_matching_attempt_data(self):
+        self.crear_cita_en_carrito()
+        session = self.client.session
         intento = TransbankPago.objects.create(
             cliente=self.cliente,
             buy_order='orden-prueba-2',
             session_id='sesion-prueba-2',
-            session_key='session-test-key',
-            carrito={},
+            session_key=session.session_key,
+            carrito=session['carrito_compra'],
             monto=Decimal('2500'),
             token='token-integracion-cancelado',
             estado='pendiente',
@@ -979,6 +1110,10 @@ class CarritoTests(TestCase):
         self.assertEqual(respuesta_cancelada.status_code, 200)
         self.assertEqual(intento.estado, 'anulado')
         self.assertFalse(Pedido.objects.exists())
+        self.assertFalse(ReservaCitaTemporal.objects.filter(
+            session_key=session.session_key,
+        ).exists())
+        self.assertEqual(self.client.session['carrito_compra']['servicios'], [])
 
     @override_settings(TRANSBANK_ENVIRONMENT='INTEGRATION')
     def test_transbank_cancel_callback_accepts_get_return(self):

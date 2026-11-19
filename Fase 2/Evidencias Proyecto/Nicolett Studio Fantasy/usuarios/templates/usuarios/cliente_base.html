@@ -1,7 +1,7 @@
 {% load static %}
 {% load moneda %}
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="{% if request.resolver_match.url_name == 'cliente_configuracion' %}client-settings-document{% endif %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +10,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * {
+            scrollbar-color: #ead7bc transparent;
+            scrollbar-width: thin;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            border-radius: 3px;
+            background: #ead7bc;
+        }
+
         body {
             background-image:
                 linear-gradient(132deg, transparent 0 36%, rgb(189 140 67 / 7%) 36.2%, transparent 37%),
@@ -1078,7 +1097,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="{% static 'css/client-dashboard.css' %}?v=20261118-12">
+    <link rel="stylesheet" href="{% static 'css/client-dashboard.css' %}?v=20261118-16">
     <script>
         tailwind.config = {
             theme: {
@@ -1100,7 +1119,7 @@
         };
     </script>
 </head>
-<body class="client-platform flex min-h-screen flex-col bg-[#fffaf5] font-sans text-[#281b14] antialiased {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}client-about-page{% endif %} {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}client-bookings-page{% endif %}">
+<body class="client-platform flex min-h-screen flex-col bg-[#fffaf5] font-sans text-[#281b14] antialiased {% if request.resolver_match.url_name == 'cliente_home' or request.resolver_match.url_name == 'cliente_sobre_nosotros' %}client-about-page{% endif %} {% if request.resolver_match.url_name == 'cliente_gestionar_citas' %}client-bookings-page{% endif %} {% if request.resolver_match.url_name == 'cliente_configuracion' %}client-settings-page{% endif %}">
     <script>
         if (window.matchMedia('(min-width: 1024px)').matches
             && window.localStorage.getItem('nicolett-client-sidebar-collapsed') === 'true') {
@@ -1162,7 +1181,7 @@
                                             <input type="hidden" name="tipo" value="{{ item.tipo }}">
                                             <input type="hidden" name="clave" value="{{ item.key }}">
                                             <input type="hidden" name="cantidad" value="0">
-                                            <input type="hidden" name="return_to" value="{{ request.path }}">
+                                            <input type="hidden" name="return_to" value="{{ request.get_full_path }}">
                                             <button type="submit" aria-label="Eliminar {{ item.nombre }}" class="border-0 bg-transparent px-1 text-sm text-red-700 hover:text-red-900">Eliminar</button>
                                         </form>
                                     {% endif %}
@@ -1174,7 +1193,7 @@
                                             <input type="hidden" name="tipo" value="producto">
                                             <input type="hidden" name="clave" value="{{ item.key }}">
                                             <input type="hidden" name="cantidad" value="{{ item.cantidad|add:'-1' }}">
-                                            <input type="hidden" name="return_to" value="{{ request.path }}">
+                                            <input type="hidden" name="return_to" value="{{ request.get_full_path }}">
                                             <button type="submit" aria-label="Disminuir cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ead7bc] text-sm hover:bg-[#fae9cf]">&minus;</button>
                                         </form>
                                         <span class="min-w-6 text-center text-xs">{{ item.cantidad }}</span>
@@ -1183,31 +1202,18 @@
                                             <input type="hidden" name="tipo" value="producto">
                                             <input type="hidden" name="clave" value="{{ item.key }}">
                                             <input type="hidden" name="cantidad" value="{{ item.cantidad|add:'1' }}">
-                                            <input type="hidden" name="return_to" value="{{ request.path }}">
+                                            <input type="hidden" name="return_to" value="{{ request.get_full_path }}">
                                             <button type="submit" aria-label="Aumentar cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ead7bc] text-sm hover:bg-[#fae9cf]">+</button>
                                         </form>
                                     </div>
                                 {% else %}
-                                    <div class="mt-2 flex items-center gap-2">
+                                    <div class="mt-2">
                                         <form method="post" action="{{ item.url }}">
                                             {% csrf_token %}
                                             <input type="hidden" name="tipo" value="servicio">
                                             <input type="hidden" name="clave" value="{{ item.key }}">
                                             <input type="hidden" name="return_to" value="{{ request.path }}">
-                                            <button type="submit" aria-label="Disminuir cantidad de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ead7bc] text-sm hover:bg-[#fae9cf]">&minus;</button>
-                                        </form>
-                                        <span class="min-w-6 text-center text-xs">1</span>
-                                        <form method="post" action="{{ item.agregar_url }}">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="return_to" value="{{ request.path }}">
-                                            <button type="submit" aria-label="Aumentar citas de {{ item.nombre }}" class="flex h-7 w-7 items-center justify-center border border-[#ead7bc] text-sm hover:bg-[#fae9cf]">+</button>
-                                        </form>
-                                        <form method="post" action="{{ item.url }}">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="tipo" value="servicio">
-                                            <input type="hidden" name="clave" value="{{ item.key }}">
-                                            <input type="hidden" name="return_to" value="{{ request.path }}">
-                                            <button type="submit" aria-label="Eliminar {{ item.nombre }}" class="border-0 bg-transparent px-1 text-xs text-red-700 hover:text-red-900">Eliminar</button>
+                                            <button type="submit" aria-label="Eliminar cita de {{ item.nombre }}" class="border-0 bg-transparent px-1 text-xs text-red-700 hover:text-red-900">Eliminar</button>
                                         </form>
                                     </div>
                                 {% endif %}

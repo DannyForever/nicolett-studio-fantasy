@@ -1057,6 +1057,12 @@ def cliente_calendario_disponibilidad_json(request):
 @user_passes_test(es_cliente, login_url='login')
 @require_POST
 def crear_reserva_cliente(request):
+    def volver_a_servicios(servicio_id=None):
+        destino = reverse('cliente_servicios')
+        if servicio_id:
+            return redirect(f'{destino}?servicio={servicio_id}#servicios-semana')
+        return redirect(f'{destino}#servicios-semana')
+
     try:
         fecha = date.fromisoformat(request.POST.get('fecha', ''))
         hora = time.fromisoformat(request.POST.get('hora', ''))
@@ -1074,16 +1080,16 @@ def crear_reserva_cliente(request):
             raise ValueError
     except (ValueError, TypeError, ServicioAgenda.DoesNotExist):
         messages.error(request, 'Selecciona un servicio, fecha, profesional y hora válidos.')
-        return redirect('cliente_agendamiento')
+        return volver_a_servicios()
 
     with transaction.atomic():
         Usuario.objects.select_for_update().get(pk=request.user.pk)
         if fecha < timezone.localdate():
             messages.error(request, 'No es posible agendar: la fecha seleccionada ya pasó y no hay horas disponibles.')
-            return redirect('cliente_agendamiento')
+            return volver_a_servicios(servicio.pk)
         if DiaCerrado.objects.filter(fecha=fecha).exists():
             messages.error(request, 'No es posible agendar: el salón está cerrado ese día.')
-            return redirect('cliente_agendamiento')
+            return volver_a_servicios(servicio.pk)
 
         profesional = Usuario.objects.select_for_update().filter(
             pk=profesional_id,
@@ -1094,7 +1100,7 @@ def crear_reserva_cliente(request):
         ).first()
         if profesional is None:
             messages.error(request, 'El profesional seleccionado no está habilitado para ese servicio.')
-            return redirect('cliente_agendamiento')
+            return volver_a_servicios(servicio.pk)
 
         list(Disponibilidad.objects.select_for_update().filter(
             activo=True,
@@ -1115,7 +1121,7 @@ def crear_reserva_cliente(request):
             profesional.pk,
         ):
             messages.error(request, 'Ese horario acaba de ser ocupado. Selecciona otro.')
-            return redirect('cliente_agendamiento')
+            return volver_a_servicios(servicio.pk)
         carrito['servicios'].append({
             'key': cart_item_key,
             'id': servicio.pk,
@@ -1126,11 +1132,7 @@ def crear_reserva_cliente(request):
             'viene_con_acompanante': request.POST.get('viene_con_acompanante') == 'si',
         })
         _guardar_carrito(request, carrito)
-    messages.success(
-        request,
-        'La cita quedó preparada en tu carrito. Revisa los datos y selecciona el pago para confirmar.',
-    )
-    return redirect(f"{reverse('cliente_agendamiento')}?abrir_carrito=1")
+    return volver_a_servicios(servicio.pk)
 
 
 @login_required(login_url='login')

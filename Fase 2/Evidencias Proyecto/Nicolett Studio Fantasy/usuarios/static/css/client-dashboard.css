@@ -26,6 +26,25 @@ body.client-platform #clientLayoutContent {
     overflow-x: clip;
 }
 
+html.client-settings-document {
+    scrollbar-color: #9a6a26 #f5e9d0;
+    scrollbar-width: thin;
+}
+
+html.client-settings-document::-webkit-scrollbar {
+    width: 13px;
+}
+
+html.client-settings-document::-webkit-scrollbar-track {
+    background: #f5e9d0;
+}
+
+html.client-settings-document::-webkit-scrollbar-thumb {
+    border: 3px solid #f5e9d0;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #c49a52, #79511c);
+}
+
 body.client-platform > header.client-topbar {
     z-index: 50;
     width: calc(100% - var(--client-sidebar-width));
@@ -343,6 +362,21 @@ body.client-platform .client-settings-main #direcciones-facturacion > div {
     border-color: var(--client-border);
     border-radius: 14px;
     background: #fcfaf7 !important;
+}
+
+body.client-platform .client-settings-main #direcciones-envio input:not([type="hidden"]),
+body.client-platform .client-settings-main #direcciones-envio select,
+body.client-platform .client-settings-main #direcciones-envio textarea,
+body.client-platform .client-settings-main #direcciones-facturacion input:not([type="hidden"]),
+body.client-platform .client-settings-main #direcciones-facturacion select,
+body.client-platform .client-settings-main #direcciones-facturacion textarea {
+    background-color: #ffffff !important;
+}
+
+body.client-platform .client-settings-main .client-address-card {
+    border-color: #eadfcf !important;
+    border-radius: 12px;
+    background-color: hsl(var(--address-hue) 62% 96%) !important;
 }
 
 body.client-platform .client-settings-main input,

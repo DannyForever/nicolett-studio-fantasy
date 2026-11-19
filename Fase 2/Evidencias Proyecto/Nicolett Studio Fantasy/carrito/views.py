@@ -14,7 +14,7 @@ from django.core import signing
 from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
 from django.db import DatabaseError, transaction
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -32,8 +32,6 @@ from agenda.models import (
 from agenda.views import (
     RESERVA_CITA_CARRITO_MINUTOS,
     horas_disponibles,
-    reservar_horario_carrito,
-    servicios_con_horarios_disponibles,
 )
 from pagos.models import Pago
 from pagos.transbank import (
@@ -143,7 +141,6 @@ def resumen_carrito(request):
             'precio': servicio.precio,
             'subtotal': servicio.precio,
             'url': reverse('cliente_carrito_actualizar'),
-            'agregar_url': reverse('cliente_carrito_agregar_servicio', args=[servicio.pk]),
             'fecha': item.get('fecha', ''),
             'hora': item.get('hora', ''),
             'profesional': (
@@ -418,6 +415,17 @@ def ver_carrito(request):
     total_servicios_abono = Decimal('0')
     saldos_servicios = []
     total_pagar = total_productos
+    from usuarios.models import Usuario
+
+    profesional_ids = {
+        int(item['profesional'])
+        for item in carrito['servicios']
+        if isinstance(item, dict) and str(item.get('profesional', '')).isdecimal()
+    }
+    profesionales = {
+        profesional.pk: profesional
+        for profesional in Usuario.objects.filter(pk__in=profesional_ids)
+    }
     for item in carrito['servicios']:
         if not isinstance(item, dict) or not str(item.get('id', '')).isdecimal():
             servicios.append({
@@ -448,14 +456,30 @@ def ver_carrito(request):
             and hold.hora.strftime('%H:%M') == item.get('hora')
             and str(hold.profesional_id) == str(item.get('profesional'))
         )
+        profesional = profesionales.get(int(item['profesional'])) if str(
+            item.get('profesional', ''),
+        ).isdecimal() else None
+        fecha_display = item.get('fecha', '')
+        try:
+            fecha_display = date.fromisoformat(fecha_display).strftime('%d/%m/%Y')
+        except (TypeError, ValueError):
+            fecha_display = 'Fecha no válida'
         servicios.append({
             'key': item.get('key', ''),
             'id': servicio.pk,
+            'categoria_id': servicio.categoria_id,
             'nombre': servicio.nombre,
             'precio': precio,
             'duracion': servicio.duracion_minutos,
             'fecha': item.get('fecha', ''),
+            'fecha_display': fecha_display,
             'profesional_id': item.get('profesional', ''),
+            'profesional_nombre': ' '.join(part for part in (
+                profesional.nombre if profesional else '',
+                profesional.segundo_nombre if profesional else '',
+                profesional.apellido_paterno if profesional else '',
+                profesional.apellido_materno if profesional else '',
+            ) if part) if profesional else 'Sin profesional asignado',
             'hora': item.get('hora', ''),
             'pago': modalidad,
             'viene_con_acompanante': item.get('viene_con_acompanante', False),
@@ -503,24 +527,32 @@ def ver_carrito(request):
         'puede_pagar': puede_pagar and bool(productos or servicios),
         'resumen_carrito': resumen,
         'total_resumen_carrito': total_resumen,
-        'hoy': timezone.localdate().isoformat(),
-        'profesionales_url': reverse('cliente_profesionales_disponibles'),
-        'horas_url': reverse('cliente_horas_disponibles'),
     })
 
 
 @_cliente_view
 @require_POST
 def agregar_producto(request, pk):
+    destino = request.POST.get('return_to', '')
+
+    def volver_al_catalogo():
+        if destino and url_has_allowed_host_and_scheme(
+            destino,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            return redirect(destino)
+        return redirect('cliente_productos')
+
     _liberar_reservas_vencidas(request)
     try:
         cantidad = int(request.POST.get('cantidad', '1'))
     except (TypeError, ValueError):
         messages.error(request, 'Indica una cantidad válida.')
-        return redirect('cliente_productos')
+        return volver_al_catalogo()
     if cantidad < 1:
         messages.error(request, 'La cantidad indicada no es válida.')
-        return redirect('cliente_productos')
+        return volver_al_catalogo()
 
     carrito = _carrito_sesion(request)
     clave = str(pk)
@@ -533,51 +565,27 @@ def agregar_producto(request, pk):
         ).first()
         if producto_activo is None:
             messages.error(request, 'Este producto ya no está disponible.')
-            return redirect('cliente_productos')
-        producto, reservada = _ajustar_reserva_producto(
+            return volver_al_catalogo()
+        _, reservada = _ajustar_reserva_producto(
             session_key,
             pk,
             nueva_cantidad,
         )
         if not reservada:
             messages.error(request, 'No hay stock disponible para esa cantidad.')
-            return redirect('cliente_productos')
+            return volver_al_catalogo()
     carrito['productos'][clave] = nueva_cantidad
     _guardar_carrito(request, carrito)
-    messages.success(
-        request,
-        f'{producto.nombre} se añadió y quedó reservado por '
-        f'{RESERVA_PRODUCTO_MINUTOS} minutos.',
-    )
-    return redirect('cliente_productos')
+    return volver_al_catalogo()
 
 
 @_cliente_view
 @require_POST
 def agregar_servicio(request, pk):
     servicio = get_object_or_404(Servicio, pk=pk, activo=True)
-    if servicio.pk not in servicios_con_horarios_disponibles():
-        messages.error(request, 'Este servicio no tiene horarios disponibles para agendar.')
-        return redirect('cliente_servicios')
-    carrito = _carrito_sesion(request)
-    carrito['servicios'].append({
-        'key': str(uuid4()),
-        'id': servicio.pk,
-        'pago': '',
-    })
-    _guardar_carrito(request, carrito)
-    messages.success(
-        request,
-        f'{servicio.nombre} se añadió al resumen de compra. Puedes seguir viendo los servicios.',
+    return redirect(
+        f"{reverse('cliente_servicios')}?servicio={servicio.pk}#servicios-semana",
     )
-    destino = request.POST.get('return_to', '')
-    if destino and url_has_allowed_host_and_scheme(
-        destino,
-        allowed_hosts={request.get_host()},
-        require_https=request.is_secure(),
-    ):
-        return redirect(destino)
-    return redirect('cliente_servicios')
 
 
 @_cliente_view
@@ -618,10 +626,8 @@ def actualizar_carrito(request):
                 return redirect('cliente_carrito')
         if cantidad <= 0:
             carrito['productos'].pop(clave, None)
-            messages.success(request, 'Producto eliminado y stock devuelto.')
         else:
             carrito['productos'][clave] = cantidad
-            messages.success(request, 'Cantidad actualizada y stock reservado.')
     elif tipo == 'servicio':
         ReservaCitaTemporal.objects.filter(
             session_key=request.session.session_key or '',
@@ -649,15 +655,16 @@ def actualizar_carrito(request):
 @_cliente_view
 @require_POST
 def guardar_cita_carrito(request, key):
+    _liberar_reservas_vencidas(request)
     carrito = _carrito_sesion(request)
     item = next((linea for linea in carrito['servicios'] if linea.get('key') == key), None)
     if item is None:
         messages.error(request, 'No se encontró el servicio en tu carrito.')
         return redirect('cliente_carrito')
     try:
-        fecha = date.fromisoformat(request.POST.get('fecha', ''))
-        hora = time.fromisoformat(request.POST.get('hora', ''))
-        profesional_id = request.POST.get('profesional', '')
+        fecha = date.fromisoformat(item.get('fecha', ''))
+        hora = time.fromisoformat(item.get('hora', ''))
+        profesional_id = item.get('profesional', '')
         pago = request.POST.get('pago', '')
         servicio = Servicio.objects.get(pk=item['id'], activo=True)
         if (
@@ -670,39 +677,41 @@ def guardar_cita_carrito(request, key):
         ):
             raise ValueError
     except (ValueError, TypeError, Servicio.DoesNotExist):
-        messages.error(request, 'Completa el servicio, fecha, profesional, hora y modalidad de pago.')
+        messages.error(request, 'La cita no tiene datos válidos. Vuelve a seleccionar el horario desde Servicios.')
         return redirect('cliente_carrito')
 
-    if fecha < timezone.localdate() or DiaCerrado.objects.filter(fecha=fecha).exists():
-        messages.error(request, 'No se puede agendar en una fecha pasada o con el salón cerrado.')
-        return redirect('cliente_carrito')
-    profesional_valido = servicio.categoria_id and _profesional_valido(
-        profesional_id,
-        servicio.categoria_id,
-    )
-    if not profesional_valido:
-        messages.error(request, 'El profesional seleccionado no está habilitado para este servicio.')
-        return redirect('cliente_carrito')
-    session_key = _session_key(request)
-    if not reservar_horario_carrito(
-        session_key,
-        key,
-        servicio,
-        fecha,
-        hora,
-        int(profesional_id),
+    try:
+        fecha_enviada = date.fromisoformat(request.POST.get('fecha', ''))
+        hora_enviada = time.fromisoformat(request.POST.get('hora', ''))
+    except (TypeError, ValueError):
+        fecha_enviada = None
+        hora_enviada = None
+    if (
+        fecha_enviada != fecha
+        or hora_enviada != hora
+        or request.POST.get('profesional') != str(profesional_id)
     ):
-        messages.error(request, 'Ese horario ya no está disponible.')
+        messages.error(request, 'Los datos de la cita están bloqueados. Vuelve a Servicios si necesitas otro horario.')
         return redirect('cliente_carrito')
-    item.update({
-        'fecha': fecha.isoformat(),
-        'profesional': str(profesional_id),
-        'hora': hora.strftime('%H:%M'),
-        'pago': pago,
-        'viene_con_acompanante': request.POST.get('viene_con_acompanante') == 'si',
-    })
-    _guardar_carrito(request, carrito)
-    messages.success(request, f'Cita de {servicio.nombre} agregada a tu carrito.')
+
+    with transaction.atomic():
+        hold = ReservaCitaTemporal.objects.select_for_update().filter(
+            session_key=_session_key(request),
+            cart_item_key=key,
+            servicio_id=servicio.pk,
+            fecha=fecha,
+            hora=hora,
+            profesional_id=int(profesional_id),
+            vence_en__gt=timezone.now(),
+        ).first()
+        if hold is None:
+            messages.error(request, 'La reserva temporal venció. Vuelve a seleccionar el horario desde Servicios.')
+            return redirect('cliente_carrito')
+        hold.vence_en = timezone.now() + timedelta(minutes=RESERVA_CITA_CARRITO_MINUTOS)
+        hold.save(update_fields=['vence_en'])
+        item['pago'] = pago
+        _guardar_carrito(request, carrito)
+    messages.success(request, 'Modalidad de pago actualizada.')
     return redirect('cliente_carrito')
 
 
@@ -775,12 +784,18 @@ def _enviar_confirmacion_pedido(request, pedido):
 
 
 def _enviar_formulario_transbank(request, intento):
+    referencia = _referencia_transbank(intento, 'carrito.transbank.return')
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'referencia': referencia,
+            'webpay_abierto': intento.estado == 'webpay_abierto',
+        })
     return render(
         request,
         'usuarios/transbank_formulario.html',
         {
             'webpay_abierto': intento.estado == 'webpay_abierto',
-            'referencia': _referencia_transbank(intento, 'carrito.transbank.return'),
+            'referencia': referencia,
         },
     )
 
@@ -1347,6 +1362,56 @@ def _url_resultado_transbank(intento):
     )
 
 
+def _liberar_citas_intento_transbank(request, intento):
+    carrito_intento = intento.carrito if isinstance(intento.carrito, dict) else {}
+    servicios_intento = carrito_intento.get('servicios', [])
+    if not isinstance(servicios_intento, list):
+        return
+    claves_citas = {
+        item.get('key')
+        for item in servicios_intento
+        if isinstance(item, dict) and item.get('key')
+    }
+    if not claves_citas or not intento.session_key:
+        return
+
+    with transaction.atomic():
+        intento_actual = TransbankPago.objects.select_for_update().get(pk=intento.pk)
+        if intento_actual.estado == 'aprobado' or intento_actual.pedido_id:
+            return
+        ReservaCitaTemporal.objects.filter(
+            session_key=intento.session_key,
+            cart_item_key__in=claves_citas,
+        ).delete()
+
+    def quitar_citas(carrito):
+        if not isinstance(carrito, dict) or not isinstance(carrito.get('servicios'), list):
+            return False
+        citas_restantes = [
+            item for item in carrito['servicios']
+            if not isinstance(item, dict) or item.get('key') not in claves_citas
+        ]
+        if len(citas_restantes) == len(carrito['servicios']):
+            return False
+        carrito['servicios'] = citas_restantes
+        return True
+
+    if request.session.session_key == intento.session_key:
+        carrito = _carrito_sesion(request)
+        if quitar_citas(carrito):
+            _guardar_carrito(request, carrito)
+        return
+
+    session_store_class = import_module(settings.SESSION_ENGINE).SessionStore
+    session_store = session_store_class(session_key=intento.session_key)
+    if not session_store.exists(intento.session_key):
+        return
+    carrito = session_store.get(CLAVE_CARRITO)
+    if quitar_citas(carrito):
+        session_store[CLAVE_CARRITO] = carrito
+        session_store.save()
+
+
 @_cliente_view
 @require_POST
 def abrir_transbank(request):
@@ -1482,9 +1547,10 @@ def volver_carrito_transbank(request):
     if estado_transbank in ('INITIALIZED', 'FAILED', 'REVERSED', 'NULLIFIED'):
         intento.estado = 'rechazado' if estado_transbank == 'FAILED' else 'anulado'
         intento.save(update_fields=['estado', 'actualizado_en'])
+        _liberar_citas_intento_transbank(request, intento)
         messages.info(
             request,
-            'El pago no se completó. Tu carrito se conservó; puedes agregar productos y volver a intentarlo.',
+            'El pago no se completó. Las horas de este intento se liberaron; los productos del carrito se conservaron.',
         )
         return redirect('cliente_carrito')
 
@@ -1530,10 +1596,11 @@ def retorno_transbank(request):
             return HttpResponseBadRequest('Referencia de pago inválida.')
         intento.estado = 'anulado'
         intento.save(update_fields=['estado', 'actualizado_en'])
+        _liberar_citas_intento_transbank(request, intento)
         return _render_estado_transbank(
             request,
             'Pago cancelado',
-            'No se realizó ningún cobro. Puedes volver al carrito e intentarlo nuevamente.',
+            'No se realizó ningún cobro y las horas reservadas se liberaron. Puedes volver a agendar desde Servicios.',
         )
     if not token or not intento.token or not compare_digest(intento.token, token):
         return HttpResponseBadRequest('Token de pago inválido.')
@@ -1568,10 +1635,11 @@ def retorno_transbank(request):
     if not autorizado:
         intento.estado = 'rechazado'
         intento.save(update_fields=['estado', 'actualizado_en'])
+        _liberar_citas_intento_transbank(request, intento)
         return _render_estado_transbank(
             request,
             'Pago no aprobado',
-            'Transbank no aprobó el pago. No se registró la compra; puedes volver al carrito.',
+            'Transbank no aprobó el pago. No se registró la compra y las horas reservadas se liberaron.',
         )
 
     try:
@@ -1585,6 +1653,7 @@ def retorno_transbank(request):
     )
     if not respuesta_coincide:
         reembolsado = _reembolsar_transbank(intento, gateway, monto_confirmado if monto_confirmado > 0 else intento.monto)
+        _liberar_citas_intento_transbank(request, intento)
         mensaje = (
             'La compra no se registró y Transbank confirmó la devolución.'
             if reembolsado
@@ -1622,6 +1691,7 @@ def retorno_transbank(request):
     except DatabaseError:
         logger.exception('No se pudo registrar la compra del intento Transbank %s.', intento.pk)
         reembolsado = _reembolsar_transbank(intento, gateway, intento.monto)
+        _liberar_citas_intento_transbank(request, intento)
         mensaje = (
             'La compra no se registró y Transbank confirmó la devolución.'
             if reembolsado
@@ -1634,6 +1704,7 @@ def retorno_transbank(request):
         return redirect(_url_resultado_transbank(intento))
 
     reembolsado = _reembolsar_transbank(intento, gateway, intento.monto)
+    _liberar_citas_intento_transbank(request, intento)
     mensaje = (
         'El pago fue devuelto porque el stock o el horario cambió antes de completar la compra.'
         if reembolsado

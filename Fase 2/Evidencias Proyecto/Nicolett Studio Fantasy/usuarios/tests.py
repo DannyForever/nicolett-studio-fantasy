@@ -522,6 +522,12 @@ class RoleAccessTests(TestCase):
         for name in section_names:
             with self.subTest(section=name):
                 response = self.client.get(reverse(name))
+                if name == 'cliente_agendamiento':
+                    self.assertRedirects(
+                        response,
+                        f"{reverse('cliente_servicios')}#servicios-semana",
+                    )
+                    response = self.client.get(response['Location'])
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, 'Hola,')
                 self.assertContains(response, '<strong class="text-white">Cliente</strong>')
@@ -736,7 +742,7 @@ class RoleAccessTests(TestCase):
                 {'categoria': categoria.pk},
             )
             booking_response = self.client.get(
-                reverse('cliente_agendamiento'),
+                reverse('cliente_servicios'),
                 {'servicio': servicio.pk},
             )
 
@@ -745,7 +751,7 @@ class RoleAccessTests(TestCase):
             [item.pk for item in category_response.context['servicios']],
             [servicio.pk],
         )
-        self.assertContains(booking_response, f'<option value="{servicio.pk}" selected>')
+        self.assertContains(booking_response, f"const initialServiceId = '{servicio.pk}'")
 
     def test_treatment_category_has_no_flyer_booking_buttons(self):
         cliente = self.crear_cliente()
@@ -850,7 +856,7 @@ class RoleAccessTests(TestCase):
         self.assertContains(servicios_categoria, 'Categoría de servicio nueva')
         self.assertNotContains(servicios_categoria, 'data-service-gallery')
         self.assertNotContains(servicios_categoria, 'AGENDAR CITA')
-        self.assertNotContains(servicios_categoria, 'img/')
+        self.assertNotContains(servicios_categoria, '<img ')
 
         productos = self.client.get(reverse('cliente_productos'))
         self.assertNotContains(productos, 'Todos los productos')
@@ -907,11 +913,11 @@ class RoleAccessTests(TestCase):
             {item.pk for item in response.context['servicios']},
             {item.pk for item in servicios},
         )
-        self.assertContains(response, 'img/catalogo/servicios/colorimetria.jpg')
+        self.assertContains(response, 'img/pag_principal/inicio/salon_portada.jpg')
         self.assertContains(response, '<h1 class="mt-1 font-serif text-4xl font-bold text-[#281b14] sm:text-5xl">Colorimetría</h1>')
-        self.assertContains(response, 'Productos profesionales seleccionados')
+        self.assertContains(response, 'Profesionales especializados')
         self.assertContains(response, 'Evaluación personalizada')
-        self.assertContains(response, 'Cuidado capilar')
+        self.assertContains(response, 'Reserva tu hora en línea')
         self.assertContains(response, 'id="serviceBookingCalendar"')
         self.assertContains(response, 'id="servicePageNext"')
         self.assertContains(response, 'grid items-stretch gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]')
@@ -932,6 +938,30 @@ class RoleAccessTests(TestCase):
         self.assertNotContains(response, 'mx-auto max-w-4xl border border-[#ead7bc] bg-white p-8 shadow-sm')
         self.assertNotContains(response, 'Continuar con la cita')
         self.assertNotContains(response, 'class="mx-auto max-w-6xl overflow-hidden border border-[#ead7bc] bg-white shadow-sm"')
+
+        otra_categoria = Categoria.objects.create(
+            nombre='Cortes & estilos',
+            tipo='servicio',
+            activa=True,
+        )
+        Servicio.objects.create(
+            nombre='Corte de prueba',
+            descripcion='Corte para validar el banner compartido.',
+            precio=18000,
+            duracion_minutos=45,
+            activo=True,
+            categoria=otra_categoria,
+        )
+        otra_respuesta = self.client.get(
+            reverse('cliente_servicios'),
+            {'categoria': otra_categoria.pk},
+        )
+        self.assertContains(otra_respuesta, 'img/pag_principal/inicio/salon_portada.jpg')
+        self.assertContains(
+            otra_respuesta,
+            '<h1 class="mt-1 font-serif text-4xl font-bold text-[#281b14] sm:text-5xl">Cortes &amp; estilos</h1>',
+        )
+        self.assertContains(otra_respuesta, 'Cortes y estilos pensados')
 
     def test_podology_category_is_empty_and_service_remains_bookable(self):
         cliente = self.crear_cliente()
@@ -955,12 +985,12 @@ class RoleAccessTests(TestCase):
                 {'categoria': categoria.pk},
             )
             booking_response = self.client.get(
-                reverse('cliente_agendamiento'),
+                reverse('cliente_servicios'),
                 {'servicio': servicio.pk},
             )
 
         self.assert_service_category_view_is_empty(response)
-        self.assertContains(booking_response, f'<option value="{servicio.pk}" selected>')
+        self.assertContains(booking_response, f"const initialServiceId = '{servicio.pk}'")
 
     def test_colorimetry_category_is_empty_and_service_remains_bookable(self):
         cliente = self.crear_cliente()
@@ -984,12 +1014,12 @@ class RoleAccessTests(TestCase):
                 {'categoria': categoria.pk},
             )
             booking_response = self.client.get(
-                reverse('cliente_agendamiento'),
+                reverse('cliente_servicios'),
                 {'servicio': servicio.pk},
             )
 
         self.assert_service_category_view_is_empty(response)
-        self.assertContains(booking_response, f'<option value="{servicio.pk}" selected>')
+        self.assertContains(booking_response, f"const initialServiceId = '{servicio.pk}'")
 
     def test_customers_only_see_active_services_and_products(self):
         cliente = self.crear_cliente()
@@ -1049,7 +1079,7 @@ class RoleAccessTests(TestCase):
                 {'categoria': categoria_servicio.pk},
             )
             booking_response = self.client.get(
-                reverse('cliente_agendamiento'),
+                reverse('cliente_servicios'),
                 {'servicio': servicio.pk},
             )
 
@@ -1058,7 +1088,7 @@ class RoleAccessTests(TestCase):
             [item.pk for item in services_response.context['servicios']],
             [servicio.pk],
         )
-        self.assertContains(booking_response, f'<option value="{servicio.pk}" selected>')
+        self.assertContains(booking_response, f"const initialServiceId = '{servicio.pk}'")
         self.assertNotContains(booking_response, 'Inactive service test')
 
         products_response = self.client.get(
@@ -1143,7 +1173,7 @@ class RoleAccessTests(TestCase):
 
     def test_product_descriptions_are_visible_without_covering_product_actions(self):
         cliente = self.crear_cliente()
-        categoria = Categoria.objects.create(nombre='Cuidado capilar', tipo='Productos')
+        categoria = Categoria.objects.create(nombre='Cuidado capilar', tipo='producto')
         producto = Producto.objects.create(
             nombre='Producto con foto',
             descripcion='Producto de prueba.',
@@ -1158,12 +1188,21 @@ class RoleAccessTests(TestCase):
         response = self.client.get(reverse('cliente_productos'))
         self.assertContains(response, 'Producto de prueba.')
         self.assertNotContains(response, 'data-image-preview')
-        self.assertContains(
+        self.assertNotContains(
             response,
             'aria-label="Abrir imagen completa de Producto con foto"',
         )
+        self.assertContains(response, f'?categoria={categoria.pk}')
+        self.assertContains(response, 'placeholder="Escribe un nombre..."')
+        self.assertNotContains(response, 'data-category-filter')
+        self.assertNotContains(response, 'Explora por categoría')
+        self.assertContains(response, 'data-search="Producto con foto"')
+        self.assertNotContains(response, 'data-search="Producto con foto Cuidado capilar')
         self.assertContains(response, 'object-contain p-2')
-        self.assertContains(response, 'Consultar por WhatsApp sobre Producto con foto')
+        self.assertContains(response, 'lg:grid-cols-4')
+        self.assertContains(response, 'max-w-[1600px]')
+        self.assertContains(response, 'rounded-2xl')
+        self.assertNotContains(response, 'Consultar por WhatsApp sobre Producto con foto')
         self.assertContains(response, 'Añadir al carrito')
 
     def test_customer_home_opens_on_about_section_without_footer(self):
@@ -1329,7 +1368,7 @@ class RoleAccessTests(TestCase):
         self.assertContains(products, 'Mascarilla demostración')
         self.assertNotContains(products, 'Añadir al carrito')
         self.assertEqual(settings.status_code, 403)
-        self.assertEqual(booking.status_code, 403)
+        self.assertEqual(booking.status_code, 302)
         self.assertRedirects(exit_preview, reverse('colaborador_mi_agenda'))
 
     def test_smart_search_and_preview_are_restricted_by_role(self):
@@ -1541,6 +1580,12 @@ class RoleAccessTests(TestCase):
                 'direccion_id': second.pk,
             },
         )
+        settings_page = self.client.get(response.url)
+        self.assertContains(settings_page, 'data-dismiss-message')
+        self.assertContains(
+            settings_page,
+            'La dirección predeterminada se actualizó correctamente.',
+        )
         self.assertRedirects(
             response,
             f'{reverse("cliente_configuracion")}#direcciones-envio',
@@ -1563,6 +1608,136 @@ class RoleAccessTests(TestCase):
         )
         first.refresh_from_db()
         self.assertTrue(first.predeterminada)
+
+    def test_customer_can_edit_own_address_and_edit_form_is_prefilled(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        direccion = DireccionCliente.objects.create(
+            usuario=cliente,
+            tipo=DireccionCliente.TIPO_ENVIO,
+            nombre='Valentina Pérez',
+            direccion='Calle 1',
+            comuna='Buin',
+            provincia='Maipo',
+            region='Región Metropolitana de Santiago',
+            telefono='+56987654321',
+        )
+        settings_url = reverse('cliente_configuracion')
+
+        edit_page = self.client.get(
+            settings_url,
+            {'editar_direccion': direccion.pk},
+        )
+        self.assertEqual(edit_page.status_code, 200)
+        edit_form = edit_page.context['direccion_edicion_form']
+        self.assertEqual(edit_form['nombre'].value(), 'Valentina Pérez')
+        self.assertEqual(edit_form['region'].value(), '')
+        self.assertEqual(edit_form['provincia'].value(), '')
+        self.assertEqual(edit_form['comuna'].value(), '')
+        self.assertContains(edit_page, '>Editar</a>')
+
+        response = self.client.post(
+            settings_url,
+            {
+                'accion': 'editar_direccion',
+                'direccion_id': direccion.pk,
+                'envio-nombre': 'Valentina actualizada',
+                'envio-direccion': 'Av. Los Aromos 123',
+                'envio-region': 'Región Metropolitana de Santiago',
+                'envio-provincia': 'Maipo',
+                'envio-comuna': 'Buin',
+                'envio-telefono': '+56987654322',
+            },
+        )
+        self.assertRedirects(response, f'{settings_url}#direcciones-envio')
+        direccion.refresh_from_db()
+        self.assertEqual(direccion.nombre, 'Valentina actualizada')
+        self.assertEqual(direccion.direccion, 'Av. Los Aromos 123')
+        self.assertTrue(direccion.predeterminada)
+
+        otro_cliente = Usuario.objects.create_user(
+            email='otra.edicion@example.com',
+            password='Cliente123!',
+            nombre='Otra',
+            apellido_paterno='Persona',
+            apellido_materno='Prueba',
+            telefono='+56987654322',
+            rol=self.client_role,
+        )
+        self.client.force_login(otro_cliente)
+        unauthorized_edit = self.client.post(
+            settings_url,
+            {
+                'accion': 'editar_direccion',
+                'direccion_id': direccion.pk,
+            },
+        )
+        self.assertEqual(unauthorized_edit.status_code, 404)
+
+    def test_billing_address_edit_form_is_prefilled(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        direccion = DireccionCliente.objects.create(
+            usuario=cliente,
+            tipo=DireccionCliente.TIPO_FACTURACION,
+            nombre='Valentina Pérez',
+            rut='12345678-5',
+            razon_social='Estudio Nicolett',
+            giro='Servicios de belleza',
+            direccion='Calle 2',
+            complemento='Oficina 4',
+            comuna='Buin',
+            provincia='Maipo',
+            region='Región Metropolitana de Santiago',
+            codigo_postal='9500000',
+            telefono='+56987654321',
+        )
+
+        edit_page = self.client.get(
+            reverse('cliente_configuracion'),
+            {'editar_direccion': direccion.pk},
+        )
+        self.assertEqual(edit_page.status_code, 200)
+        edit_form = edit_page.context['direccion_edicion_form']
+        self.assertEqual(edit_form['rut'].value(), '12345678-5')
+        self.assertEqual(edit_form['razon_social'].value(), 'Estudio Nicolett')
+        self.assertEqual(edit_form['giro'].value(), 'Servicios de belleza')
+        self.assertEqual(edit_form['complemento'].value(), 'Oficina 4')
+        self.assertEqual(edit_form['codigo_postal'].value(), '9500000')
+        self.assertEqual(edit_form['region'].value(), '')
+        self.assertEqual(edit_form['provincia'].value(), '')
+        self.assertEqual(edit_form['comuna'].value(), '')
+
+    def test_location_fields_are_empty_when_editing_both_address_types(self):
+        cliente = self.crear_cliente()
+        self.client.force_login(cliente)
+        direcciones = [
+            DireccionCliente.objects.create(
+                usuario=cliente,
+                tipo=tipo,
+                nombre='Valentina Pérez',
+                rut='12345678-5' if tipo == DireccionCliente.TIPO_FACTURACION else '',
+                direccion='General Manuel Tovarias 602',
+                comuna='El Bosque',
+                region='Metropolitana',
+                telefono='+56987654321',
+            )
+            for tipo in (
+                DireccionCliente.TIPO_ENVIO,
+                DireccionCliente.TIPO_FACTURACION,
+            )
+        ]
+
+        for direccion in direcciones:
+            with self.subTest(tipo=direccion.tipo):
+                edit_page = self.client.get(
+                    reverse('cliente_configuracion'),
+                    {'editar_direccion': direccion.pk},
+                )
+                edit_form = edit_page.context['direccion_edicion_form']
+                self.assertEqual(edit_form['region'].value(), '')
+                self.assertEqual(edit_form['provincia'].value(), '')
+                self.assertEqual(edit_form['comuna'].value(), '')
 
     def test_password_eye_and_download_link_are_visible_in_their_headers(self):
         self.client.force_login(self.crear_cliente())
@@ -1809,7 +1984,7 @@ class RoleAccessTests(TestCase):
         )
         self.assertContains(response, 'Cambiar vista')
         self.assertContains(response, reverse('admin_vista_cliente'))
-        self.assertContains(response, 'dashboard.css?v=20261103-2')
+        self.assertContains(response, 'dashboard.css?v=20261103-6')
 
     def test_customer_can_update_account_details_and_password(self):
         cliente = self.crear_cliente()
