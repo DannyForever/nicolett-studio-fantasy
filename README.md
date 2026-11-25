@@ -1,11 +1,9 @@
 # Nicolett Studio Fantasy
-
+> [!NOTE]
+> Plataforma web desarrollada para digitalizar la gestión del salón, simplificar la reserva de servicios y mejorar la experiencia de clientas y colaboradores.
 <div align="center">
   <img src="./assets/Nicolett_studio_logo.png" alt="Nicolett Studio Fantasy - Belleza a tu ritmo y sin barreras" width="900">
 </div>
-
-> [!NOTE]
-> Plataforma web desarrollada para digitalizar la gestión del salón, simplificar la reserva de servicios y mejorar la experiencia de clientas y colaboradores.
 
 <p align="center">
   <a href="https://nicolett-studio-fantasy.onrender.com/" target="_blank" rel="noopener noreferrer">
@@ -28,16 +26,7 @@
   </a>
 </p>
 
-<h3 align="center">📊 Estadísticas del repositorio</h3>
-
-<p align="center">
-  <a href="https://github.com/DannyForever/nicolett-studio-fantasy" target="_blank" rel="noopener noreferrer">
-    <img width="400" src="https://github-readme-stats.vercel.app/api/pin/?username=DannyForever&amp;repo=nicolett-studio-fantasy&amp;show_owner=true&amp;hide_border=true&amp;bg_color=fff9f2&amp;title_color=9b6a2f&amp;text_color=4f3b32&amp;icon_color=b88a4a" alt="Tarjeta con estadísticas del repositorio Nicolett Studio Fantasy">
-  </a>
-</p>
-
 ## 📌 1. Descripción del proyecto
-
 **Nicolett Studio Fantasy** es una plataforma integral para un salón de belleza. Permite explorar servicios, gestionar citas, administrar el catálogo, llevar ventas y pagos, recibir recordatorios y atender a usuarios con distintos niveles de acceso desde una sola solución.
 
 <div align="center">
@@ -47,7 +36,6 @@
 </div>
 
 ### 👥 ¿A quién está dirigida?
-
 | Perfil | Necesidad principal | Funcionalidad destacada |
 | --- | --- | --- |
 | Propietaria y administradoras | Centralizar la operación del salón | Dashboard, agenda, servicios, personal y reportes |
@@ -56,6 +44,8 @@
 | Visitantes | Conocer la oferta del salón | Servicios, galería, información y contacto |
 
 ### 🎯 Problemas que resuelve
+> [!TIP]
+> Las funciones disponibles varían según el perfil del usuario: cliente, colaborador o administrador.
 
 - Evita la gestión de citas mediante llamadas, mensajes y hojas de cálculo dispersas.
 - Reduce conflictos de horario y facilita la coordinación entre profesionales.
@@ -63,11 +53,7 @@
 - Mantiene disponibles los datos de ventas, citas y perfiles para cada rol.
 - Simplifica el proceso de pago en línea y la consulta del estado de las compras.
 
-> [!TIP]
-> Las funciones disponibles varían según el perfil del usuario: visitante, clienta, colaboradora o administradora.
-
 ## 🛠️ 2. Tecnologías utilizadas
-
 <p align="center">
   <img width="360" src="https://skillicons.dev/icons?i=python,django,html,css,js,sqlite,postgres,docker,render&amp;perline=5" alt="Logos de Python, Django, HTML5, CSS3, JavaScript, SQLite, PostgreSQL, Docker y Render">
 </p>
@@ -80,13 +66,11 @@
 > SQLite se utiliza como opción predeterminada para desarrollo. PostgreSQL puede configurarse mediante `DATABASE_URL` en entornos que requieren una base de datos administrada.
 
 ## 🚀 3. Ejecución y despliegue
-
 La plataforma está desplegada en Render y se puede visitar en [nicolett-studio-fantasy.onrender.com](https://nicolett-studio-fantasy.onrender.com/).
 
 Las siguientes instrucciones permiten ejecutar una instancia localmente, ya sea con Docker o directamente en un entorno Python. La ruta de ejemplo corresponde a la ubicación del proyecto Django dentro de este repositorio.
 
 ### 🐳 Con Docker
-
 1. Instala y abre Docker Desktop.
 2. Desde una terminal en la raíz del repositorio, entra a la carpeta del proyecto Django:
 
@@ -115,7 +99,6 @@ docker compose down
 ```
 
 ### 🧰 Sin Docker
-
 1. Asegúrate de tener Python instalado. Desde una terminal en la raíz del repositorio, entra a la carpeta del proyecto Django:
 
    ```powershell
@@ -147,16 +130,12 @@ docker compose down
 
 <details>
 <summary><strong>📧 Configuración de correo electrónico</strong></summary>
-
 Para enviar comprobantes por correo, configura `EMAIL_HOST_USER` y `EMAIL_HOST_PASSWORD` en el archivo `.env` utilizando una cuenta SMTP y una contraseña de aplicación.
-
 Si las variables quedan vacías, Django utilizará el backend de consola local y el correo se mostrará únicamente en el terminal.
-
 </details>
 
 <details>
 <summary><strong>💳 Configuración de pagos con Transbank</strong></summary>
-
 Por defecto, Webpay Plus se ejecuta en modo de integración:
 
 ```env
@@ -170,12 +149,10 @@ Para producción se deben configurar además, en `.env` o en las variables segur
 - `TRANSBANK_RETURN_URL` con una dirección pública HTTPS
 
 La aplicación registra una compra únicamente después de confirmar su estado con Transbank. Los datos de tarjeta se ingresan exclusivamente en la página segura de Webpay.
-
 </details>
 
 <details>
 <summary><strong>🗄️ Persistencia y despliegue con Docker</strong></summary>
-
 Docker ejecuta las migraciones al iniciar y conserva SQLite y los archivos subidos mediante volúmenes persistentes. Estos datos son independientes de una base local o de la instancia desplegada en Render.
 
 Para actualizar la aplicación desde GitHub:
@@ -188,11 +165,9 @@ docker compose up --build -d
 
 > [!CAUTION]
 > No uses `docker compose down -v` si deseas conservar la base de datos y los archivos cargados.
-
 </details>
 
 ## 🏗️ 4. Arquitectura de la solución
-
 La solución sigue una arquitectura cliente-servidor basada en el patrón **Model-Template-View (MTV)** de Django.
 
 ```mermaid
@@ -224,7 +199,6 @@ flowchart LR
 ```
 
 ### 🔄 Flujo principal
-
 1. El usuario accede desde un navegador y selecciona un servicio o una acción del sistema.
 2. Django recibe la solicitud a través de las rutas y ejecuta la vista correspondiente.
 3. Los modelos consultan o modifican los datos mediante el ORM.
@@ -233,7 +207,6 @@ flowchart LR
 6. Los servicios de pago y correo se integran de forma externa cuando la operación lo requiere.
 
 ### 🧩 Módulos principales
-
 | Módulo | Responsabilidad |
 | --- | --- |
 | `usuarios` | Registro, autenticación y perfiles |
@@ -246,7 +219,6 @@ flowchart LR
 | `fichas` | Información asociada a la atención |
 
 ## 📐 5. Requerimientos no funcionales
-
 Los requerimientos no funcionales (RNF) definen **cómo debe funcionar** la plataforma: su seguridad, velocidad, disponibilidad y facilidad de uso, además de las funciones que ofrece. La matriz de requerimientos del proyecto establece las siguientes metas y su impacto:
 
 | Requerimiento | Meta definida en la matriz | Impacto en el proyecto y por qué importa |
